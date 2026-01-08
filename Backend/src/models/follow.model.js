@@ -20,8 +20,8 @@ const followSchema = new mongoose.Schema(
 
 // Prevent duplicate follows
 followSchema.index(
-  { followerId: 1, followingId: 1 },
-  { unique: true }
+    { followerId: 1, followingId: 1 },
+    { unique: true }
 );
 
 export const Follow = mongoose.model("Follow", followSchema);

@@ -44,7 +44,4 @@ const subscriptionSchema = new mongoose.Schema(
 
 subscriptionSchema.index({ userId: 1, status: 1 });
 
-export const Subscription = mongoose.model(
-  "Subscription",
-  subscriptionSchema
-);
+export const Subscription = mongoose.model("Subscription",subscriptionSchema);
