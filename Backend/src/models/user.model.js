@@ -73,17 +73,19 @@ const userSchema = new mongoose.Schema(
             default: true,
         },
         refreshToken : {
-            type : String, 
+            type : String,
+            select : false
         }
 
     },
     {timestamps : true})
 
 
-userSchema.pre("save", async (next) => {
-    if(!this.isModified('password')) return 
+userSchema.pre("save", async function (next) {
+    if(!this.isModified('password')) return next();
 
     this.password = await bcrypt.hash(this.password, 10)
+    next()
 })
 
 userSchema.methods.verifyPassword = async function (password) {
@@ -94,10 +96,8 @@ userSchema.methods.verifyPassword = async function (password) {
 userSchema.methods.generateAccessToken = function (params) {
     return jwt.sign(
         {
-            _id : this.id,
-            email : this.email,
-            username : this.username,
-            fullName : this.fullName,
+            _id : this._id,
+            role : this.role
         },
         process.env.ACCESS_TOKEN_SECRET,
         {
