@@ -1,0 +1,32 @@
+import mongoose from 'mongoose'
+
+const contestMessageSchema = new mongoose.Schema(
+    {
+        contestId: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "Contest",
+            required: true,
+            index: true,
+        },
+
+        senderId: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "User",
+            required: true,
+        },
+
+        message: {
+            type: String,
+            required: true,
+        },
+
+        messageType: {
+            type: String,
+            enum: ["text", "system"],
+            default: "text",
+        },
+    },
+    { timestamps: true }
+);
+
+export const ContestMessage = mongoose.model( "ContestMessage", contestMessageSchema);
