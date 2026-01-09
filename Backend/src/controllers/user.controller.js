@@ -2,11 +2,11 @@ import {ApiError} from '../utils/ApiError.utils.js'
 import {ApiResponse} from '../utils/ApiResponse.utils.js'
 import {asyncHandler} from '../utils/AsyncHandler.utils.js'
 import {uploadOnCloudinary, deleteFromCloudinary} from '../utils/cloudinary.utils.js'
-import { generateAccessAndRefereshTokens } from '../utils/generateToken.utils.js'
 import {hashToken} from '../utils/hashToken.utils.js'
 import {User} from '../models/user.model.js'
 import jwt from 'jsonwebtoken'
 import mongoose from 'mongoose'
+import { createNewUserService, generateAccessAndRefereshTokensService } from '../services/user.services.js'
 
 
 
@@ -28,11 +28,11 @@ const registerUser = asyncHandler(async(req, res) => {
 
     // create new user
 
-    const user = await User.create({
+    const user = await createNewUserService({
         fullName : fullName,
         email : email,
         password : password,
-        username : username.toLowerCase()
+        username : username
     })
 
     const createdUser = await User.findById(user._id)
@@ -68,7 +68,7 @@ const loginUser = asyncHandler(async(req, res) => {
          throw new ApiError(401, "Invalid user credentials")
     }
 
-    const {accessToken, refreshToken} = await generateAccessAndRefereshTokens(user._id)
+    const {accessToken, refreshToken} = await generateAccessAndRefereshTokensService(user._id)
 
     const loggedInUser = await User.findById(user._id).select("-password -refreshToken");
 
@@ -156,7 +156,7 @@ const refreshAccessToken = asyncHandler( async (req, res) => {
             throw new ApiError(401, "Refresh token revoked");
         }
 
-        const {accessToken, refreshToken} = await generateAccessAndRefereshTokens(user._id)
+        const {accessToken, refreshToken} = await generateAccessAndRefereshTokensService(user._id)
 
         //  send new cookie
 
