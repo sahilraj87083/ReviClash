@@ -236,7 +236,33 @@ const getCurrentUser = asyncHandler(async(req, res) => {
 })
 
 const updateAccountDetails = asyncHandler(async(req, res) => {
+    const {fullName, bio} = req.body
 
+    if (!fullName && !bio) {
+        throw new ApiError(400, "At least one field is required")
+    }
+    const updateFields = {};
+    if (fullName) updateFields.fullName = fullName;
+    if (bio) updateFields.bio = bio;
+
+    const user = await User.findByIdAndUpdate(
+        req.user?._id,
+        {
+            $set : updateFields
+        },
+        {
+            new : true,
+            runValidators : true,
+        }
+    ).select("-password -refreshToken")
+
+    if (!user) {
+        throw new ApiError(404, "User not found");
+    }
+
+    return res
+    .status(200)
+    .json(new ApiResponse(200, "Account details updated successfully", user))
 })
 
 const updateUserAvatar = asyncHandler(async(req, res) => {
