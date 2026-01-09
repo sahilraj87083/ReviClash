@@ -21,11 +21,16 @@ const questionSchema = new mongoose.Schema(
             required: true,
         },
 
-        problemUrl: {
+        problemUrlOriginal: {
             type: String,
             required: true,
         },
 
+        problemUrlNormalized: { // for duplicacy check
+            type: String,
+            required: true,
+            index: true,
+        },
         difficulty: {
             type: String,
             enum: ["easy", "medium", "hard"],
@@ -38,6 +43,12 @@ const questionSchema = new mongoose.Schema(
         },
     },
     { timestamps: true }
-    );
+);
+
+
+questionSchema.index(
+    { ownerId: 1, problemUrlNormalized: 1 },
+    { unique: true }
+);
 
 export const Question = mongoose.model("Question", questionSchema);
