@@ -183,7 +183,37 @@ const refreshAccessToken = asyncHandler( async (req, res) => {
 })
 
 const changeCurrentPassword = asyncHandler(async(req, res) => {
+    const {oldPassword, newPassword, confirmPassword} = req.body
 
+    if (oldPassword === newPassword) {
+        throw new ApiError(400, "New password must be different from old password");
+    }
+
+    if(newPassword !== confirmPassword){
+        throw new ApiError(
+            400,
+            "New password and Confirm Password mismatch"
+        )
+    }
+
+    const user = await User.findById(req.user?._id)
+
+    if (!user) {
+        throw new ApiError(404, "User not found");
+    }
+
+    const isOldPasswordValid = await user.verifyPassword(oldPassword)
+
+    if(!isOldPasswordValid){
+        throw new ApiError(400, "Invalid old password")
+    }
+
+    user.password = newPassword
+    await user.save()
+
+    return res
+    .status(200)
+    .json(new ApiResponse(200, "Password changed successfully", {}))
 })
 
 const getCurrentUser = asyncHandler(async(req, res) => {
