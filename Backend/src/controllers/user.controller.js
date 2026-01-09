@@ -266,7 +266,7 @@ const updateAccountDetails = asyncHandler(async(req, res) => {
 })
 
 const updateUserAvatar = asyncHandler(async(req, res) => {
-     const avatarLocalPath = req.file?.path
+    const avatarLocalPath = req.file?.path
 
     if (!avatarLocalPath) {
         throw new ApiError(400, "Avatar file is missing")
@@ -334,7 +334,71 @@ const updateUserAvatar = asyncHandler(async(req, res) => {
 })
 
 const updateUserCoverImage = asyncHandler(async(req, res) => {
+    const coverImageLocalPath = req.file?.path
 
+    if (!coverImageLocalPath) {
+        throw new ApiError(400, "CoverImage file is missing")
+    }
+
+    if (!req.file.mimetype.startsWith("image/")) {
+        //const allowedTypes = ["image/jpeg", "image/png", "image/webp"];
+        throw new ApiError(400, "Only image files are allowed");
+    }
+
+    // 1️ get current user FIRST (to capture old coverImage)
+    const user = await User.findById(req.user._id).select("coverImage");
+
+    if (!user) {
+        throw new ApiError(404, "User not found");
+    }
+
+    const oldCoverImagePublicId = user.coverImage?.public_id;
+
+    // Upload new CoverImage
+    const coverImage = await uploadOnCloudinary(coverImageLocalPath)
+
+    if (!coverImage || !coverImage.public_id) {
+        throw new ApiError(400, "Error while uploading CoverImage on Cloudinary")
+    }
+    let updatedUser;
+    try {
+        updatedUser = await User.findByIdAndUpdate(
+            req.user?._id,
+            {
+                $set : {
+                    coverImage : {
+                        public_id : coverImage.public_id,
+                        url : coverImage.secure_url
+                    }
+                }
+            },
+            {
+                new : true
+            }
+        ).select('-password -refreshToken')
+    } catch (error) {
+
+        // Rollback new upload if DB update fails
+        await deleteFromCloudinary(coverImage.public_id);
+
+        throw new ApiError(500, "Error updating coverImage in database")
+    }
+
+    if(!updatedUser){
+        throw new ApiError(500, "Error updating coverImage in database")
+    }
+
+    //Delete old coverImage from Cloudinary
+    if(oldCoverImagePublicId){
+        // Deletion should never block user success.
+        await deleteFromCloudinary(oldCoverImagePublicId).catch(() => {});
+    }
+
+    return res
+    .status(200)
+    .json(
+        new ApiResponse(200, "CoverImage image updated successfully", updatedUser)
+    )
 })
 
 
