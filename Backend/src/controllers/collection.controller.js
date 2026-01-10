@@ -3,6 +3,7 @@ import {ApiError} from '../utils/ApiError.utils.js'
 import {ApiResponse} from '../utils/ApiResponse.utils.js'
 import mongoose, { isValidObjectId } from 'mongoose'
 import { Collection } from '../models/collection.model.js'
+import { Question } from "../models/question.model.js";
 import {CollectionQuestion} from '../models/collectionQuestion.model.js'
 import { createCollectionService } from '../services/collection.services.js'
 
