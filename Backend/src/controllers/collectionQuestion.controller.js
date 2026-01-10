@@ -60,7 +60,32 @@ const addQuestionToCollection = asyncHandler( async (req, res) => {
 })
 
 const removeQuestionFromCollection = asyncHandler( async (req, res) => {
-    
+    const { collectionId, questionId } = req.params;
+
+    if(!isValidObjectId(questionId)){
+        throw new ApiError(400, "Invalid question ID");
+    }
+
+    await validateCollection(collectionId, req.user._id);
+
+    const removed = await CollectionQuestion.findOneAndDelete({
+        collectionId,
+        questionId,
+    });
+
+    if (!removed) {
+        throw new ApiError(404, "Question not found in this collection");
+    }
+
+    await Collection.updateOne(
+        { _id: collectionId },
+        { $inc: { questionsCount: -1 } }
+    );
+
+    return res
+        .status(200)
+        .json(new ApiResponse(200, "Question removed from collection"));
+
 })
 
 const bulkAddQuestions = asyncHandler( async (req, res) => {
