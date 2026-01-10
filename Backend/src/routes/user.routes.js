@@ -9,49 +9,98 @@ import {
     updateUserAvatar,
     updateUserCoverImage,
     getUserProfile
-} from '../controllers/user.controller.js'
-import {Router} from 'express'
-import {upload} from '../middlewares/multer.middleware.js'
-import {verifyJWT} from '../middlewares/auth.middleware.js'
-import { body } from 'express-validator'
+} from "../controllers/user.controller.js";
+
+import { Router } from "express";
+import { upload } from "../middlewares/multer.middleware.js";
+import { verifyJWT } from "../middlewares/auth.middleware.js";
+import { validate } from "../middlewares/validate.middleware.js";
+import { body, param } from "express-validator";
+
+const router = Router();
 
 
-const router = Router()
+// public routes
 
-router.route('/register').post(
-        [
-            body('email').isEmail().withMessage('Invalid Email'),
-            body('username').isLength({min : 3}).withMessage('Username must be at least 3 characters long'),
-            body('fullName').isLength({min : 3}).withMessage('Name must be at least 3 characters long'),
-            body('password').isLength({ min: 6 }).withMessage('Password must be at least 6 characters long')
-        ],
-        registerUser
-)
-
-router.route('/login').post(
+router.post(
+    "/register",
     [
-    body('email').isEmail().withMessage('Invalid Email'),
-    body('password').isLength({ min: 6 }).withMessage('Password must be at least 6 characters long')
+        body("email").isEmail().withMessage("Invalid email"),
+        body("username").isLength({ min: 3 }).withMessage("Username must be at least 3 characters"),
+        body("fullName").isLength({ min: 3 }).withMessage("Full name must be at least 3 characters"),
+        body("password").isLength({ min: 6 }).withMessage("Password must be at least 6 characters")
     ],
+    validate,
+    registerUser
+);
+
+router.post(
+    "/login",
+    [
+        body("email").isEmail().withMessage("Invalid email"),
+        body("password").isLength({ min: 6 }).withMessage("Password must be at least 6 characters")
+    ],
+    validate,
     loginUser
-)
-
-router.route('/refresh-token').post(refreshAccessToken)
-router.route('/c/:username').get(getUserProfile)
-
-// // secure routes
-
-router.route('/logout').post(verifyJWT, logoutUser)
-router.route('/change-password').post(verifyJWT, changeCurrentPassword)
-router.route('/current-user').get(verifyJWT, getCurrentUser)
-router.route("/update-account").patch(verifyJWT, updateAccountDetails)
-router.route('/update-avatar').patch(verifyJWT, upload.single('avatar'), updateUserAvatar)
-router.route('/update-coverImage').patch(verifyJWT, upload.single("coverImage"), updateUserCoverImage)
+);
 
 
 
-export {
-    router
-}
+router.get(
+    "/c/:username",
+    [
+        param("username")
+            .trim()
+            .isLength({ min: 3 })
+            .withMessage("Username must be at least 3 characters")
+    ],
+    validate,
+    getUserProfile
+);
 
-export default router
+router.post("/refresh-token", refreshAccessToken);
+
+// secured routes
+
+router.post("/logout", verifyJWT, logoutUser);
+
+router.post(
+    "/change-password",
+    verifyJWT,
+    [
+        body("oldPassword").isLength({ min: 6 }),
+        body("newPassword").isLength({ min: 6 }),
+        body("confirmPassword").isLength({ min: 6 })
+    ],
+    validate,
+    changeCurrentPassword
+);
+
+router.get("/current-user", verifyJWT, getCurrentUser);
+
+router.patch(
+    "/update-account",
+    verifyJWT,
+    [
+        body("fullName").optional().isLength({ min: 3 }),
+        body("bio").optional().isLength({ max: 300 })
+    ],
+    validate,
+    updateAccountDetails
+);
+
+router.patch(
+    "/update-avatar",
+    verifyJWT,
+    upload.single("avatar"),
+    updateUserAvatar
+);
+
+router.patch(
+    "/update-coverImage",
+    verifyJWT,
+    upload.single("coverImage"),
+    updateUserCoverImage
+);
+
+export default router;
