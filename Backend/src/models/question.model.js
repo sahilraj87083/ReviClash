@@ -13,6 +13,7 @@ const questionSchema = new mongoose.Schema(
             type: String,
             required: true,
             trim: true,
+            index : true
         },
 
         platform: {
@@ -55,5 +56,13 @@ questionSchema.index(
     { ownerId: 1, problemUrlNormalized: 1, isDeleted: 1 },
     { unique: true }
 );
+questionSchema.index({ ownerId: 1, topics: 1 });
+questionSchema.index({
+    title: "text",
+    topics: "text",
+    platform: "text"
+});
+
+
 
 export const Question = mongoose.model("Question", questionSchema);

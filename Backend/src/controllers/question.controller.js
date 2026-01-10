@@ -3,7 +3,7 @@ import {asyncHandler} from '../utils/AsyncHandler.utils.js'
 import {ApiError} from '../utils/ApiError.utils.js'
 import {ApiResponse} from '../utils/ApiResponse.utils.js'
 import mongoose, { isValidObjectId } from 'mongoose'
-import {validationResult} from 'express-validator'
+import {query, validationResult} from 'express-validator'
 import {normalizeUrlservice, uploadQuestionService} from '../services/question.services.js'
 
 
@@ -33,6 +33,65 @@ const uploadQuestion = asyncHandler(async (req, res) => {
 
 const getAllQuestions = asyncHandler(async (req, res) => {
 
+    let { difficulty, topic, platform, mode, search, page = 1, limit = 20 } = req.query;
+
+    const pageNum = Number(page) || 1;
+    const limitNum = Math.min(Number(limit) || 20, 50);
+    const skip = (pageNum - 1) * limitNum;
+
+    const conditions = [
+        { ownerId: req.user._id },
+        { isDeleted: false }
+    ];
+
+    if (search && search.trim() !== "") {
+        conditions.push({ $text: { $search: search } });
+    }
+
+    if (difficulty && difficulty.trim() !== "") {
+        conditions.push({ difficulty: difficulty.trim().toLowerCase() });
+    }
+
+    if (platform && platform.trim() !== "") {
+        conditions.push({ platform: platform.trim() });
+    }
+
+    if (topic && topic.trim() !== "") {
+        const topicsArray = topic
+            .split(",")
+            .map(t => t.trim().toLowerCase());
+
+        const searchMode = mode === "any" ? "$in" : "$all";
+
+        conditions.push({
+            topics: { [searchMode]: topicsArray }
+        });
+    }
+
+    const filter = { $and: conditions };
+
+
+    const [questions, total] = await Promise.all(
+        [
+            Question.find(filter)
+            .sort({createdAt : -1})
+            .skip(skip)
+            .limit(limitNum),
+
+            Question.countDocuments(filter)
+        ]
+    )
+
+    return res.status(200)
+    .json(
+        new ApiResponse(200, "Questions fetched", {
+            total,
+            page: pageNum,
+            pages: Math.ceil(total / limitNum),
+            limit: limitNum,
+            questions,
+        })
+    )
 })
 
 const getQuestionById = asyncHandler(async (req, res) => {
