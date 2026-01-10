@@ -36,8 +36,7 @@ const getMyCollections = asyncHandler( async (req, res) => {
 
     const collections = await Collection.find(
         {
-            ownerId : req.user._id,
-            isDeleted : false
+            ownerId : req.user._id
         }
     ).sort({createdAt : -1})
 
