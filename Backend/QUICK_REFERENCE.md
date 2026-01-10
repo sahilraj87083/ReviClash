@@ -46,6 +46,11 @@ All protected endpoints require `accessToken` cookie.
 | 8 | PATCH | `/users/update-account` | Update name/bio |
 | 9 | PATCH | `/users/update-avatar` | Upload new avatar image |
 | 10 | PATCH | `/users/update-coverImage` | Upload new cover image |
+| 11 | POST | `/question` | Create new question |
+| 12 | GET | `/question` | Get user's questions (with filters) |
+| 13 | GET | `/question/:questionId` | Get specific question |
+| 14 | PATCH | `/question/:questionId` | Update question details |
+| 15 | DELETE | `/question/:questionId` | Delete (soft delete) question |
 
 ---
 
@@ -118,11 +123,82 @@ curl -X GET http://localhost:5000/api/v1/users/current-user \
   -H "Cookie: accessToken=<token>"
 ```
 
+### GET /users/c/:username (Public)
+```bash
+curl -X GET http://localhost:5000/api/v1/users/c/john_doe
+```
+
 ---
 
-### PATCH /users/update-avatar (Requires Auth)
+### POST /question (Requires Auth)
 ```bash
-curl -X PATCH http://localhost:5000/api/v1/users/update-avatar \
+curl -X POST http://localhost:5000/api/v1/question \
+  -H "Cookie: accessToken=<token>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "title": "Two Sum",
+    "platform": "LeetCode",
+    "problemUrl": "https://leetcode.com/problems/two-sum/",
+    "difficulty": "easy",
+    "topics": ["array", "hash-table"]
+  }'
+```
+
+---
+
+### GET /question (Requires Auth)
+```bash
+# Get all questions with pagination
+curl -X GET "http://localhost:5000/api/v1/question?page=1&limit=20" \
+  -H "Cookie: accessToken=<token>"
+
+# Filter by difficulty
+curl -X GET "http://localhost:5000/api/v1/question?difficulty=medium" \
+  -H "Cookie: accessToken=<token>"
+
+# Filter by platform
+curl -X GET "http://localhost:5000/api/v1/question?platform=LeetCode" \
+  -H "Cookie: accessToken=<token>"
+
+# Filter by topics
+curl -X GET "http://localhost:5000/api/v1/question?topic=arrays,strings&mode=any" \
+  -H "Cookie: accessToken=<token>"
+
+# Full text search
+curl -X GET "http://localhost:5000/api/v1/question?search=binary%20search" \
+  -H "Cookie: accessToken=<token>"
+```
+
+---
+
+### GET /question/:questionId (Requires Auth)
+```bash
+curl -X GET http://localhost:5000/api/v1/question/507f1f77bcf86cd799439011 \
+  -H "Cookie: accessToken=<token>"
+```
+
+---
+
+### PATCH /question/:questionId (Requires Auth)
+```bash
+curl -X PATCH http://localhost:5000/api/v1/question/507f1f77bcf86cd799439011 \
+  -H "Cookie: accessToken=<token>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "difficulty": "medium",
+    "platform": "LeetCode"
+  }'
+```
+
+---
+
+### DELETE /question/:questionId (Requires Auth)
+```bash
+curl -X DELETE http://localhost:5000/api/v1/question/507f1f77bcf86cd799439011 \
+  -H "Cookie: accessToken=<token>"
+```
+
+---
   -H "Cookie: accessToken=<token>" \
   -F "avatar=@./image.jpg"
 ```
@@ -212,6 +288,26 @@ curl -X GET http://localhost:5000/api/v1/users/c/john_doe
 ### Avatar/Cover Image
 - Only image files allowed
 - Common formats: JPG, PNG, WebP, GIF
+
+### Question Title
+- Min length: 2 characters (at creation)
+- Min length: 3 characters (at update)
+
+### Question Platform
+- Must be one of: "LeetCode", "GFG", "Codeforces", "Other"
+
+### Question Problem URL
+- Must be valid URL format
+- Normalized for duplicate detection (trailing slashes and query params removed)
+
+### Question Difficulty
+- Must be one of: "easy", "medium", "hard"
+- Case-insensitive input
+
+### Question Topics
+- Array of strings
+- Optional field
+- Auto-deduplicated and lowercased
 
 ---
 
@@ -307,11 +403,27 @@ See `ANALYSIS_AND_RECOMMENDATIONS.md` for details and implementation suggestions
 ✅ **Implemented & Tested** - User authentication  
 ✅ **Implemented & Tested** - Profile management  
 ✅ **Implemented & Tested** - Image uploads  
-🔄 **Partial Implementation** - Question endpoints  
+✅ **Implemented & Tested** - Question management (CRUD)  
+✅ **Implemented & Tested** - Question filtering & search  
 ❌ **Not Implemented** - Email verification  
 ❌ **Not Implemented** - Password reset  
 ❌ **Not Implemented** - Follow system endpoints  
-❌ **Not Implemented** - Follow system endpoints  
+❌ **Not Implemented** - Delete account  
+
+---
+
+## 📊 API Statistics
+
+- **Total Endpoints:** 15
+- **User Endpoints:** 10
+- **Question Endpoints:** 5
+- **Public Endpoints:** 4
+- **Protected Endpoints:** 11
+- **File Upload Endpoints:** 2
+- **Search/Filter Endpoints:** 1
+- **Response Format:** Consistent JSON
+- **Authentication:** JWT with refresh rotation
+- **Error Handling:** Centralized & descriptive
 
 ---
 
@@ -330,7 +442,8 @@ See `ANALYSIS_AND_RECOMMENDATIONS.md` for details and implementation suggestions
 2. ✅ Set up API client with base URL
 3. ✅ Implement login/register forms
 4. ✅ Add authentication interceptors
-5. ✅ Handle token refresh
+5. ✅ Implement question CRUD operations
+6. ✅ Add filtering & search functionality5. ✅ Handle token refresh
 6. ✅ Build user profile pages
 
 ---

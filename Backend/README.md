@@ -115,7 +115,8 @@ Backend/
 │   │   └── question.controller.js
 │   │
 │   ├── routes/                   # API route definitions
-│   │   └── user.routes.js
+│   │   ├── user.routes.js
+│   │   └── question.routes.js
 │   │
 │   ├── models/                   # Mongoose schemas
 │   │   ├── user.model.js
@@ -219,6 +220,15 @@ A comprehensive API documentation file is available at:
 | PATCH | `/api/v1/users/update-coverImage` | ✅ | Upload new cover image |
 | GET | `/api/v1/users/c/:username` | ❌ | Get user profile |
 
+#### Question Endpoints (5 endpoints)
+| Method | Endpoint | Auth | Description |
+|--------|----------|------|-------------|
+| POST | `/api/v1/question` | ✅ | Create new question |
+| GET | `/api/v1/question` | ✅ | Get all user's questions (with filters) |
+| GET | `/api/v1/question/:questionId` | ✅ | Get specific question |
+| PATCH | `/api/v1/question/:questionId` | ✅ | Update question details |
+| DELETE | `/api/v1/question/:questionId` | ✅ | Soft delete question |
+
 ---
 
 ## Database Models
@@ -231,10 +241,12 @@ A comprehensive API documentation file is available at:
 
 ### 2. Question Model
 - Competitive programming questions
-- Title, description, difficulty level
-- Test cases and constraints
-- Tags and categories
+- Title, platform, difficulty level
+- Problem URL (original and normalized)
+- Tags/topics for categorization
 - Soft delete support
+- Duplicate detection (same URL per user)
+- Full-text search capability
 
 ### 3. Collection Model
 - User-created question collections

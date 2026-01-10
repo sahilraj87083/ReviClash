@@ -9,9 +9,11 @@
 ## Table of Contents
 
 1. [Authentication & User Management](#authentication--user-management)
-2. [Error Responses](#error-responses)
-3. [Response Format](#response-format)
-4. [User Model Schema](#user-model-schema)
+2. [Question Management](#question-management)
+3. [Error Responses](#error-responses)
+4. [Response Format](#response-format)
+5. [User Model Schema](#user-model-schema)
+6. [Question Model Schema](#question-model-schema)
 
 ---
 
@@ -796,14 +798,371 @@ All successful responses follow this structure:
 
 ---
 
+## Question Management
+
+### 11. Upload Question
+
+**Endpoint:** `POST /question`
+
+**Authentication:** Required ✅
+
+**Description:** Create a new competitive programming question entry
+
+**Request Headers:**
+```
+Cookie: accessToken=<token>
+Content-Type: application/json
+```
+
+**Request Body:**
+```json
+{
+  "title": "string (min 2 chars, required)",
+  "platform": "string (required, enum)",
+  "problemUrl": "string (valid URL, required)",
+  "difficulty": "string (required, enum)",
+  "topics": "array[string] (optional)"
+}
+```
+
+**Validation Rules:**
+- title: Required, minimum 2 characters
+- platform: Required, must be one of: "LeetCode", "GFG", "Codeforces", "Other"
+- problemUrl: Required, must be valid URL
+- difficulty: Required, must be one of: "easy", "medium", "hard"
+- topics: Optional, must be array of strings if provided
+
+**Response (201 Created):**
+```json
+{
+  "errorCode": 201,
+  "message": "Question added successfully",
+  "data": {
+    "_id": "ObjectId",
+    "ownerId": "ObjectId (current user)",
+    "title": "string",
+    "platform": "LeetCode | GFG | Codeforces | Other",
+    "problemUrlOriginal": "string (original URL)",
+    "problemUrlNormalized": "string (normalized for duplicate detection)",
+    "difficulty": "easy | medium | hard",
+    "topics": ["string"],
+    "isDeleted": false,
+    "createdAt": "ISO 8601 timestamp",
+    "updatedAt": "ISO 8601 timestamp"
+  },
+  "success": true
+}
+```
+
+**Error Responses:**
+| Status | Message | Reason |
+|--------|---------|--------|
+| 400 | All required fields must be provided | Missing required fields |
+| 400 | Validation error | Invalid input format |
+| 409 | You have already added this question | Duplicate problem URL |
+| 401 | Unauthorized | Missing/invalid access token |
+
+**Notes:**
+- Problem URLs are normalized for duplicate detection (case-insensitive, trailing slashes removed, query params stripped)
+- Topics are automatically deduplicated and lowercased
+- Each user can only add each problem URL once
+
+---
+
+### 12. Get All Questions
+
+**Endpoint:** `GET /question`
+
+**Authentication:** Required ✅
+
+**Description:** Retrieve user's questions with filtering, sorting, and pagination
+
+**Request Headers:**
+```
+Cookie: accessToken=<token>
+```
+
+**Query Parameters:**
+```
+difficulty=string (optional)    - Filter by: easy, medium, hard
+platform=string (optional)      - Filter by: LeetCode, GFG, Codeforces, Other
+topic=string (optional)         - Filter by topics (comma-separated)
+mode=string (optional)          - Topic matching mode: "any" (OR) or "all" (AND)
+search=string (optional)        - Full text search in title, topics, platform
+page=number (optional)          - Page number (default: 1, min: 1)
+limit=number (optional)         - Items per page (default: 20, max: 50)
+```
+
+**Example Request:**
+```
+GET /question?difficulty=medium&platform=LeetCode&page=1&limit=20
+GET /question?topic=arrays,strings&mode=any
+GET /question?search=two pointer&limit=10
+```
+
+**Response (200 OK):**
+```json
+{
+  "errorCode": 200,
+  "message": "Questions fetched",
+  "data": {
+    "total": 45,
+    "page": 1,
+    "pages": 3,
+    "limit": 20,
+    "questions": [
+      {
+        "_id": "ObjectId",
+        "ownerId": "ObjectId",
+        "title": "string",
+        "platform": "LeetCode | GFG | Codeforces | Other",
+        "problemUrlOriginal": "string",
+        "problemUrlNormalized": "string",
+        "difficulty": "easy | medium | hard",
+        "topics": ["string"],
+        "isDeleted": false,
+        "createdAt": "ISO 8601 timestamp",
+        "updatedAt": "ISO 8601 timestamp"
+      }
+      // ... more questions
+    ]
+  },
+  "success": true
+}
+```
+
+**Filtering Examples:**
+
+1. **By Difficulty:**
+   ```
+   GET /question?difficulty=hard
+   ```
+
+2. **By Platform:**
+   ```
+   GET /question?platform=LeetCode
+   ```
+
+3. **By Topics (Match Any):**
+   ```
+   GET /question?topic=arrays,strings&mode=any
+   ```
+
+4. **By Topics (Match All):**
+   ```
+   GET /question?topic=arrays,sorting&mode=all
+   ```
+
+5. **Full Text Search:**
+   ```
+   GET /question?search=binary search
+   ```
+
+6. **Combined Filters:**
+   ```
+   GET /question?difficulty=medium&platform=LeetCode&topic=arrays&page=1&limit=10
+   ```
+
+**Error Responses:**
+| Status | Message | Reason |
+|--------|---------|--------|
+| 400 | Validation error | Invalid query parameters |
+| 401 | Unauthorized | Missing/invalid access token |
+
+**Notes:**
+- Returns only non-deleted questions (isDeleted: false)
+- Results sorted by creation date (newest first)
+- Full text search indexes title, topics, and platform
+- Topic filter is case-insensitive
+- Pagination default: page=1, limit=20; max limit=50
+
+---
+
+### 13. Get Question by ID
+
+**Endpoint:** `GET /question/:questionId`
+
+**Authentication:** Required ✅
+
+**Description:** Retrieve a specific question by ID
+
+**Request Headers:**
+```
+Cookie: accessToken=<token>
+```
+
+**URL Parameters:**
+```
+questionId: string (MongoDB ObjectId, required)
+```
+
+**Response (200 OK):**
+```json
+{
+  "errorCode": 200,
+  "message": "Question fetched",
+  "data": {
+    "_id": "ObjectId",
+    "ownerId": "ObjectId",
+    "title": "string",
+    "platform": "LeetCode | GFG | Codeforces | Other",
+    "problemUrlOriginal": "string",
+    "problemUrlNormalized": "string",
+    "difficulty": "easy | medium | hard",
+    "topics": ["string"],
+    "isDeleted": false,
+    "createdAt": "ISO 8601 timestamp",
+    "updatedAt": "ISO 8601 timestamp"
+  },
+  "success": true
+}
+```
+
+**Error Responses:**
+| Status | Message | Reason |
+|--------|---------|--------|
+| 400 | Invalid question ID | Invalid ObjectId format |
+| 404 | Question not found | Question doesn't exist or is deleted |
+| 401 | Unauthorized | Missing/invalid access token |
+
+**Notes:**
+- User can only retrieve their own questions
+- Deleted questions return 404
+- Validates MongoDB ObjectId format
+
+---
+
+### 14. Update Question
+
+**Endpoint:** `PATCH /question/:questionId`
+
+**Authentication:** Required ✅
+
+**Description:** Update question details (title, difficulty, platform)
+
+**Request Headers:**
+```
+Cookie: accessToken=<token>
+Content-Type: application/json
+```
+
+**URL Parameters:**
+```
+questionId: string (MongoDB ObjectId, required)
+```
+
+**Request Body:**
+```json
+{
+  "title": "string (optional, min 3 chars)",
+  "difficulty": "string (optional, enum)",
+  "platform": "string (optional, enum)"
+}
+```
+
+**Validation Rules:**
+- At least one field must be provided
+- title: Minimum 3 characters if provided
+- difficulty: Must be "easy", "medium", or "hard" if provided
+- platform: Must be "LeetCode", "GFG", "Codeforces", or "Other" if provided
+
+**Response (200 OK):**
+```json
+{
+  "errorCode": 200,
+  "message": "Question updated",
+  "data": {
+    "_id": "ObjectId",
+    "ownerId": "ObjectId",
+    "title": "string",
+    "platform": "LeetCode | GFG | Codeforces | Other",
+    "problemUrlOriginal": "string",
+    "problemUrlNormalized": "string",
+    "difficulty": "easy | medium | hard",
+    "topics": ["string"],
+    "isDeleted": false,
+    "createdAt": "ISO 8601 timestamp",
+    "updatedAt": "ISO 8601 timestamp"
+  },
+  "success": true
+}
+```
+
+**Error Responses:**
+| Status | Message | Reason |
+|--------|---------|--------|
+| 400 | Invalid question ID | Invalid ObjectId format |
+| 400 | At least one field is required | No fields provided |
+| 404 | Question not found | Question doesn't exist or is deleted |
+| 401 | Unauthorized | Missing/invalid access token |
+
+**Notes:**
+- User can only update their own questions
+- Only specific fields can be updated (title, difficulty, platform)
+- Problem URL cannot be updated (use delete + create instead)
+- Topics cannot be updated (use delete + create instead)
+
+---
+
+### 15. Delete Question
+
+**Endpoint:** `DELETE /question/:questionId`
+
+**Authentication:** Required ✅
+
+**Description:** Soft delete a question (marks as deleted, doesn't remove from database)
+
+**Request Headers:**
+```
+Cookie: accessToken=<token>
+```
+
+**URL Parameters:**
+```
+questionId: string (MongoDB ObjectId, required)
+```
+
+**Response (200 OK):**
+```json
+{
+  "errorCode": 200,
+  "message": "Question removed",
+  "data": {},
+  "success": true
+}
+```
+
+**Error Responses:**
+| Status | Message | Reason |
+|--------|---------|--------|
+| 400 | Invalid question ID | Invalid ObjectId format |
+| 404 | Question not found | Question doesn't exist or already deleted |
+| 401 | Unauthorized | Missing/invalid access token |
+
+**Notes:**
+- Implements soft delete (sets isDeleted: true)
+- Deleted questions don't appear in getAllQuestions
+- Data is preserved in database for recovery/analytics
+- Cannot be undone via API (planned: recovery endpoint)
+
+---
+
 ## Future Endpoints (TODO)
 
 The following endpoints are planned but not yet implemented:
 
+### User Endpoints
 - `POST /users/verify-email` - Send verification email
 - `POST /users/resend-verification-email` - Resend verification
 - `POST /users/forgot-password` - Initiate password reset
 - `POST /users/reset-password/:token` - Complete password reset
+
+### Question Endpoints
+- `GET /question/recently-deleted` - View soft-deleted questions
+- `POST /question/:questionId/restore` - Restore deleted question
+- `GET /question/stats` - Get question statistics
+- `POST /question/:questionId/bookmark` - Bookmark a question
+- `GET /question/bookmarked` - Get bookmarked questions
 
 ---
 
@@ -877,6 +1236,122 @@ curl -X PATCH http://localhost:5000/api/v1/users/update-avatar \
 ```bash
 curl -X GET http://localhost:5000/api/v1/users/c/john_doe
 ```
+
+### Upload Question
+```bash
+curl -X POST http://localhost:5000/api/v1/question \
+  -H "Cookie: accessToken=<token>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "title": "Two Sum",
+    "platform": "LeetCode",
+    "problemUrl": "https://leetcode.com/problems/two-sum/",
+    "difficulty": "easy",
+    "topics": ["array", "hash-table"]
+  }'
+```
+
+### Get All Questions
+```bash
+curl -X GET "http://localhost:5000/api/v1/question?difficulty=medium&platform=LeetCode&page=1&limit=20" \
+  -H "Cookie: accessToken=<token>"
+```
+
+### Get Question by ID
+```bash
+curl -X GET http://localhost:5000/api/v1/question/507f1f77bcf86cd799439011 \
+  -H "Cookie: accessToken=<token>"
+```
+
+### Update Question
+```bash
+curl -X PATCH http://localhost:5000/api/v1/question/507f1f77bcf86cd799439011 \
+  -H "Cookie: accessToken=<token>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "difficulty": "medium",
+    "platform": "LeetCode"
+  }'
+```
+
+### Delete Question
+```bash
+curl -X DELETE http://localhost:5000/api/v1/question/507f1f77bcf86cd799439011 \
+  -H "Cookie: accessToken=<token>"
+```
+
+---
+
+## Question Model Schema
+
+```javascript
+{
+  ownerId: {
+    type: ObjectId,
+    ref: "User",
+    required: true,
+    indexed: true
+  },
+  
+  title: {
+    type: String,
+    required: true,
+    trim: true,
+    indexed: true
+  },
+  
+  platform: {
+    type: String,
+    enum: ["LeetCode", "GFG", "Codeforces", "Other"],
+    required: true
+  },
+  
+  problemUrlOriginal: {
+    type: String,
+    required: true
+  },
+  
+  problemUrlNormalized: {
+    type: String,
+    required: true,
+    indexed: true,
+    unique: true (per user)
+  },
+  
+  difficulty: {
+    type: String,
+    enum: ["easy", "medium", "hard"],
+    required: true
+  },
+  
+  topics: {
+    type: [String],
+    indexed: true
+  },
+  
+  isDeleted: {
+    type: Boolean,
+    default: false,
+    indexed: true
+  },
+  
+  timestamps: {
+    createdAt: ISO 8601,
+    updatedAt: ISO 8601
+  }
+}
+```
+
+### Indexes:
+1. **Compound Index:** `{ ownerId: 1, problemUrlNormalized: 1, isDeleted: 1 }` (unique)
+   - Ensures each user can't add same problem twice
+   - Filters deleted questions efficiently
+
+2. **Compound Index:** `{ ownerId: 1, topics: 1 }`
+   - Optimizes filtering by topics
+
+3. **Text Index:** `{ title: "text", topics: "text", platform: "text" }`
+   - Enables full-text search across fields
 
 ---
 
