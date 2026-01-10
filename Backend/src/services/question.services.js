@@ -1,4 +1,4 @@
-import { Question } from "../models/question.model";
+import { Question } from "../models/question.model.js";
 import {ApiError} from '../utils/ApiError.utils.js'
 import {URL} from 'url'
 

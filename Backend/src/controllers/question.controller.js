@@ -1,4 +1,4 @@
-import { Question } from "../models/question.model";
+import { Question } from "../models/question.model.js";
 import {asyncHandler} from '../utils/AsyncHandler.utils.js'
 import {ApiError} from '../utils/ApiError.utils.js'
 import {ApiResponse} from '../utils/ApiResponse.utils.js'
