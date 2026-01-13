@@ -97,7 +97,36 @@ const bulkRemoveQuestions = asyncHandler( async (req, res) => {
 })
 
 const reorderCollectionQuestions = asyncHandler( async (req, res) => {
-    
+    const { collectionId, questionId } = req.params;
+    const { order } = req.body;
+
+    if (typeof order !== "number") {
+        throw new ApiError(400, "Order must be a number");
+    }
+    if (order < 0) {
+        throw new ApiError(400, "Order must be a positive number");
+    }
+
+
+    await validateCollection(collectionId, req.user._id);
+
+    if(!isValidObjectId(questionId)){
+        throw new ApiError(400, "Invalid question ID");
+    }
+
+    const item = await CollectionQuestion.findOneAndUpdate(
+        { collectionId, questionId },
+        { $set: { order } },
+        { new: true }
+    );
+
+    if (!item) {
+        throw new ApiError(404, "Question not found in collection");
+    }
+
+    return res
+        .status(200)
+        .json(new ApiResponse(200, "Order updated", item));
 })
 
 const removeAllQuestions = asyncHandler( async (req, res) => {
