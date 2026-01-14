@@ -9,7 +9,7 @@ import { QuestionAttempt } from '../models/questionAttempt.model.js'
 import { createContestService } from '../services/contest.services.js'
 import { CollectionQuestion } from '../models/collectionQuestion.model.js'
 import {createContestParticipantService} from '../services/contestParticipant.services.js'
-import crypto from 'crypto'
+
 
 
 
@@ -214,6 +214,69 @@ const submitContest = asyncHandler(async (req, res) => {
 
 
 const getLeaderboard = asyncHandler(async (req, res) => {
+
+    const {contestId} = req.params;
+
+    if(!isValidObjectId(contestId)){
+        throw new ApiError(400, "Invalid contest ID");
+    }
+
+    const contest = await Contest.findById(contestId).select("visibility owner");
+
+    if (!contest) {
+        throw new ApiError(404, "Contest not found");
+    }
+
+    if (
+        contest.visibility === "private" &&
+        contest.owner.toString() !== req.user._id.toString()
+    ) {
+        throw new ApiError(403, "This contest is private");
+    }
+
+
+    const leaderboard = await ContestParticipant.aggregate(
+        [
+            {
+                $match : {
+                    contestId : new mongoose.Types.ObjectId(contestId),
+                    submissionStatus : 'submitted'
+                }
+            },
+            {
+                $sort: {
+                    score: -1,
+                    timeTaken: 1
+                }
+            },
+            {
+                $lookup : {
+                    from : 'users',
+                    localField : 'userId',
+                    foreignField : '_id',
+                    as : 'user',
+                }
+            },
+            {
+                $unwind : '$user'
+            },
+            {
+                $project: {
+                    _id: 0,
+                    score: 1,
+                    timeTaken: 1,
+                    solvedCount: 1,
+                    "user.fullName": 1,
+                    "user.username": 1,
+                    "user.avatar": 1
+                }
+            }
+        ]
+    )
+
+    return res.status(200).json(
+        new ApiResponse(200, "Leaderboard fetched", leaderboard)
+    );
 
 })
 
