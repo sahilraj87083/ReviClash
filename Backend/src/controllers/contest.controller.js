@@ -8,6 +8,7 @@ import { ContestParticipant } from '../models/contestParticipant.model.js'
 import { QuestionAttempt } from '../models/questionAttempt.model.js'
 import { createContestService } from '../services/contest.services.js'
 import { CollectionQuestion } from '../models/collectionQuestion.model.js'
+import {createContestParticipantService} from '../services/contestParticipant.services.js'
 import crypto from 'crypto'
 
 
@@ -61,6 +62,53 @@ const createContest = asyncHandler(async (req, res) => {
 
 const joinContest = asyncHandler(async (req, res) => {
 
+    const {id} = req.params;
+    
+    let contest;
+    if (isValidObjectId(id)) {
+        contest = await Contest.findOne({
+            $or: [{ _id: id }, { contestCode: id }]
+        });
+    } else {
+        contest = await Contest.findOne({ contestCode: id });
+    }
+
+
+    if (!contest) throw new ApiError(404, "Contest not found");
+
+    if(contest.status !== 'live' || contest.endsAt < new Date()){
+        throw new ApiError(403, "Contest expired");
+    }
+
+    const now = new Date()
+
+    const existing = await ContestParticipant.findOne({
+        contestId: contest._id,
+        userId: req.user._id,
+    });
+
+    if (existing) return res.status(200).json(
+        new ApiResponse(200, "Already joined", existing)
+    );
+
+    const participant = await createContestParticipantService({
+        contestId: contest._id,
+        userId: req.user._id,
+        joinedAt: now,
+        startedAt: now,
+    });
+
+    const attempts = contest.questionIds.map(q => ({
+        contestId: contest._id,
+        questionId: q,
+        userId: req.user._id,
+    }));
+
+    await QuestionAttempt.insertMany(attempts);
+
+    return res.status(200).json(
+        new ApiResponse(200, "Contest started", participant)
+    );
 })
 
 
