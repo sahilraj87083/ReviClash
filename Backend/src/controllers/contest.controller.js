@@ -6,8 +6,7 @@ import { Contest } from "../models/contest.model.js";
 import {Collection} from "../models/collection.model.js"
 import { ContestParticipant } from '../models/contestParticipant.model.js'
 import { QuestionAttempt } from '../models/questionAttempt.model.js'
-import { createContestService } from '../services/contest.services.js'
-import { CollectionQuestion } from '../models/collectionQuestion.model.js'
+import { createContestService, finalizeContestSubmissionService } from '../services/contest.services.js'
 import {createContestParticipantService} from '../services/contestParticipant.services.js'
 
 
@@ -159,53 +158,12 @@ const submitContest = asyncHandler(async (req, res) => {
 
     const { attempts } = req.body;
 
-
-    let solved = 0;
-    let totalTime = 0;
-
-    for(const a of attempts){
-        const safeTime = Math.max(0, Number(a.timeSpent) || 0);
-
-        const updated = await QuestionAttempt.updateOne(
-            {
-                contestId : contest._id,
-                userId : req.user._id,
-                questionId : a.questionId
-            },
-            { 
-                $set: { 
-                    status: a.status, 
-                    timeSpent: safeTime
-                } 
-            }
-        )
-
-        if (!updated.matchedCount) {
-            throw new ApiError(400, "Invalid question attempt");
-        }
-
-        if(a.status === 'solved') solved++;
-        totalTime += a.timeSpent
-    }
-
-    const totalQuestions = contest.questionIds.length;
-    const unsolved = totalQuestions - solved;
-    const score = solved * 100 - totalTime * 0.1;
-
-
-    await ContestParticipant.updateOne(
-        {
-            _id : participant._id
-        },
-        {
-            solvedCount : solved,
-            unsolvedCount : unsolved,
-            timeTaken : totalTime,
-            submissionStatus : "submitted",
-            finishedAt : now,
-            score : score
-        }
-    )
+    await finalizeContestSubmissionService({
+        contest,
+        participant,
+        userId: req.user._id,
+        attempts: attempts
+    });
 
     return res.status(200).json(new ApiResponse(200, "Contest submitted successfully"));
 
