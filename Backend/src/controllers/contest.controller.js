@@ -283,6 +283,99 @@ const getLeaderboard = asyncHandler(async (req, res) => {
 
 const getContest = asyncHandler(async (req, res) => {
 
+    const {contestId} = req.params;
+
+    const match = isValidObjectId(contestId) ? {_id : new mongoose.Types.ObjectId(contestId)} : {contestCode: contestId}
+
+    const contestMeta = await Contest.findOne(match).select("visibility owner");
+
+    if (!contestMeta) {
+        throw new ApiError(404, "Contest not found");
+    }
+
+    if (
+        contestMeta.visibility === "private" &&
+        contestMeta.owner.toString() !== req.user._id.toString()
+    ) {
+        throw new ApiError(403, "This contest is private");
+    }
+
+
+    const contest = await Contest.aggregate(
+        [
+            {
+                $match : match
+            },
+            {
+                $lookup : {
+                    from : 'users',
+                    localField : 'owner',
+                    foreignField : '_id',
+                    as : 'owner'
+                }
+            },
+            {
+                $unwind : '$owner'
+            },
+            {
+                $lookup : {
+                    from : 'questions',
+                    localField : 'questionIds',
+                    foreignField : '_id',
+                    as: "questions"
+                }
+            },
+            {
+                $project : {
+                    _id: 1,
+                    contestCode: 1,
+                    title: 1,
+                    durationInMin: 1,
+                    status: 1,
+                    visibility: 1,
+                    startsAt: 1,
+                    endsAt: 1,
+
+                    "owner.fullName": 1,
+                    "owner.username": 1,
+                    "owner.avatar": 1,
+                    
+                    "questions._id": 1,
+                    "questions.title": 1,
+                    "questions.difficulty": 1,
+                    "questions.platform": 1
+                }
+            }
+        ]
+    )
+
+    if (!contest.length) {
+        throw new ApiError(404, "Contest not found");
+    }
+
+    return res.status(200).json(
+        new ApiResponse(200, "Contest fetched", contest[0])
+    );
+
+ /*   What getContest does
+
+    It answers:
+        “Show me this contest’s page”
+
+    It returns:
+        Contest info
+        Owner (who hosted it)
+        Questions inside it
+
+    This is used for:
+
+        Join screen
+        Contest page
+        Sharing by code
+        Spectator view
+        Leaderboard page
+*/
+
 })
 
 
