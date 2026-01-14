@@ -28,6 +28,11 @@ const userStatsSchema = new mongoose.Schema(
             default: 0,
         },
 
+        totalTimeSpent: {
+        type: Number,
+        default: 0
+        },
+        
         avgTimePerQuestion: {
             type: Number,
             default: 0,

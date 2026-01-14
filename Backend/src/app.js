@@ -22,6 +22,9 @@ app.use(urlencoded({
 
 app.use(cookieParser())
 
+import "./jobs/contest.jobs.js";
+
+
 app.get('/', (req, res) => {
     res.send('ReviCode is Ready...!!! So are you???')
 })
