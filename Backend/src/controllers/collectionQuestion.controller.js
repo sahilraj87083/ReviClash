@@ -168,7 +168,8 @@ const bulkRemoveQuestions = asyncHandler( async (req, res) => {
                         }
                     }
                 }
-            ]
+            ],
+            { updatePipeline: true }
         );
 
     }

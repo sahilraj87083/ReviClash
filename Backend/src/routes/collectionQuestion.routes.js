@@ -31,22 +31,7 @@ router.route("/:collectionId/questions")
     addQuestionToCollection
 );
 
-// remove a question from collection
-router.route("/:collectionId/questions/:questionId")
-.delete(
-    verifyJWT,
-    [
-        param("collectionId")
-        .isMongoId()
-        .withMessage("Invalid collection ID"),
 
-        param("questionId")
-        .isMongoId()
-        .withMessage("Invalid question ID"),
-    ],
-    validate,
-    removeQuestionFromCollection
-);
 
 // reorder collection
 router.route("/:collectionId/questions/:questionId/order")
@@ -122,6 +107,23 @@ router.route("/:collectionId/questions")
     ],
     validate,
     removeAllQuestions
+);
+
+// remove a question from collection
+router.route("/:collectionId/questions/:questionId")
+.delete(
+    verifyJWT,
+    [
+        param("collectionId")
+        .isMongoId()
+        .withMessage("Invalid collection ID"),
+
+        param("questionId")
+        .isMongoId()
+        .withMessage("Invalid question ID"),
+    ],
+    validate,
+    removeQuestionFromCollection
 );
 
 export default router;
