@@ -167,7 +167,34 @@ const getFollowing = asyncHandler(async (req, res) => {
 
 
 const getFollowStatus = asyncHandler(async (req, res) => {
+    const { targetUserId } = req.params;
+    const currentUserId = req.user._id;
 
+    if (!isValidObjectId(targetUserId)) {
+        throw new ApiError(400, "Invalid user ID");
+    }
+
+    if (targetUserId.toString() === currentUserId.toString()) {
+        throw new ApiError(400, "Invalid request");
+    }
+
+    const [isFollowing, isFollowedBy] = await Promise.all([
+        Follow.exists({
+            followerId: currentUserId,
+            followingId: targetUserId,
+        }),
+        Follow.exists({
+            followerId: targetUserId,
+            followingId: currentUserId,
+        }),
+    ]);
+
+    return res.status(200).json(
+        new ApiResponse(200, "Follow status", {
+                isFollowing: !!isFollowing,
+                isFollowedBy: !!isFollowedBy,
+        })
+    );
 })
 
 export {
