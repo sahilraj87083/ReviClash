@@ -106,7 +106,55 @@ const getUserContestHistory = asyncHandler(async (req , res) => {
 })
 
 const getLeaderboard = asyncHandler(async (req , res) => {
+    const {page = 1, limit = 20} = req.query
 
+    const pageNum = Number(page) || 1;
+    const limitNum = Math.min(Number(limit) || 20, 50);
+    const skip = (pageNum - 1) * limitNum;
+
+    const [leaderboard, total] = await Promise.all([
+        Userstat.aggregate([
+            { $sort: { totalQuestionsSolved: -1, avgAccuracy: -1 } },
+            { $skip: skip },
+            { $limit: limitNum },
+            {
+                $lookup: {
+                    from: "users",
+                    localField: "userId",
+                    foreignField: "_id",
+                    as: "user"
+                }
+            },
+            { $unwind: "$user" },
+            {
+                $match: {
+                    "user.isActive": { $ne: false }   // exclude the disabled users
+                }
+            },
+            {
+                $project: {
+                    "user.fullName": 1,
+                    "user.username": 1,
+                    "user.avatar": 1,
+                    totalContests: 1,
+                    totalQuestionsSolved: 1,
+                    avgAccuracy: 1,
+                    avgTimePerQuestion: 1
+                }
+            }
+        ]),
+        Userstat.countDocuments()
+    ]);
+
+    return res.status(200).json(
+        new ApiResponse(200, "Leaderboard fetched", {
+            total,
+            page: pageNum,
+            pages: Math.ceil(total / limitNum),
+            limit: limitNum,
+            leaderboard
+        })
+    );
 })
 
 export {
