@@ -54,8 +54,57 @@ const unfollowUser = asyncHandler(async (req, res) => {
 })
 
 const getFollowers = asyncHandler(async (req, res) => {
+    const { userId } = req.params;
+    const { page = 1, limit = 20 } = req.query;
 
-})
+    if (!isValidObjectId(userId)) {
+        throw new ApiError(400, "Invalid user ID");
+    }
+
+    const pageNum = Number(page) || 1;
+    const limitNum = Math.min(Number(limit) || 20, 50);
+    const skip = (pageNum - 1) * limitNum;
+
+    const matchStage = {
+        followingId: new mongoose.Types.ObjectId(userId)
+    };
+
+    const [followers, total] = await Promise.all([
+        Follow.aggregate([
+            { $match: matchStage },
+            {
+                $lookup: {
+                    from: "users",
+                    localField: "followerId",
+                    foreignField: "_id",
+                    as: "user"
+                }
+            },
+            { $unwind: "$user" },
+            { $skip: skip },
+            { $limit: limitNum },
+            {
+                $project: {
+                    userId: "$user._id",
+                    username: "$user.username",
+                    fullName: "$user.fullName",
+                    avatar: "$user.avatar"
+                }
+            }
+        ]),
+        Follow.countDocuments(matchStage)
+    ]);
+
+    return res.status(200).json(
+        new ApiResponse(200, "Followers fetched", {
+            total,
+            page: pageNum,
+            pages: Math.ceil(total / limitNum),
+            followers
+        })
+    );
+});
+
 
 
 const getFollowing = asyncHandler(async (req, res) => {
