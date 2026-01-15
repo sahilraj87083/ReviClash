@@ -28,7 +28,29 @@ const followUser = asyncHandler(async (req, res) => {
 })
 
 const unfollowUser = asyncHandler(async (req, res) => {
+    const {targetUserId} = req.params
+    const currUser = req.user._id;
 
+    if(!isValidObjectId(targetUserId)){
+        throw new ApiError(400, "Invalid user ID");
+    }
+
+    if (targetUserId.toString() === currUser.toString()) {
+        throw new ApiError(400, "Invalid req, you can't unfollow yourself");
+    }
+
+    const result = await Follow.deleteOne({
+        followerId : currUser,
+        followingId : targetUserId
+    })
+
+    if (result.deletedCount === 0) {
+        throw new ApiError(404, "You are not following this user");
+    }
+
+    return res
+        .status(200)
+        .json(new ApiResponse(200, "User unfollowed"));
 })
 
 const getFollowers = asyncHandler(async (req, res) => {
