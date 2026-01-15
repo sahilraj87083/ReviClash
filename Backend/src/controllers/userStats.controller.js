@@ -32,7 +32,17 @@ const getUserStats = asyncHandler(async (req , res) => {
 })
 
 const getUserTopicStats = asyncHandler(async (req , res) => {
+    const { userId } = req.params
 
+    if(!isValidObjectId(userId)){
+        throw new ApiError(400, "Invalid user ID");
+    }
+
+     const userstats = await Userstat.findOne({userId : userId}).select('topicStats')
+
+     return res.status(200).json(
+        new ApiResponse(200, "Topic stats fetched", userstats?.topicStats || [])
+    );
 })
 
 const getUserContestHistory = asyncHandler(async (req , res) => {
