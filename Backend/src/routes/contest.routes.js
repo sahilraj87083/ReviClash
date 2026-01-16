@@ -7,8 +7,9 @@ import {
   createContest,
   joinContest,
   submitContest,
-  getLeaderboard,
-  getContest
+  getContestLeaderboard,
+  getContest,
+  getMyContestRank
 } from "../controllers/contest.controller.js";
 
 const router = Router();
@@ -109,7 +110,20 @@ router.route("/:contestId/leaderboard")
             .withMessage("Invalid contest ID"),
     ],
     validate,
-    getLeaderboard
+    getContestLeaderboard
+);
+
+// user ranking in contest
+router.route("/:contestId/me")
+.get(
+    verifyJWT,
+    [
+        param("contestId")
+            .isMongoId()
+            .withMessage("Invalid contest ID"),
+    ],
+    validate,
+    getMyContestRank
 );
 
 export default router;

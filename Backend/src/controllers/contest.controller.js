@@ -171,7 +171,7 @@ const submitContest = asyncHandler(async (req, res) => {
 
 
 
-const getLeaderboard = asyncHandler(async (req, res) => {
+const getContestLeaderboard = asyncHandler(async (req, res) => {
 
     const {contestId} = req.params;
 
@@ -337,10 +337,63 @@ const getContest = asyncHandler(async (req, res) => {
 })
 
 
+const getMyContestRank = asyncHandler( async (req, res) => {
+    const { contestId } = req.params;
+
+    if(!isValidObjectId(contestId)){
+        throw new ApiError(400, "Invalid contest ID");
+    }
+    const contestObjectId = new mongoose.Types.ObjectId(contestId);
+
+    const participant = await ContestParticipant.findOne({
+        contestId : contestObjectId,
+        userId : req.user._id,
+        submissionStatus : 'submitted'
+    })
+
+    if (!participant) {
+        throw new ApiError(404, "You have not submitted this contest");
+    }
+
+    const [betterCount, total] = await Promise.all([
+        ContestParticipant.countDocuments({
+            contestId: contestObjectId,
+            submissionStatus: "submitted",
+            $or: [
+                { score: { $gt: participant.score } },
+                {
+                    score: participant.score,
+                    timeTaken: { $lt: participant.timeTaken }
+                },
+                {
+                    score: participant.score,
+                    timeTaken: participant.timeTaken,
+                    finishedAt: { $lt: participant.finishedAt }
+                }
+            ]
+        }),
+        ContestParticipant.countDocuments({
+            contestId: contestObjectId,
+            submissionStatus: "submitted"
+        })
+    ]);
+
+    return res.status(200).json(
+        new ApiResponse(200, "Rank fetched", {
+            rank: betterCount + 1,
+            totalParticipants: total,
+            score: participant.score,
+            solvedCount: participant.solvedCount,
+            timeTaken: participant.timeTaken
+        })
+    );
+})
+
 export {
     createContest,
     joinContest,
     submitContest,
-    getLeaderboard,
-    getContest
+    getContestLeaderboard,
+    getContest,
+    getMyContestRank
 }
