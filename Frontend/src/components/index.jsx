@@ -5,7 +5,6 @@ import Button from './Others/Button'
 import Select from './Others/Select'
 import QuestionRow from './Others/QuestionRow'
 import AddQuestionPanel from './Others/AddQuestionPanel'
-import CreateContestModal from './Others/CreateContestModel'
 
 import LiveContests from './ExploreComponents/LiveContests'
 import PublicCollections from './ExploreComponents/PublicCollections'
@@ -16,6 +15,14 @@ import StatCard from './DashBoardComponents/StatCard'
 import ActionCard from './DashBoardComponents/ActionCard'
 import RecentRow from './DashBoardComponents/RecentRow'
 
+
+import CollectionCard from './CollectionPageComponents/CollectionCard'
+import EmptyState from './CollectionPageComponents/EmptyState'
+import CreateCollectionModal from './CollectionPageComponents/CreateCollectionModal'
+import CreateContestModal from './CollectionPageComponents/CreateContestModel'
+
+
+
 export {
     Header,
     Footer,
@@ -24,7 +31,6 @@ export {
     Select,
     QuestionRow,
     AddQuestionPanel,
-    CreateContestModal,
 
     LiveContests,
     PublicCollections,
@@ -32,6 +38,12 @@ export {
 
     StatCard,
     ActionCard,
-    RecentRow
+    RecentRow,
+
+    CollectionCard,
+    EmptyState,
+    CreateCollectionModal,
+    CreateContestModal,
+
     
 }
