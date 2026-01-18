@@ -63,6 +63,23 @@ All protected endpoints require `accessToken` cookie.
 | 25 | POST | `/collectionQuestions/:collectionId/questions/bulk` | Bulk add questions |
 | 26 | DELETE | `/collectionQuestions/:collectionId/questions/bulk` | Bulk remove questions |
 | 27 | DELETE | `/collectionQuestions/:collectionId/questions` | Remove all questions |
+| 28 | POST | `/contest` | Create new contest |
+| 29 | GET | `/contest/:contestId` | Get contest details |
+| 30 | POST | `/contest/:id/join` | Join contest |
+| 31 | POST | `/contest/:contestId/submit` | Submit contest answers |
+| 32 | GET | `/contest/:contestId/leaderboard` | Get contest leaderboard |
+| 33 | GET | `/contest/:contestId/me` | Get my contest rank |
+| 34 | POST | `/follow/:targetUserId` | Follow user |
+| 35 | DELETE | `/follow/:targetUserId` | Unfollow user |
+| 36 | GET | `/follow/followers/:userId` | Get user's followers |
+| 37 | GET | `/follow/following/:userId` | Get users followed by user |
+| 38 | GET | `/follow/status/:targetUserId` | Get follow status |
+| 39 | GET | `/userStats/leaderboard` | Get global leaderboard |
+| 40 | GET | `/userStats/:userId` | Get user statistics |
+| 41 | GET | `/userStats/:userId/topics` | Get user topic performance |
+| 42 | GET | `/userStats/:userId/history` | Get user contest history |
+| 43 | GET | `/userStats/:userId/contests/created` | Get contests created by user |
+| 44 | GET | `/userStats/:userId/contests/joined` | Get contests joined by user |
 
 ---
 
@@ -302,6 +319,120 @@ curl -X DELETE http://localhost:5000/api/v1/collectionQuestions/507f1f77bcf86cd7
 ```
 
 ---
+
+### POST /contest (Requires Auth)
+```bash
+curl -X POST http://localhost:5000/api/v1/contest \
+  -H "Cookie: accessToken=<token>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "collectionId": "507f1f77bcf86cd799439012",
+    "title": "Weekly Challenge",
+    "durationInMin": 60,
+    "questionCount": 5,
+    "visibility": "public"
+  }'
+```
+
+---
+
+### GET /contest/:contestId (Requires Auth)
+```bash
+curl -X GET http://localhost:5000/api/v1/contest/ABC123 \
+  -H "Cookie: accessToken=<token>"
+```
+
+---
+
+### POST /contest/:id/join (Requires Auth)
+```bash
+curl -X POST http://localhost:5000/api/v1/contest/ABC123/join \
+  -H "Cookie: accessToken=<token>"
+```
+
+---
+
+### POST /contest/:contestId/submit (Requires Auth)
+```bash
+curl -X POST http://localhost:5000/api/v1/contest/507f1f77bcf86cd799439013/submit \
+  -H "Cookie: accessToken=<token>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "attempts": [
+      {
+        "questionId": "507f1f77bcf86cd799439011",
+        "status": "solved",
+        "timeSpent": 300
+      }
+    ]
+  }'
+```
+
+---
+
+### GET /contest/:contestId/leaderboard (Requires Auth)
+```bash
+curl -X GET http://localhost:5000/api/v1/contest/507f1f77bcf86cd799439013/leaderboard \
+  -H "Cookie: accessToken=<token>"
+```
+
+---
+
+### POST /follow/:targetUserId (Requires Auth)
+```bash
+curl -X POST http://localhost:5000/api/v1/follow/507f1f77bcf86cd799439014 \
+  -H "Cookie: accessToken=<token>"
+```
+
+---
+
+### GET /follow/followers/:userId (Requires Auth)
+```bash
+curl -X GET "http://localhost:5000/api/v1/follow/followers/507f1f77bcf86cd799439014?page=1&limit=20" \
+  -H "Cookie: accessToken=<token>"
+```
+
+---
+
+### GET /follow/status/:targetUserId (Requires Auth)
+```bash
+curl -X GET http://localhost:5000/api/v1/follow/status/507f1f77bcf86cd799439014 \
+  -H "Cookie: accessToken=<token>"
+```
+
+---
+
+### GET /userStats/leaderboard (Requires Auth)
+```bash
+curl -X GET "http://localhost:5000/api/v1/userStats/leaderboard?page=1&limit=20" \
+  -H "Cookie: accessToken=<token>"
+```
+
+---
+
+### GET /userStats/:userId (Requires Auth)
+```bash
+curl -X GET http://localhost:5000/api/v1/userStats/507f1f77bcf86cd799439014 \
+  -H "Cookie: accessToken=<token>"
+```
+
+---
+
+### GET /userStats/:userId/topics (Requires Auth)
+```bash
+curl -X GET http://localhost:5000/api/v1/userStats/507f1f77bcf86cd799439014/topics \
+  -H "Cookie: accessToken=<token>"
+```
+
+---
+
+### GET /userStats/:userId/history (Requires Auth)
+```bash
+curl -X GET "http://localhost:5000/api/v1/userStats/507f1f77bcf86cd799439014/history?page=1&limit=20" \
+  -H "Cookie: accessToken=<token>"
+```
+
+---
   -H "Cookie: accessToken=<token>" \
   -F "avatar=@./image.jpg"
 ```
@@ -437,6 +568,41 @@ curl -X GET http://localhost:5000/api/v1/users/c/john_doe
 - Non-empty array required
 - All IDs should be valid question IDs
 
+### Contest Title
+- Min length: 3 characters
+- Max length: 100 characters
+- Trimmed of whitespace
+- Required field
+
+### Contest Duration
+- Integer between 1-720 minutes
+- Required field
+
+### Contest Question Count
+- Integer between 1-10
+- Must not exceed available questions in collection
+- Required field
+
+### Contest Visibility
+- Must be one of: "private", "shared", "public"
+- Optional field (defaults to "private")
+
+### Contest Attempts
+- Array with at least 1 item
+- Each attempt must have questionId, status, timeSpent
+- questionId: Valid MongoDB ObjectId
+- status: Must be "solved" or "unsolved"
+- timeSpent: Non-negative integer (seconds)
+
+### Follow Target User ID
+- Must be valid MongoDB ObjectId
+- Cannot follow yourself
+- User must exist
+
+### User Stats User ID
+- Must be valid MongoDB ObjectId
+- User must exist
+
 ---
 
 ## 🛠️ Development Commands
@@ -535,22 +701,28 @@ See `ANALYSIS_AND_RECOMMENDATIONS.md` for details and implementation suggestions
 ✅ **Implemented & Tested** - Question filtering & search  
 ✅ **Implemented & Tested** - Collection management (CRUD)  
 ✅ **Implemented & Tested** - Collection questions (add/remove/reorder)  
+✅ **Implemented & Tested** - Contest management (create/join/submit)  
+✅ **Implemented & Tested** - Contest leaderboard & ranking  
+✅ **Implemented & Tested** - Follow system (follow/unfollow)  
+✅ **Implemented & Tested** - User statistics & leaderboards  
 ❌ **Not Implemented** - Email verification  
 ❌ **Not Implemented** - Password reset  
-❌ **Not Implemented** - Follow system endpoints  
 ❌ **Not Implemented** - Delete account  
 
 ---
 
 ## 📊 API Statistics
 
-- **Total Endpoints:** 27
+- **Total Endpoints:** 44
 - **User Endpoints:** 10
 - **Question Endpoints:** 5
 - **Collection Endpoints:** 6
 - **Collection Questions Endpoints:** 6
+- **Contest Endpoints:** 6
+- **Follow Endpoints:** 5
+- **User Statistics Endpoints:** 6
 - **Public Endpoints:** 4
-- **Protected Endpoints:** 23
+- **Protected Endpoints:** 40
 - **File Upload Endpoints:** 2
 - **Search/Filter Endpoints:** 1
 - **Response Format:** Consistent JSON

@@ -249,6 +249,35 @@ A comprehensive API documentation file is available at:
 | DELETE | `/api/v1/collectionQuestions/:collectionId/questions/bulk` | ✅ | Bulk remove questions |
 | DELETE | `/api/v1/collectionQuestions/:collectionId/questions` | ✅ | Remove all questions |
 
+#### Contest Endpoints (6 endpoints)
+| Method | Endpoint | Auth | Description |
+|--------|----------|------|-------------|
+| POST | `/api/v1/contest` | ✅ | Create new contest |
+| GET | `/api/v1/contest/:contestId` | ✅ | Get contest details |
+| POST | `/api/v1/contest/:id/join` | ✅ | Join contest |
+| POST | `/api/v1/contest/:contestId/submit` | ✅ | Submit contest answers |
+| GET | `/api/v1/contest/:contestId/leaderboard` | ✅ | Get contest leaderboard |
+| GET | `/api/v1/contest/:contestId/me` | ✅ | Get my contest rank |
+
+#### Follow Endpoints (5 endpoints)
+| Method | Endpoint | Auth | Description |
+|--------|----------|------|-------------|
+| POST | `/api/v1/follow/:targetUserId` | ✅ | Follow user |
+| DELETE | `/api/v1/follow/:targetUserId` | ✅ | Unfollow user |
+| GET | `/api/v1/follow/followers/:userId` | ✅ | Get user's followers |
+| GET | `/api/v1/follow/following/:userId` | ✅ | Get users followed by user |
+| GET | `/api/v1/follow/status/:targetUserId` | ✅ | Get follow status |
+
+#### User Statistics Endpoints (6 endpoints)
+| Method | Endpoint | Auth | Description |
+|--------|----------|------|-------------|
+| GET | `/api/v1/userStats/leaderboard` | ✅ | Get global leaderboard |
+| GET | `/api/v1/userStats/:userId` | ✅ | Get user statistics |
+| GET | `/api/v1/userStats/:userId/topics` | ✅ | Get user topic performance |
+| GET | `/api/v1/userStats/:userId/history` | ✅ | Get user contest history |
+| GET | `/api/v1/userStats/:userId/contests/created` | ✅ | Get contests created by user |
+| GET | `/api/v1/userStats/:userId/contests/joined` | ✅ | Get contests joined by user |
+
 ---
 
 ## Database Models
@@ -270,41 +299,53 @@ A comprehensive API documentation file is available at:
 
 ### 3. Collection Model
 - User-created question collections
-- Metadata and description
-- Owner reference
-- Questions included in collection
+- Name uniqueness per user (case-insensitive)
+- Public/private visibility settings
+- Automatic question count tracking
+- Owner relationship with users
 
-### 4. Contest Model
-- Competitive programming contests
-- Start/end times
-- Participants and rankings
-- Contest messages
+### 4. CollectionQuestion Model
+- Many-to-many relationship between collections and questions
+- Custom ordering within collections
+- Duplicate prevention (unique collection-question pairs)
+- Timestamp tracking for additions
 
-### 5. Follow Model
-- User-to-user follow relationships
-- Follower and following references
-- Timestamp tracking
+### 5. Contest Model
+- Contest creation from user collections
+- Time-limited competitive sessions
+- Visibility controls (private/shared/public)
+- Unique contest codes for joining
+- Status tracking (upcoming/active/completed)
 
-### 6. Notification Model
-- User notifications
-- Read/unread status
-- Notification types and content
+### 6. ContestParticipant Model
+- Contest participation tracking
+- Score and ranking calculation
+- Time spent monitoring
+- Completion status management
 
-### 7. UserStats Model
-- Performance metrics
-- Questions attempted/correct/solved
-- Contests participated
-- Ranking information
+### 7. Follow Model
+- User follow relationships
+- Bidirectional follower/following counts
+- Duplicate prevention
+- Social network features
 
-### 8. PrivateMessage Model
-- Direct messaging between users
+### 8. QuestionAttempt Model
+- Individual question attempts in contests
+- Solve status tracking
+- Time spent per question
+- Performance analytics
 
-### 9. Additional Models
-- `ContestParticipant` - Contest participation tracking
-- `ContestMessage` - Messages in contests
-- `QuestionAttempt` - User question submission attempts
-- `Subscription` - Premium subscription tracking
-- `CollectionQuestion` - Mapping questions to collections
+### 9. UserStats Model (Aggregated)
+- Performance metrics across contests
+- Topic-wise statistics
+- Ranking and leaderboard data
+- Historical contest participation
+
+### 10. Additional Models
+- `Notification` - User notifications and alerts
+- `PrivateMessage` - Direct messaging system
+- `ContestMessage` - Contest communication
+- `Subscription` - Premium features tracking
 
 ---
 

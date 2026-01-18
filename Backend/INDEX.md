@@ -32,17 +32,17 @@ Complete project documentation including:
 **For:** Frontend developers, API consumers, Postman users
 
 Complete API reference with:
-- All 27 endpoints fully documented
+- All 44 endpoints fully documented
 - Request/response JSON structures
 - Validation rules for every input
 - Error responses mapping
 - Authentication details
-- User, Question, Collection models schema
+- User, Question, Collection, Contest, Follow models schema
 - JWT token structure
 - cURL command examples
 - Example flows
 
-**Time to read:** 25-30 minutes (reference document)
+**Time to read:** 35-40 minutes (reference document)
 
 ---
 
@@ -137,17 +137,20 @@ Cheat sheet with:
 ## 📊 Documentation Statistics
 
 - **Total Files:** 5 (including this index)
-- **Total Words:** 22,000+
-- **Endpoints Documented:** 27/27 (100%)
+- **Total Words:** 28,000+
+- **Endpoints Documented:** 44/44 (100%)
   - User Endpoints: 10
   - Question Endpoints: 5
   - Collection Endpoints: 6
   - Collection Questions Endpoints: 6
+  - Contest Endpoints: 6
+  - Follow Endpoints: 5
+  - User Statistics Endpoints: 6
 - **Code Issues Identified:** 8
 - **Missing Features:** 8
 - **Security Recommendations:** 11
-- **Example Commands:** 25+
-- **JSON Examples:** 80+
+- **Example Commands:** 35+
+- **JSON Examples:** 100+
 
 ---
 
@@ -207,7 +210,7 @@ Cheat sheet with:
 
 ## ✅ Documentation Checklist
 
-- ✅ All 10 endpoints documented
+- ✅ All 44 endpoints documented
 - ✅ Request/response structures included
 - ✅ Validation rules listed
 - ✅ Error responses mapped
@@ -251,7 +254,7 @@ README.md (Start here)
 
 ## 🎉 What's Included
 
-- ✅ **Complete API Reference** (10 endpoints)
+- ✅ **Complete API Reference** (44 endpoints)
 - ✅ **Setup & Installation Guide**
 - ✅ **Architecture Overview**
 - ✅ **Security Analysis** (11 recommendations)

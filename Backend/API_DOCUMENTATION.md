@@ -12,12 +12,18 @@
 2. [Question Management](#question-management)
 3. [Collection Management](#collection-management)
 4. [Collection Questions Management](#collection-questions-management)
-5. [Error Responses](#error-responses)
-6. [Response Format](#response-format)
-7. [User Model Schema](#user-model-schema)
-8. [Question Model Schema](#question-model-schema)
-9. [Collection Model Schema](#collection-model-schema)
-10. [CollectionQuestion Model Schema](#collectionquestion-model-schema)
+5. [Contest Management](#contest-management)
+6. [Follow System](#follow-system)
+7. [User Statistics](#user-statistics)
+8. [Error Responses](#error-responses)
+9. [Response Format](#response-format)
+10. [User Model Schema](#user-model-schema)
+11. [Question Model Schema](#question-model-schema)
+12. [Collection Model Schema](#collection-model-schema)
+13. [CollectionQuestion Model Schema](#collectionquestion-model-schema)
+14. [Contest Model Schema](#contest-model-schema)
+15. [ContestParticipant Model Schema](#contestparticipant-model-schema)
+16. [Follow Model Schema](#follow-model-schema)
 
 ---
 
@@ -632,6 +638,893 @@ Cookie: accessToken=<token> (optional - for "isFollowedByViewer" field)
 - Includes user stats and collections if they exist
 - If authenticated, includes whether viewer follows this user
 - This endpoint is public and doesn't require authentication
+
+---
+
+## Contest Management
+
+### 28. Create Contest
+
+**Endpoint:** `POST /contest`
+
+**Authentication:** Required (JWT)
+
+**Description:** Create a new contest from a collection of questions
+
+**Request Body:**
+```json
+{
+  "collectionId": "string (MongoDB ObjectId)",
+  "title": "string (3-100 chars)",
+  "durationInMin": "number (1-720)",
+  "questionCount": "number (1-10)",
+  "visibility": "string (optional: 'private', 'shared', 'public')"
+}
+```
+
+**Validation Rules:**
+- `collectionId`: Must be valid MongoDB ObjectId and user must own the collection
+- `title`: 3-100 characters, trimmed
+- `durationInMin`: Integer between 1-720 minutes
+- `questionCount`: Integer between 1-10, must not exceed available questions in collection
+- `visibility`: Optional, defaults to 'private', must be one of: 'private', 'shared', 'public'
+
+**Response (201):**
+```json
+{
+  "errorCode": 201,
+  "message": "Contest created successfully",
+  "data": {
+    "_id": "contest_id",
+    "title": "Sample Contest",
+    "owner": "user_id",
+    "questionIds": ["q1", "q2", "q3"],
+    "durationInMin": 60,
+    "visibility": "private",
+    "contestCode": "ABC123",
+    "status": "upcoming",
+    "createdAt": "2024-01-01T00:00:00.000Z"
+  },
+  "success": true
+}
+```
+
+**Error Responses:**
+| Status | Message | Reason |
+|--------|---------|--------|
+| 400 | Invalid collection ID | collectionId is not a valid ObjectId |
+| 404 | Collection not found | Collection doesn't exist or user doesn't own it |
+| 400 | Not enough questions in collection | Collection has fewer questions than requested |
+| 400 | questionCount must be greater than 0 | Invalid question count |
+| 400 | Title must be between 3 and 100 characters | Invalid title length |
+| 400 | Duration must be between 1 and 720 minutes | Invalid duration |
+| 400 | Invalid visibility | Visibility not one of allowed values |
+
+**Implementation Notes:**
+- Randomly selects questions from the specified collection
+- Generates a unique contest code for joining
+- Contest starts in 'upcoming' status
+- Only collection owner can create contests from their collections
+
+---
+
+### 29. Get Contest
+
+**Endpoint:** `GET /contest/:contestId`
+
+**Authentication:** Required (JWT)
+
+**Description:** Get contest details and questions (for participants)
+
+**URL Parameters:**
+- `contestId`: Contest ID or contest code (string, min 3 chars)
+
+**Response (200):**
+```json
+{
+  "errorCode": 200,
+  "message": "Contest fetched successfully",
+  "data": {
+    "_id": "contest_id",
+    "title": "Sample Contest",
+    "questions": [
+      {
+        "_id": "q1",
+        "title": "Two Sum",
+        "platform": "LeetCode",
+        "difficulty": "easy",
+        "topics": ["array", "hash-table"]
+      }
+    ],
+    "durationInMin": 60,
+    "visibility": "private",
+    "status": "active",
+    "startTime": "2024-01-01T00:00:00.000Z",
+    "endTime": "2024-01-01T01:00:00.000Z",
+    "timeRemaining": 3540
+  },
+  "success": true
+}
+```
+
+**Error Responses:**
+| Status | Message | Reason |
+|--------|---------|--------|
+| 400 | Invalid contest ID or code | contestId parameter is invalid |
+| 404 | Contest not found | Contest doesn't exist |
+| 403 | Contest is private | User not authorized to view private contest |
+| 400 | Contest has ended | Contest is in 'completed' status |
+
+**Implementation Notes:**
+- Accepts both contest ID and contest code
+- Returns questions only if user is authorized to participate
+- Includes time remaining for active contests
+- Private contests require invitation or ownership
+
+---
+
+### 30. Join Contest
+
+**Endpoint:** `POST /contest/:id/join`
+
+**Authentication:** Required (JWT)
+
+**Description:** Join an upcoming or active contest
+
+**URL Parameters:**
+- `id`: Contest ID or contest code (string, min 3 chars)
+
+**Response (200):**
+```json
+{
+  "errorCode": 200,
+  "message": "Successfully joined contest",
+  "data": {
+    "contestId": "contest_id",
+    "participantId": "participant_id",
+    "joinedAt": "2024-01-01T00:00:00.000Z",
+    "status": "joined"
+  },
+  "success": true
+}
+```
+
+**Error Responses:**
+| Status | Message | Reason |
+|--------|---------|--------|
+| 400 | Invalid contest ID or code | id parameter is invalid |
+| 404 | Contest not found | Contest doesn't exist |
+| 403 | Contest is private | User not authorized to join |
+| 409 | Already joined this contest | User is already a participant |
+| 400 | Contest has ended | Contest status is 'completed' |
+| 400 | Contest not started yet | Contest is still 'upcoming' |
+
+**Implementation Notes:**
+- Creates ContestParticipant record
+- Sets initial status to 'joined'
+- Contest must be 'upcoming' or 'active' to join
+
+---
+
+### 31. Submit Contest
+
+**Endpoint:** `POST /contest/:contestId/submit`
+
+**Authentication:** Required (JWT)
+
+**Description:** Submit contest answers and finalize participation
+
+**URL Parameters:**
+- `contestId`: Contest ID (MongoDB ObjectId)
+
+**Request Body:**
+```json
+{
+  "attempts": [
+    {
+      "questionId": "string (MongoDB ObjectId)",
+      "status": "string ('solved' or 'unsolved')",
+      "timeSpent": "number (seconds spent on question)"
+    }
+  ]
+}
+```
+
+**Validation Rules:**
+- `attempts`: Array with at least 1 item
+- `questionId`: Must be valid ObjectId and part of contest
+- `status`: Must be 'solved' or 'unsolved'
+- `timeSpent`: Must be non-negative integer
+
+**Response (200):**
+```json
+{
+  "errorCode": 200,
+  "message": "Contest submitted successfully",
+  "data": {
+    "participantId": "participant_id",
+    "totalScore": 150,
+    "totalTimeSpent": 1800,
+    "rank": 3,
+    "attempts": [
+      {
+        "questionId": "q1",
+        "status": "solved",
+        "timeSpent": 300,
+        "points": 50
+      }
+    ]
+  },
+  "success": true
+}
+```
+
+**Error Responses:**
+| Status | Message | Reason |
+|--------|---------|--------|
+| 400 | Invalid contest ID | contestId is not valid ObjectId |
+| 404 | Contest not found | Contest doesn't exist |
+| 403 | Not a participant in this contest | User hasn't joined the contest |
+| 400 | Contest not active | Contest is not in 'active' status |
+| 400 | Attempts must be a non-empty array | Invalid attempts array |
+| 400 | Invalid question ID in attempts | Question not part of contest |
+| 400 | Invalid status | Status not 'solved' or 'unsolved' |
+
+**Implementation Notes:**
+- Calculates score based on solved questions and time penalties
+- Updates participant status to 'completed'
+- Generates ranking based on score and time
+- Auto-submission may occur if contest time expires
+
+---
+
+### 32. Get Contest Leaderboard
+
+**Endpoint:** `GET /contest/:contestId/leaderboard`
+
+**Authentication:** Required (JWT)
+
+**Description:** Get ranked list of contest participants
+
+**URL Parameters:**
+- `contestId`: Contest ID (MongoDB ObjectId)
+
+**Response (200):**
+```json
+{
+  "errorCode": 200,
+  "message": "Leaderboard fetched successfully",
+  "data": {
+    "contestId": "contest_id",
+    "totalParticipants": 25,
+    "leaderboard": [
+      {
+        "rank": 1,
+        "participant": {
+          "_id": "user_id",
+          "username": "top_coder",
+          "fullName": "Top Coder"
+        },
+        "score": 300,
+        "timeSpent": 1500,
+        "questionsSolved": 6,
+        "accuracy": 100
+      }
+    ]
+  },
+  "success": true
+}
+```
+
+**Error Responses:**
+| Status | Message | Reason |
+|--------|---------|--------|
+| 400 | Invalid contest ID | contestId is not valid ObjectId |
+| 404 | Contest not found | Contest doesn't exist |
+| 403 | Contest is private | User not authorized to view leaderboard |
+| 400 | Contest not completed | Leaderboard only available for completed contests |
+
+**Implementation Notes:**
+- Only shows leaderboard for completed contests
+- Ranks by score (descending), then by time spent (ascending)
+- Includes participant statistics
+- Private contests require participation to view
+
+---
+
+### 33. Get My Contest Rank
+
+**Endpoint:** `GET /contest/:contestId/me`
+
+**Authentication:** Required (JWT)
+
+**Description:** Get current user's ranking and performance in contest
+
+**URL Parameters:**
+- `contestId`: Contest ID (MongoDB ObjectId)
+
+**Response (200):**
+```json
+{
+  "errorCode": 200,
+  "message": "Contest rank fetched successfully",
+  "data": {
+    "rank": 5,
+    "totalParticipants": 25,
+    "score": 200,
+    "timeSpent": 1800,
+    "questionsSolved": 4,
+    "accuracy": 80,
+    "percentile": 80
+  },
+  "success": true
+}
+```
+
+**Error Responses:**
+| Status | Message | Reason |
+|--------|---------|--------|
+| 400 | Invalid contest ID | contestId is not valid ObjectId |
+| 404 | Contest not found | Contest doesn't exist |
+| 403 | Not a participant in this contest | User hasn't joined the contest |
+| 400 | Contest not completed | Rankings only available for completed contests |
+
+**Implementation Notes:**
+- Only available for completed contests
+- Shows user's relative performance
+- Includes percentile ranking
+
+---
+
+## Follow System
+
+### 34. Follow User
+
+**Endpoint:** `POST /follow/:targetUserId`
+
+**Authentication:** Required (JWT)
+
+**Description:** Follow another user
+
+**URL Parameters:**
+- `targetUserId`: User ID to follow (MongoDB ObjectId)
+
+**Response (201):**
+```json
+{
+  "errorCode": 201,
+  "message": "User followed successfully",
+  "data": {
+    "followerId": "current_user_id",
+    "followingId": "target_user_id",
+    "followedAt": "2024-01-01T00:00:00.000Z"
+  },
+  "success": true
+}
+```
+
+**Error Responses:**
+| Status | Message | Reason |
+|--------|---------|--------|
+| 400 | Invalid user ID | targetUserId is not valid ObjectId |
+| 404 | User not found | Target user doesn't exist |
+| 409 | Already following this user | User is already following target |
+| 400 | Cannot follow yourself | User trying to follow themselves |
+
+**Implementation Notes:**
+- Creates Follow record between users
+- Updates follower/following counts
+- Cannot follow yourself
+- Cannot follow the same user twice
+
+---
+
+### 35. Unfollow User
+
+**Endpoint:** `DELETE /follow/:targetUserId`
+
+**Authentication:** Required (JWT)
+
+**Description:** Unfollow a user
+
+**URL Parameters:**
+- `targetUserId`: User ID to unfollow (MongoDB ObjectId)
+
+**Response (200):**
+```json
+{
+  "errorCode": 200,
+  "message": "User unfollowed successfully",
+  "data": {
+    "followerId": "current_user_id",
+    "followingId": "target_user_id",
+    "unfollowedAt": "2024-01-01T00:00:00.000Z"
+  },
+  "success": true
+}
+```
+
+**Error Responses:**
+| Status | Message | Reason |
+|--------|---------|--------|
+| 400 | Invalid user ID | targetUserId is not valid ObjectId |
+| 404 | User not found | Target user doesn't exist |
+| 404 | Not following this user | User is not following target |
+
+**Implementation Notes:**
+- Removes Follow record between users
+- Updates follower/following counts
+- Only removes existing follow relationships
+
+---
+
+### 36. Get Followers
+
+**Endpoint:** `GET /follow/followers/:userId`
+
+**Authentication:** Required (JWT)
+
+**Description:** Get list of users following a specific user
+
+**URL Parameters:**
+- `userId`: User ID to get followers for (MongoDB ObjectId)
+
+**Query Parameters:**
+- `page`: Page number (optional, default 1)
+- `limit`: Items per page (optional, default 20, max 50)
+
+**Response (200):**
+```json
+{
+  "errorCode": 200,
+  "message": "Followers fetched successfully",
+  "data": {
+    "userId": "target_user_id",
+    "followers": [
+      {
+        "_id": "follower_id",
+        "username": "follower_user",
+        "fullName": "Follower User",
+        "followedAt": "2024-01-01T00:00:00.000Z"
+      }
+    ],
+    "pagination": {
+      "page": 1,
+      "limit": 20,
+      "total": 45,
+      "pages": 3
+    }
+  },
+  "success": true
+}
+```
+
+**Error Responses:**
+| Status | Message | Reason |
+|--------|---------|--------|
+| 400 | Invalid user ID | userId is not valid ObjectId |
+| 404 | User not found | Target user doesn't exist |
+
+**Implementation Notes:**
+- Returns paginated list of followers
+- Includes follower details and follow date
+- Sorted by most recent follows first
+
+---
+
+### 37. Get Following
+
+**Endpoint:** `GET /follow/following/:userId`
+
+**Authentication:** Required (JWT)
+
+**Description:** Get list of users that a specific user is following
+
+**URL Parameters:**
+- `userId`: User ID to get following for (MongoDB ObjectId)
+
+**Query Parameters:**
+- `page`: Page number (optional, default 1)
+- `limit`: Items per page (optional, default 20, max 50)
+
+**Response (200):**
+```json
+{
+  "errorCode": 200,
+  "message": "Following fetched successfully",
+  "data": {
+    "userId": "target_user_id",
+    "following": [
+      {
+        "_id": "following_id",
+        "username": "followed_user",
+        "fullName": "Followed User",
+        "followedAt": "2024-01-01T00:00:00.000Z"
+      }
+    ],
+    "pagination": {
+      "page": 1,
+      "limit": 20,
+      "total": 32,
+      "pages": 2
+    }
+  },
+  "success": true
+}
+```
+
+**Error Responses:**
+| Status | Message | Reason |
+|--------|---------|--------|
+| 400 | Invalid user ID | userId is not valid ObjectId |
+| 404 | User not found | Target user doesn't exist |
+
+**Implementation Notes:**
+- Returns paginated list of users being followed
+- Includes following details and follow date
+- Sorted by most recent follows first
+
+---
+
+### 38. Get Follow Status
+
+**Endpoint:** `GET /follow/status/:targetUserId`
+
+**Authentication:** Required (JWT)
+
+**Description:** Check if current user follows target user and get follow stats
+
+**URL Parameters:**
+- `targetUserId`: User ID to check follow status for (MongoDB ObjectId)
+
+**Response (200):**
+```json
+{
+  "errorCode": 200,
+  "message": "Follow status fetched successfully",
+  "data": {
+    "targetUserId": "target_user_id",
+    "isFollowing": true,
+    "followerCount": 45,
+    "followingCount": 32,
+    "followedAt": "2024-01-01T00:00:00.000Z"
+  },
+  "success": true
+}
+```
+
+**Error Responses:**
+| Status | Message | Reason |
+|--------|---------|--------|
+| 400 | Invalid user ID | targetUserId is not valid ObjectId |
+| 404 | User not found | Target user doesn't exist |
+
+**Implementation Notes:**
+- Shows follow relationship between current user and target
+- Includes aggregated follower/following counts
+- Shows follow date if following
+
+---
+
+## User Statistics
+
+### 39. Get Global Leaderboard
+
+**Endpoint:** `GET /userStats/leaderboard`
+
+**Authentication:** Required (JWT)
+
+**Description:** Get global user ranking based on contest performance
+
+**Query Parameters:**
+- `page`: Page number (optional, default 1)
+- `limit`: Items per page (optional, default 20, max 50)
+
+**Response (200):**
+```json
+{
+  "errorCode": 200,
+  "message": "Leaderboard fetched successfully",
+  "data": {
+    "leaderboard": [
+      {
+        "rank": 1,
+        "user": {
+          "_id": "user_id",
+          "username": "top_coder",
+          "fullName": "Top Coder"
+        },
+        "totalScore": 2500,
+        "contestsParticipated": 15,
+        "averageAccuracy": 85.5,
+        "winRate": 60
+      }
+    ],
+    "pagination": {
+      "page": 1,
+      "limit": 20,
+      "total": 500,
+      "pages": 25
+    }
+  },
+  "success": true
+}
+```
+
+**Error Responses:**
+| Status | Message | Reason |
+|--------|---------|--------|
+| None specific | Standard pagination errors | Invalid page/limit values |
+
+**Implementation Notes:**
+- Ranks users by total contest score
+- Includes participation statistics
+- Paginated for performance
+
+---
+
+### 40. Get User Stats
+
+**Endpoint:** `GET /userStats/:userId`
+
+**Authentication:** Required (JWT)
+
+**Description:** Get comprehensive statistics for a user
+
+**URL Parameters:**
+- `userId`: User ID (MongoDB ObjectId)
+
+**Response (200):**
+```json
+{
+  "errorCode": 200,
+  "message": "User stats fetched successfully",
+  "data": {
+    "userId": "user_id",
+    "totalScore": 1200,
+    "contestsParticipated": 8,
+    "contestsWon": 2,
+    "averageAccuracy": 78.5,
+    "totalQuestionsSolved": 45,
+    "averageTimePerQuestion": 420,
+    "bestRank": 3,
+    "currentStreak": 5,
+    "longestStreak": 12
+  },
+  "success": true
+}
+```
+
+**Error Responses:**
+| Status | Message | Reason |
+|--------|---------|--------|
+| 400 | Invalid user ID | userId is not valid ObjectId |
+| 404 | User not found | User doesn't exist |
+
+**Implementation Notes:**
+- Aggregates data from contest participations
+- Includes various performance metrics
+- Shows ranking statistics
+
+---
+
+### 41. Get User Topic Stats
+
+**Endpoint:** `GET /userStats/:userId/topics`
+
+**Authentication:** Required (JWT)
+
+**Description:** Get user's performance statistics by topic
+
+**URL Parameters:**
+- `userId`: User ID (MongoDB ObjectId)
+
+**Response (200):**
+```json
+{
+  "errorCode": 200,
+  "message": "User topic stats fetched successfully",
+  "data": {
+    "userId": "user_id",
+    "topicStats": [
+      {
+        "topic": "array",
+        "questionsSolved": 15,
+        "totalAttempts": 18,
+        "accuracy": 83.3,
+        "averageTime": 380
+      },
+      {
+        "topic": "string",
+        "questionsSolved": 12,
+        "totalAttempts": 15,
+        "accuracy": 80,
+        "averageTime": 420
+      }
+    ]
+  },
+  "success": true
+}
+```
+
+**Error Responses:**
+| Status | Message | Reason |
+|--------|---------|--------|
+| 400 | Invalid user ID | userId is not valid ObjectId |
+| 404 | User not found | User doesn't exist |
+
+**Implementation Notes:**
+- Aggregates performance by question topics
+- Shows accuracy and timing per topic
+- Helps identify strengths/weaknesses
+
+---
+
+### 42. Get User Contest History
+
+**Endpoint:** `GET /userStats/:userId/history`
+
+**Authentication:** Required (JWT)
+
+**Description:** Get user's contest participation history
+
+**URL Parameters:**
+- `userId`: User ID (MongoDB ObjectId)
+
+**Query Parameters:**
+- `page`: Page number (optional, default 1)
+- `limit`: Items per page (optional, default 20, max 50)
+
+**Response (200):**
+```json
+{
+  "errorCode": 200,
+  "message": "Contest history fetched successfully",
+  "data": {
+    "userId": "user_id",
+    "contestHistory": [
+      {
+        "contestId": "contest_id",
+        "contestTitle": "Weekly Challenge",
+        "rank": 5,
+        "score": 200,
+        "totalParticipants": 50,
+        "participatedAt": "2024-01-01T00:00:00.000Z",
+        "status": "completed"
+      }
+    ],
+    "pagination": {
+      "page": 1,
+      "limit": 20,
+      "total": 25,
+      "pages": 2
+    }
+  },
+  "success": true
+}
+```
+
+**Error Responses:**
+| Status | Message | Reason |
+|--------|---------|--------|
+| 400 | Invalid user ID | userId is not valid ObjectId |
+| 404 | User not found | User doesn't exist |
+
+**Implementation Notes:**
+- Shows all contest participations
+- Includes ranking and performance data
+- Paginated for performance
+
+---
+
+### 43. Get User Created Contests
+
+**Endpoint:** `GET /userStats/:userId/contests/created`
+
+**Authentication:** Required (JWT)
+
+**Description:** Get contests created by a user
+
+**URL Parameters:**
+- `userId`: User ID (MongoDB ObjectId)
+
+**Query Parameters:**
+- `page`: Page number (optional, default 1)
+- `limit`: Items per page (optional, default 20, max 50)
+
+**Response (200):**
+```json
+{
+  "errorCode": 200,
+  "message": "Created contests fetched successfully",
+  "data": {
+    "userId": "user_id",
+    "createdContests": [
+      {
+        "contestId": "contest_id",
+        "title": "My Contest",
+        "participants": 25,
+        "status": "completed",
+        "createdAt": "2024-01-01T00:00:00.000Z"
+      }
+    ],
+    "pagination": {
+      "page": 1,
+      "limit": 20,
+      "total": 5,
+      "pages": 1
+    }
+  },
+  "success": true
+}
+```
+
+**Error Responses:**
+| Status | Message | Reason |
+|--------|---------|--------|
+| 400 | Invalid user ID | userId is not valid ObjectId |
+| 404 | User not found | User doesn't exist |
+
+**Implementation Notes:**
+- Shows contests created by the user
+- Includes participation statistics
+- Paginated for performance
+
+---
+
+### 44. Get User Joined Contests
+
+**Endpoint:** `GET /userStats/:userId/contests/joined`
+
+**Authentication:** Required (JWT)
+
+**Description:** Get contests joined by a user
+
+**URL Parameters:**
+- `userId`: User ID (MongoDB ObjectId)
+
+**Query Parameters:**
+- `page`: Page number (optional, default 1)
+- `limit`: Items per page (optional, default 20, max 50)
+
+**Response (200):**
+```json
+{
+  "errorCode": 200,
+  "message": "Joined contests fetched successfully",
+  "data": {
+    "userId": "user_id",
+    "joinedContests": [
+      {
+        "contestId": "contest_id",
+        "title": "Weekly Challenge",
+        "rank": 5,
+        "score": 200,
+        "joinedAt": "2024-01-01T00:00:00.000Z",
+        "status": "completed"
+      }
+    ],
+    "pagination": {
+      "page": 1,
+      "limit": 20,
+      "total": 15,
+      "pages": 1
+    }
+  },
+  "success": true
+}
+```
+
+**Error Responses:**
+| Status | Message | Reason |
+|--------|---------|--------|
+| 400 | Invalid user ID | userId is not valid ObjectId |
+| 404 | User not found | User doesn't exist |
+
+**Implementation Notes:**
+- Shows contests the user has participated in
+- Includes performance data
+- Paginated for performance
 
 ---
 
@@ -2127,3 +3020,243 @@ curl -X DELETE http://localhost:5000/api/v1/question/507f1f77bcf86cd799439011 \
 ---
 
 **For Frontend Integration:** Import this documentation for Postman, Swagger, or API client generation tools.
+
+---
+
+## Contest Model Schema
+
+```javascript
+const contestSchema = new mongoose.Schema({
+  title: {
+    type: String,
+    required: true,
+    trim: true,
+    minlength: 3,
+    maxlength: 100
+  },
+  
+  owner: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    required: true
+  },
+  
+  questionIds: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Question',
+    required: true
+  }],
+  
+  durationInMin: {
+    type: Number,
+    required: true,
+    min: 1,
+    max: 720
+  },
+  
+  visibility: {
+    type: String,
+    enum: ['private', 'shared', 'public'],
+    default: 'private'
+  },
+  
+  contestCode: {
+    type: String,
+    required: true,
+    unique: true,
+    minlength: 3,
+    maxlength: 10
+  },
+  
+  status: {
+    type: String,
+    enum: ['upcoming', 'active', 'completed'],
+    default: 'upcoming'
+  },
+  
+  startTime: {
+    type: Date
+  },
+  
+  endTime: {
+    type: Date
+  }
+}, {
+  timestamps: true
+});
+```
+
+### Fields:
+- **title:** Contest name (3-100 chars)
+- **owner:** Reference to User who created contest
+- **questionIds:** Array of Question ObjectIds (randomly selected from collection)
+- **durationInMin:** Contest duration in minutes (1-720)
+- **visibility:** Access level ('private', 'shared', 'public')
+- **contestCode:** Unique code for joining contest
+- **status:** Current contest state
+- **startTime/endTime:** Contest timing (set when contest becomes active)
+
+### Indexes:
+1. **Index:** `{ owner: 1 }` - Find contests by owner
+2. **Unique Index:** `{ contestCode: 1 }` - Ensure unique contest codes
+3. **Index:** `{ status: 1 }` - Filter by contest status
+
+---
+
+## ContestParticipant Model Schema
+
+```javascript
+const contestParticipantSchema = new mongoose.Schema({
+  contestId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Contest',
+    required: true
+  },
+  
+  userId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    required: true
+  },
+  
+  status: {
+    type: String,
+    enum: ['joined', 'completed'],
+    default: 'joined'
+  },
+  
+  joinedAt: {
+    type: Date,
+    default: Date.now
+  },
+  
+  completedAt: {
+    type: Date
+  },
+  
+  score: {
+    type: Number,
+    default: 0
+  },
+  
+  timeSpent: {
+    type: Number,
+    default: 0
+  },
+  
+  rank: {
+    type: Number
+  }
+}, {
+  timestamps: true
+});
+```
+
+### Fields:
+- **contestId:** Reference to Contest
+- **userId:** Reference to User participant
+- **status:** Participation status
+- **joinedAt:** When user joined contest
+- **completedAt:** When user finished contest
+- **score:** Total points earned
+- **timeSpent:** Total time spent (seconds)
+- **rank:** Final ranking in contest
+
+### Indexes:
+1. **Compound Index (unique):** `{ contestId: 1, userId: 1 }` - One participation per user per contest
+2. **Index:** `{ contestId: 1, score: -1 }` - Rank participants by score
+3. **Index:** `{ userId: 1 }` - Find all contests for a user
+
+---
+
+## Follow Model Schema
+
+```javascript
+const followSchema = new mongoose.Schema({
+  followerId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    required: true
+  },
+  
+  followingId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    required: true
+  },
+  
+  followedAt: {
+    type: Date,
+    default: Date.now
+  }
+}, {
+  timestamps: true
+});
+```
+
+### Fields:
+- **followerId:** User who is following
+- **followingId:** User being followed
+- **followedAt:** When follow relationship was created
+
+### Indexes:
+1. **Compound Index (unique):** `{ followerId: 1, followingId: 1 }` - Prevent duplicate follows
+2. **Index:** `{ followerId: 1 }` - Find who user is following
+3. **Index:** `{ followingId: 1 }` - Find user's followers
+
+---
+
+## QuestionAttempt Model Schema
+
+```javascript
+const questionAttemptSchema = new mongoose.Schema({
+  contestId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Contest',
+    required: true
+  },
+  
+  participantId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'ContestParticipant',
+    required: true
+  },
+  
+  questionId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Question',
+    required: true
+  },
+  
+  status: {
+    type: String,
+    enum: ['solved', 'unsolved'],
+    required: true
+  },
+  
+  timeSpent: {
+    type: Number,
+    required: true,
+    min: 0
+  },
+  
+  attemptedAt: {
+    type: Date,
+    default: Date.now
+  }
+}, {
+  timestamps: true
+});
+```
+
+### Fields:
+- **contestId:** Reference to Contest
+- **participantId:** Reference to ContestParticipant
+- **questionId:** Reference to Question
+- **status:** Whether question was solved
+- **timeSpent:** Time spent on question (seconds)
+- **attemptedAt:** When attempt was recorded
+
+### Indexes:
+1. **Compound Index:** `{ contestId: 1, participantId: 1 }` - Group attempts by contest and participant
+2. **Index:** `{ questionId: 1 }` - Find attempts for specific question
