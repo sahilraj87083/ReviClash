@@ -11,10 +11,12 @@ import {
     PrivateContestLobby
 } from '../../pages'
 
+import ProtectedLayout from "./ProtectedLayout"
+
 export const ProtectedRoutes = (
-    <>
+    <Route element = {<ProtectedLayout/>}>
         <Route path="/user/dashboard" element = { <Dashboard/> }/>
-        <Route path="/user/profile" element = { <MyProfile/> }/>
+        <Route path="/user/profile/:username" element = { <MyProfile/> }/>
         <Route path="/user/contests" element = { <Contests/> }/>
         <Route path="/user/contests/live" element = { <LiveContest/> }/>
         <Route path="/user/contests/public" element = { <GroupContestLobby/> }/>
@@ -23,5 +25,5 @@ export const ProtectedRoutes = (
         <Route path="/user/collections" element = { <Collections/> }/>
         <Route path="/user/messages" element = { <Message/> }/>
         <Route path="/user/collection/questions" element = { <CollectionQuestions/> }/>
-    </>
+    </Route>
 )

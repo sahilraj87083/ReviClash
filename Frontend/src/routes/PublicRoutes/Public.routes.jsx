@@ -6,12 +6,22 @@ import {
     Explore
 }
 from '../../pages'
+import GuestOnlyWrapper from "./GuestOnlyWrapper";
 
 export const PublicRoutes = (
     <>
         <Route index element = {<Home/>} />
-        <Route path="/user/register" element = { <Register/> }/>
-        <Route path="/user/login" element = { <Login/> }/>
         <Route path="/explore" element = { <Explore/> }/>
+
+        <Route path="/user/register" element = { 
+            <GuestOnlyWrapper>
+                <Register/> 
+            </GuestOnlyWrapper>
+        }/>
+        <Route path="/user/login" element = { 
+            <GuestOnlyWrapper>
+                <Login/>
+            </GuestOnlyWrapper>
+         }/>
     </>
 )

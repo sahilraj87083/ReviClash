@@ -14,3 +14,6 @@ export const refreshTokenService = () =>
 
 export const logoutService = () =>
     api.post("/users/logout");
+
+export const getCurrUserService = () => 
+    api.get('/users/current-user').then(res => res.data.data)
