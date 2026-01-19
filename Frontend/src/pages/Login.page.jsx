@@ -1,11 +1,39 @@
-import { NavLink } from "react-router-dom";
-import { useRef } from "react";
+import { NavLink, useNavigate } from "react-router-dom";
+import { useRef, useState } from "react";
 import gsap from "gsap";
 import { useGSAP } from "@gsap/react";
 import { Input, Button } from "../components/index";
+import { loginService } from "../services/auth.services";
+import { useUserContext } from "../contexts/UserContext";
 
 function Login() {
   const containerRef = useRef(null);
+  const navigate = useNavigate();
+
+  const [email, setEmail] = useState("")
+  const [password, setPassword] = useState("")
+
+  const { setAuth } = useUserContext()
+
+
+  const submitHandler = async (e) => {
+    e.preventDefault()
+
+    const userData = {
+      email : email,
+      password : password
+    }
+    const response = await loginService(userData)
+    console.log(response)
+
+    // if(response.errorCode === 200){
+    setAuth( response.accessToken , response.user)
+    navigate('/')
+    // }
+
+    }
+
+
 
   useGSAP(
     () => {
@@ -61,17 +89,23 @@ function Login() {
             Login to your account
           </h2>
 
-          <form className="space-y-4">
+          <form className="space-y-4"
+            onSubmit={submitHandler}
+          >
             {/* Inputs group (animated) */}
             <div className="inputs-group space-y-4">
               <Input
-                label="Email or Username"
+                value = {email}
+                onChange = {(e) => {setEmail(e.target.value)}}
+                label="Email"
                 type="text"
-                placeholder="Enter email or username"
+                placeholder="Enter email"
                 autoComplete="username"
               />
 
               <Input
+                value = {password}
+                onChange = {(e) => {setPassword(e.target.value)}}
                 label="Password"
                 type="password"
                 placeholder="••••••••"
@@ -81,6 +115,7 @@ function Login() {
 
             {/* CTA */}
             <Button
+              type="submit"
               variant="primary"
               className="w-full mt-4"
             >

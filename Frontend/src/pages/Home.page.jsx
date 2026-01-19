@@ -1,9 +1,10 @@
-import { useRef } from "react";
+import { useEffect, useRef } from "react";
 import gsap from "gsap";
 import { useGSAP } from "@gsap/react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "../components";
 import { Feature, Step } from "../utils";
+import axios from "axios";
 
 
 function Home() {
@@ -15,6 +16,17 @@ function Home() {
   const stepsRef = useRef(null);
 
   const navigate = useNavigate()
+
+  // useEffect( () => {
+  //   axios.get('api/v1/healthcheck')
+  //   .then((data) => {
+  //     console.log(data)
+  //   }).catch((error) => {
+  //     console.log(error)
+  //   })
+
+    
+  // })
 
   useGSAP(
     () => {

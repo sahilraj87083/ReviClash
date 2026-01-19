@@ -1,9 +1,24 @@
 import { NavLink } from "react-router-dom";
 import { useEffect, useRef, useState } from "react";
+import { logoutService } from "../../services/auth.services";
+import { useUserContext } from "../../contexts/UserContext";
 
 function ProfileDropdown({ user }) {
   const [open, setOpen] = useState(false);
   const dropdownRef = useRef(null);
+
+
+  const { logout } = useUserContext();
+
+  const logOutHandler = async () => {
+    try {
+      await logoutService(); // backend clears cookies
+    } finally {
+      logout();              // frontend clears state
+      setOpen(false);
+    }
+  };
+
 
   // close when clicking outside
   useEffect(() => {
@@ -18,7 +33,7 @@ function ProfileDropdown({ user }) {
   }, []);
 
   return (
-    <div className="relative" ref={dropdownRef}>
+    <div className="relative nav-anim" ref={dropdownRef}>
       {/* Avatar */}
       <img
         src={user.avatar}
@@ -48,10 +63,7 @@ function ProfileDropdown({ user }) {
 
           <button
             className="w-full text-left px-4 py-2 text-red-400 hover:bg-zinc-800 font-semibold"
-            onClick={() => {
-              setOpen(false);
-              console.log("logout");
-            }}
+            onClick={logOutHandler}
           >
             Logout
           </button>

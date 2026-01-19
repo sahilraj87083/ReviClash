@@ -7,7 +7,6 @@ import {User} from '../models/user.model.js'
 import jwt from 'jsonwebtoken'
 import mongoose from 'mongoose'
 import { createNewUserService, generateAccessAndRefereshTokensService } from '../services/user.services.js'
-import {validationResult} from 'express-validator'
 
 
 const registerUser = asyncHandler(async(req, res) => {
@@ -89,7 +88,8 @@ const loginUser = asyncHandler(async(req, res) => {
             200,
             "User logged In Successfully",
             {
-                user : loggedInUser
+                user : loggedInUser,
+                accessToken,
             }
         )
     )
@@ -175,6 +175,10 @@ const refreshAccessToken = asyncHandler( async (req, res) => {
             new ApiResponse(
                 200,
                 "Access token refreshed",
+                {
+                    user : user,
+                    accessToken : accessToken
+                }
             )
         )
 

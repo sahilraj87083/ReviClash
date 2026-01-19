@@ -1,36 +1,67 @@
-import { NavLink } from "react-router-dom";
-import { useRef } from "react";
+import { NavLink, useNavigate } from "react-router-dom";
+import { useRef, useState } from "react";
 import gsap from "gsap";
 import { useGSAP } from "@gsap/react";
 import { Input, Button } from "../components";
+import { registerService } from "../services/auth.services";
 
 function Register() {
-  const containerRef = useRef(null);
-  const formRef = useRef(null);
+    const containerRef = useRef(null);
+    const formRef = useRef(null);
+    const navigate = useNavigate()
 
-  useGSAP(
-  () => {
-    gsap.from(containerRef.current, {
-      opacity: 0,
-      y: 40,
-      duration: 0.8,
-      ease: "power3.out",
-    });
+    const [FullName, setFullName] = useState("")
+    const [UserName, setUserName] = useState("")
+    const [email, setEmail] = useState("");
+    const [password, setPassword] = useState("");
 
-    gsap.from(
-      containerRef.current.querySelectorAll(".inputs-group > *"),
-      {
-        opacity: 0,
-        y: 20,
-        stagger: 0.08,
-        duration: 0.5,
-        ease: "power2.out",
-        delay: 0.2,
-      }
+
+    const submitHandler = async (e) => {
+        e.preventDefault();
+
+        const newUser = {
+            fullName : FullName,
+            username : UserName,
+            email : email,
+            password : password
+        }
+
+        const response = await registerService(newUser)
+        console.log(response)
+
+        if(response.status === 201){
+            navigate('/user/login')
+        }
+        setFullName("")
+        setEmail("");
+        setPassword("");
+        setUserName("");
+    }
+
+
+    useGSAP(
+      () => {
+        gsap.from(containerRef.current, {
+          opacity: 0,
+          y: 40,
+          duration: 0.8,
+          ease: "power3.out",
+        });
+
+        gsap.from(
+          containerRef.current.querySelectorAll(".inputs-group > *"),
+          {
+            opacity: 0,
+            y: 20,
+            stagger: 0.08,
+            duration: 0.5,
+            ease: "power2.out",
+            delay: 0.2,
+          }
+        );
+      },
+      { scope: containerRef }
     );
-  },
-  { scope: containerRef }
-);
 
 
   return (
@@ -64,22 +95,42 @@ function Register() {
             Create your account
           </h2>
 
-          <form ref={formRef} className="space-y-4">
+          <form ref={formRef} className="space-y-4"
+            onSubmit={submitHandler}
+          >
             {/* Inputs wrapper */}
             <div className="space-y-4 inputs-group">
-              <Input label="Full Name" type="text" placeholder="Enter full name" />
-              <Input label="Username" type="text" placeholder="Enter username" />
-              <Input label="Email" type="email" placeholder="abc@gmail.com" />
-              <Input label="Password" type="password" placeholder="••••••••" />
-              <Input
+              <Input 
+                value = {FullName}
+                onChange = {(e) => {setFullName(e.target.value)}}
+                label="Full Name" type="text" placeholder="Enter full name" 
+              />
+              <Input 
+                value = {UserName}
+                onChange = {(e) => {setUserName(e.target.value)}}
+                label="Username" type="text" placeholder="Enter username" 
+              />
+              <Input 
+                value = {email}
+                onChange = {(e) => {setEmail(e.target.value)}}
+                label="Email" type="email" placeholder="abc@gmail.com" 
+              />
+              <Input 
+                value = {password}
+                onChange = {(e) => {setPassword(e.target.value)}}
+                label="Password" type="password" placeholder="••••••••" 
+              />
+              {/* <Input
                 label="Confirm Password"
                 type="password"
                 placeholder="••••••••"
-              />
+              /> */}
             </div>
 
             {/* Button OUTSIDE animation group */}
-            <Button variant="primary" className="w-full mt-4">
+            <Button 
+              type="submit"
+              variant="primary" className="w-full mt-4">
               Sign Up
             </Button>
           </form>
