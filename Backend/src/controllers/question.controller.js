@@ -4,6 +4,8 @@ import {ApiError} from '../utils/ApiError.utils.js'
 import {ApiResponse} from '../utils/ApiResponse.utils.js'
 import mongoose, { isValidObjectId } from 'mongoose'
 import {query, validationResult} from 'express-validator'
+import {CollectionQuestion} from '../models/collectionQuestion.model.js';
+import { Collection } from "../models/collection.model.js";
 import {normalizeUrlservice, uploadQuestionService} from '../services/question.services.js'
 
 
@@ -183,6 +185,24 @@ const deleteQuestion = asyncHandler(async (req, res) => {
 
     if (!question) {
         throw new ApiError(404, "Question not found");
+    }
+
+    // 2. Find all collection links and decrease the count
+    const links = await CollectionQuestion.find({ questionId }).select(
+        "collectionId"
+    );
+
+    if (links.length > 0) {
+        const collectionIds = links.map((l) => l.collectionId);
+
+        // 3. Remove all links
+        await CollectionQuestion.deleteMany({ questionId });
+
+        // 4. Decrease questionsCount safely
+        await Collection.updateMany(
+        { _id: { $in: collectionIds }, questionsCount: { $gt: 0 } },
+        { $inc: { questionsCount: -1 } }
+        );
     }
 
     return res
