@@ -13,20 +13,29 @@ function Collections() {
     const containerRef = useRef(null);
     const [showCreate, setShowCreate] = useState(false);
     const [collections, setCollections] = useState([])
+    const [search, setSearch] = useState("");
   
     const [openContestModal, setOpenContestModal] = useState(false);
     const [selectedCollection, setSelectedCollection] = useState(null);
+
+    const filteredCollections = collections.filter(c =>
+        c.name.toLowerCase().includes(search.toLowerCase())
+    );
 
     useEffect(() => {
       (async () => {
         const response = await getMyCollections()
         setCollections(response)
       })()
-    })
+    },[])
+
+    
+
 
     const handleCreateCollection = async (data) => {
       try {
-          await createCollection(data)
+          const newCollection = await createCollection(data)
+          setCollections((prev) => [newCollection, ...prev]);
           setShowCreate(false)
           toast.success("Collection created successfully")
       } catch (error) {
@@ -38,6 +47,9 @@ function Collections() {
     const handleDeleteCollection = async (collectionId) => {
       try {
         await deleteCollection(collectionId)
+        setCollections((prev) =>
+          prev.filter((c) => c._id !== collectionId)
+        );
         toast.success("Collection deleted successfully")
       } catch (error) {
         console.log(error)
@@ -55,25 +67,6 @@ function Collections() {
         setOpenContestModal(false);
     };
 
-
-
-    // mock data
-    // const collections = [
-        // {
-        //     id: "1",
-        //     name: "DSA Core",
-        //     description: "Must-do DSA questions",
-        //     questionsCount: 120,
-        //     isPublic: false,
-        // },
-        // {
-        //     id: "2",
-        //     name: "Binary Search",
-        //     description: "Binary search patterns",
-        //     questionsCount: 45,
-        //     isPublic: true,
-        // },
-    // ];
 
     useGSAP(
       () => {
@@ -103,12 +96,18 @@ function Collections() {
             </p>
           </div>
 
-          <Button
-            variant="primary"
-            onClick={() => setShowCreate(true)}
-          >
-            + Create Collection
-          </Button>
+          <div className="flex gap-3 w-full sm:w-auto">
+            <Input
+              placeholder="Search collections..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="w-full sm:w-64"
+            />
+
+            <Button variant="primary" onClick={() => setShowCreate(true)}>
+              + New Collection
+            </Button>
+          </div>
         </section>
 
         {/* COLLECTIONS GRID */}
@@ -116,7 +115,7 @@ function Collections() {
           <EmptyState onCreate={() => setShowCreate(true)} />
         ) : (
           <section className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {collections.map((c) => (
+            {filteredCollections.map((c) => (
               <CollectionCard key={c._id} collection={c} onCreateContest = {handleCreateContestClick} onDelete={handleDeleteCollection}/>
             ))}
           </section>
