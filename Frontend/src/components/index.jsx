@@ -4,7 +4,7 @@ import Input from './Others/Input'
 import Button from './Others/Button'
 import Select from './Others/Select'
 import QuestionRow from './CollectionPageComponents/QuestionRow'
-import AddQuestionPanel from './Others/AddQuestionPanel'
+import AddQuestionPanel from './CollectionPageComponents/AddQuestionPanel'
 
 import LiveContests from './ExploreComponents/LiveContests'
 import PublicCollections from './ExploreComponents/PublicCollections'
@@ -21,6 +21,7 @@ import EmptyState from './CollectionPageComponents/EmptyState'
 import CreateCollectionModal from './CollectionPageComponents/CreateCollectionModal'
 import CreateContestModal from './CollectionPageComponents/CreateContestModel'
 import EmptyQuestionsState from './CollectionPageComponents/EmptyQuestionsState'
+import AddToCollectionModal from './CollectionPageComponents/AddToCollectionModal'
 
 import ContestRow from './ContestPageComponents/ContestRow'
 
@@ -55,6 +56,7 @@ export {
     CreateCollectionModal,
     CreateContestModal,
     EmptyQuestionsState,
+    AddToCollectionModal,
 
     ContestRow,
 

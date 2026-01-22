@@ -1,16 +1,22 @@
 import { ExternalLink } from "lucide-react";
 import {Button} from '../'
+import { useParams } from "react-router-dom";
 
 
-function QuestionRow({ q , index }) {
+function QuestionRow({ q , index, removeQuestion }) {
+  // console.log(q)
+  const {collectionId} = useParams()
 
-  const HandleDelete = (e) => {
-    console.log("Question Deleted")
+  const HandleRemove = async (e) => {
+    
+    await removeQuestion(collectionId, q._id)
+    console.log("Question Removed")
+
   }
   return (
     <div
       className="flex items-center justify-between
-      p-4 rounded-lg
+      p-3 rounded-lg
       bg-slate-800/60 border border-slate-700
       hover:border-red-500/40 hover:bg-slate-800
       transition"
@@ -34,14 +40,14 @@ function QuestionRow({ q , index }) {
               {q.difficulty}
             </span>
 
-            <span className="px-2 py-0.5 rounded bg-slate-700">
+            <span className="px-2 py-0.25 rounded bg-slate-700">
               {q.platform}
             </span>
 
             {q.topics.map((t) => (
               <span
                 key={t}
-                className="px-2 py-0.5 rounded bg-slate-700/60"
+                className="px-2 py-0.25 rounded bg-slate-700/60"
               >
                 {t}
               </span>
@@ -54,7 +60,7 @@ function QuestionRow({ q , index }) {
       <div className="flex gap-5">
         
         <a
-          href={q.problemUrl}
+          href={q.problemUrlOriginal}
           target="_blank"
           rel="noreferrer"
           className="flex items-center gap-2
@@ -68,11 +74,11 @@ function QuestionRow({ q , index }) {
 
         <Button 
         onClick = {(e) => {
-          HandleDelete(e)
+          HandleRemove(e)
         }}
         variant = "primary" size = 'sm'>
           <i className="ri-delete-bin-2-line"></i>
-          <p>Delete</p>
+          <p>Remove</p>
         </Button>
 
       </div>

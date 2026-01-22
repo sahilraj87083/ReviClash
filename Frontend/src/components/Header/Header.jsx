@@ -126,11 +126,6 @@ function Header() {
 
               <NavLink className={({ isActive }) =>
                   `nav-anim nav-link ${isActive ? "is-active" : ""}`
-                } to="user/collections">Collections
-              </NavLink>
-
-              <NavLink className={({ isActive }) =>
-                  `nav-anim nav-link ${isActive ? "is-active" : ""}`
                 } to="user/contests">Contests
                 </NavLink>
 

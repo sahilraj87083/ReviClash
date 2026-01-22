@@ -49,3 +49,13 @@ export const removeQuestionFromCollection = async (collectionId, questionId) => 
   );
   return res.data;
 };
+
+
+export const bulkAddQuestions = async (collectionId, questionIds) => {
+  const res = await api.post(`/collections/${collectionId}/questions/bulk`, {questionIds})
+  return res.data.data
+}
+
+export const bulkRemoveQuestions = async () => {
+  
+}

@@ -161,7 +161,7 @@ const getCollectionQuestions = asyncHandler( async (req, res) => {
         [
             { 
                 $match : {
-                    collectionId : new mongoose.Types.ObjectId(collectionId)
+                    collectionId : new mongoose.Types.ObjectId(collectionId),
                 }
             },
             {

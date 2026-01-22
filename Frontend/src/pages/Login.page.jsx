@@ -24,7 +24,7 @@ function Login() {
       password : password
     }
     const response = await loginService(userData)
-    console.log(response)
+    // console.log(response)
 
     // if(response.errorCode === 200){
     setAuth( response.accessToken , response.user)

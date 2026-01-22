@@ -11,6 +11,7 @@ import Explore from './Explore.page.jsx'
 import Message from './Message.page.jsx'
 import CollectionQuestions from './CollectionQuestions.page.jsx'
 import PrivateContestLobby from './PrivateContestLobby.page.jsx'
+import Questions from './Questions.page.jsx'
 
 
 export {
@@ -26,5 +27,6 @@ export {
     Explore,
     Message,
     CollectionQuestions,
-    PrivateContestLobby
+    PrivateContestLobby,
+    Questions
 }

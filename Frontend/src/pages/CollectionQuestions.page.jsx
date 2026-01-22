@@ -1,8 +1,9 @@
 import { useState, useEffect } from "react";
 import {AddQuestionPanel, QuestionRow , EmptyQuestionsState} from '../components'
-import { addQuestionToCollection, getCollectionAllQuestions, getCollectionById } from "../services/collection.service";
+import { addQuestionToCollection, getCollectionAllQuestions, removeQuestionFromCollection } from "../services/collection.service";
 import { useParams } from "react-router-dom";
 import { uploadQuestionService } from "../services/question.services";
+import toast from "react-hot-toast";
 
 
 function CollectionQuestions() {
@@ -31,18 +32,38 @@ function CollectionQuestions() {
     }, [collectionId])
 
     const handleAddQuestion = async (formData) => {
-    console.log(formData);
+    // console.log(formData);
       try {
         const uploadedQuestion = await uploadQuestionService(formData)
         await addQuestionToCollection(collectionId, uploadedQuestion._id)
         // console.log("Added")
-        await fetchData()
+        // await fetchData()
+        setquestions(prev => [
+          { question: uploadedQuestion },
+          ...prev,
+        ]);
+
+        toast.success("Question uploaded successfully")
       } catch (error) {
-        console.error("Add question failed:", error);
+        // console.error("Add question failed:", error);
+        if (error.response?.status === 409) {
+          toast.error("This question already exists");
+        } else {
+          toast.error("Failed to add question");
+        }
       }
 
       setOpenAddQuestionPanel(false);
     };
+
+    const handleRemoveQuestionFromCollection = async (collectionId, questionId) => {
+      try {
+        await removeQuestionFromCollection(collectionId, questionId)
+      } catch (error) {
+        console.log("Error while removing question from collection ", error)
+      }
+      fetchData()
+    }
 
 
   return (
@@ -105,7 +126,7 @@ function CollectionQuestions() {
           ) : (
             <div className="space-y-4">
               {questions.map((q, index) => (
-                <QuestionRow key={q.question._id} q={q.question} index={index} />
+                <QuestionRow key={q.question._id} q={q.question} index={index}  removeQuestion={handleRemoveQuestionFromCollection} />
               ))}
             </div>
           )}

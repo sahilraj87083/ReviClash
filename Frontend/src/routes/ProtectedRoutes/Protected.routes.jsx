@@ -8,7 +8,8 @@ import {
     Collections,
     Message,
     CollectionQuestions,
-    PrivateContestLobby
+    PrivateContestLobby,
+    Questions
 } from '../../pages'
 
 import ProtectedLayout from "./ProtectedLayout"
@@ -21,6 +22,8 @@ export const ProtectedRoutes = (
         <Route path="/user/contests/live" element = { <LiveContest/> }/>
         <Route path="/user/contests/public" element = { <GroupContestLobby/> }/>
         <Route path="/user/contests/private" element = { <PrivateContestLobby/> }/>
+
+        <Route path = "/user/questions" element = {<Questions/>} />
 
         <Route path="/user/collections" element = { <Collections/> }/>
         <Route path="/user/messages" element = { <Message/> }/>

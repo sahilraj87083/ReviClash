@@ -10,15 +10,6 @@ function AddQuestionPanel({ open, onClose, onSubmit }) {
   const [problemUrl, setProblemUrl] = useState('')
   const [difficulty, setDifficulty] = useState('medium')
   const [topics, setTopics] = useState('')
-  const {collectionId} = useParams()
-
-  const [form, setForm] = useState({
-      title: "",
-      platform: "LeetCode",
-      problemUrl: "",
-      difficulty: "easy",
-      topics: "",
-  });
 
   if (!open) return null;
 
