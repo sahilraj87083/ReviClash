@@ -4,14 +4,11 @@ import { verifyJWT } from "../middlewares/auth.middleware.js";
 import { validate } from "../middlewares/validate.middleware.js";
 
 import {
-  createContest,
-  startContest,
-  joinContest,
-  submitContest,
-  getContestLeaderboard,
-  getContestById,
-  getMyContestRank,
-  getActiveContests
+    createContest,
+    startContest,
+    getContestLeaderboard,
+    getContestById,
+    getActiveContests,
 } from "../controllers/contest.controller.js";
 
 const router = Router();
@@ -79,47 +76,6 @@ router.route("/:contestId")
     getContestById
 );
 
-// join contest
-router.route("/:id/join")
-.post(
-    verifyJWT,
-    [
-        param("id")
-            .isLength({ min: 3 })
-            .withMessage("Invalid contest ID or code"),
-    ],
-    validate,
-    joinContest
-);
-
-// submit contest
-router.route("/:contestId/submit")
-.post(
-    verifyJWT,
-    [
-        param("contestId")
-            .isMongoId()
-            .withMessage("Invalid contest ID"),
-
-        body("attempts")
-            .isArray({ min: 1 })
-            .withMessage("Attempts must be a non-empty array"),
-
-        body("attempts.*.questionId")
-            .isMongoId()
-            .withMessage("Invalid question ID in attempts"),
-
-        body("attempts.*.status")
-            .isIn(["solved", "unsolved"])
-            .withMessage("Invalid status"),
-
-        body("attempts.*.timeSpent")
-            .isInt({ min: 0 })
-            .withMessage("timeSpent must be a positive number"),
-    ],
-    validate,
-    submitContest
-);
 
 // leader board
 router.route("/:contestId/leaderboard")
@@ -134,17 +90,5 @@ router.route("/:contestId/leaderboard")
     getContestLeaderboard
 );
 
-// user ranking in contest
-router.route("/:contestId/me")
-.get(
-    verifyJWT,
-    [
-        param("contestId")
-            .isMongoId()
-            .withMessage("Invalid contest ID"),
-    ],
-    validate,
-    getMyContestRank
-);
 
 export default router;

@@ -1,5 +1,5 @@
 import { ContestParticipant } from "../models/contestParticipant.model.js";
-import { finalizeContestSubmissionService } from "./contest.services.js"
+import { finalizeContestSubmissionService } from "./contestParticipant.services.js"
 
 const autoSubmitExpiredParticipants = async () => {
   const now = new Date();

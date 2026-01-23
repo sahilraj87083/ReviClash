@@ -1,17 +1,16 @@
 import {asyncHandler} from '../utils/AsyncHandler.utils.js'
 import {ApiError} from '../utils/ApiError.utils.js'
 import {ApiResponse} from '../utils/ApiResponse.utils.js'
+
 import mongoose, { isValidObjectId } from 'mongoose'
+
 import { Contest } from "../models/contest.model.js";
-import {Collection} from "../models/collection.model.js"
+import { Collection } from "../models/collection.model.js"
 import { ContestParticipant } from '../models/contestParticipant.model.js'
-import { QuestionAttempt } from '../models/questionAttempt.model.js'
-import { createContestService, finalizeContestSubmissionService } from '../services/contest.services.js'
-import {createContestParticipantService} from '../services/contestParticipant.services.js'
+import { createContestService } from '../services/contest.services.js'
 
 
-
-
+// TODO: wrap createContest in mongoose session when more side effects added
 const createContest = asyncHandler(async (req, res) => {
     const { collectionId, title, durationInMin, visibility, questionCount } = req.body;
 
@@ -69,6 +68,8 @@ const createContest = asyncHandler(async (req, res) => {
 
 })
 
+
+// (host starts contest globally)
 const startContest = asyncHandler(async (req, res) => {
     const { contestId } = req.params;
 
@@ -102,119 +103,6 @@ const startContest = asyncHandler(async (req, res) => {
         new ApiResponse(200, "Contest started", contest)
     );
 });
-
-
-
-
-const joinContest = asyncHandler(async (req, res) => {
-
-    const {id} = req.params;
-    
-    let contest;
-    if (isValidObjectId(id)) {
-        contest = await Contest.findOne({
-            $or: [{ _id: id }, { contestCode: id }]
-        });
-    } else {
-        contest = await Contest.findOne({ contestCode: id });
-    }
-
-
-    if (!contest) throw new ApiError(404, "Contest not found");
-
-    if(contest.status !== 'live' || contest.endsAt < new Date()){
-        throw new ApiError(403, "Contest expired");
-    }
-
-    const now = new Date()
-
-    const existing = await ContestParticipant.findOne({
-        contestId: contest._id,
-        userId: req.user._id,
-    });
-
-    if (existing) return res.status(200).json(
-        new ApiResponse(200, "Already joined", existing)
-    );
-
-    const participant = await createContestParticipantService({
-        contestId: contest._id,
-        userId: req.user._id,
-        joinedAt: now
-    });
-
-    const attempts = contest.questionIds.map(q => ({
-        contestId: contest._id,
-        questionId: q,
-        userId: req.user._id,
-    }));
-
-    await QuestionAttempt.insertMany(attempts);
-
-    return res.status(200).json(
-        new ApiResponse(200, "Contest started", participant)
-    );
-})
-
-
-const submitContest = asyncHandler(async (req, res) => {
-    const {contestId} = req.params
-
-    if(!isValidObjectId(contestId)){
-        throw new ApiError(400, "Invalid contest ID");
-    }
-
-    const contest = await Contest.findById(contestId);
-
-    if(!contest){
-        throw new ApiError(404, "Contest not found");
-    }
-
-    const participant = await ContestParticipant.findOne(
-        {
-            contestId : contestId,
-            userId : req.user._id
-        }
-    )
-
-    if (!participant) throw new ApiError(403, "You are not part of this contest");
-
-    if (participant.submissionStatus === "submitted") {
-        throw new ApiError(400, "Contest already submitted");
-    }
-
-    const now = new Date();
-
-    const allowedUntil = new Date(
-        participant.startedAt.getTime() + contest.durationInMin * 60 * 1000
-    );
-
-    if (now > allowedUntil) {
-        throw new ApiError(403, "Contest time has expired");
-    }
-
-    // Frontend sends:
-    // {
-    // "attempts" : 
-    //     [
-    //         { "questionId": "...", "status": "solved", "timeSpent": 120 },
-    //         { "questionId": "...", "status": "unsolved", "timeSpent": 300 }
-    //     ]
-    // }
-
-    const { attempts } = req.body;
-
-    await finalizeContestSubmissionService({
-        contest,
-        participant,
-        userId: req.user._id,
-        attempts: attempts
-    });
-
-    return res.status(200).json(new ApiResponse(200, "Contest submitted successfully"));
-
-})
-
 
 
 const getContestLeaderboard = asyncHandler(async (req, res) => {
@@ -394,65 +282,11 @@ const getActiveContests = asyncHandler(async (req, res) => {
 });
 
 
-const getMyContestRank = asyncHandler( async (req, res) => {
-    const { contestId } = req.params;
-
-    if(!isValidObjectId(contestId)){
-        throw new ApiError(400, "Invalid contest ID");
-    }
-    const contestObjectId = new mongoose.Types.ObjectId(contestId);
-
-    const participant = await ContestParticipant.findOne({
-        contestId : contestObjectId,
-        userId : req.user._id,
-        submissionStatus : 'submitted'
-    })
-
-    if (!participant) {
-        throw new ApiError(404, "You have not submitted this contest");
-    }
-
-    const [betterCount, total] = await Promise.all([
-        ContestParticipant.countDocuments({
-            contestId: contestObjectId,
-            submissionStatus: "submitted",
-            $or: [
-                { score: { $gt: participant.score } },
-                {
-                    score: participant.score,
-                    timeTaken: { $lt: participant.timeTaken }
-                },
-                {
-                    score: participant.score,
-                    timeTaken: participant.timeTaken,
-                    finishedAt: { $lt: participant.finishedAt }
-                }
-            ]
-        }),
-        ContestParticipant.countDocuments({
-            contestId: contestObjectId,
-            submissionStatus: "submitted"
-        })
-    ]);
-
-    return res.status(200).json(
-        new ApiResponse(200, "Rank fetched", {
-            rank: betterCount + 1,
-            totalParticipants: total,
-            score: participant.score,
-            solvedCount: participant.solvedCount,
-            timeTaken: participant.timeTaken
-        })
-    );
-})
 
 export {
     createContest,
     startContest,
-    joinContest,
-    submitContest,
     getContestLeaderboard,
     getContestById,
     getActiveContests,
-    getMyContestRank
 }
