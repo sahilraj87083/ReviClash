@@ -97,12 +97,24 @@ const enterLiveContest = asyncHandler(async (req, res) => {
     if (contest.status !== "live")
         throw new ApiError(403, "Contest not live");
 
+    if (contest.endsAt && contest.endsAt < new Date())
+        throw new ApiError(403, "Contest already ended");
+
     const participant = await ContestParticipant.findOne({
         contestId,
         userId: req.user._id,
     });
 
     if (!participant) throw new ApiError(403, "Not joined");
+
+    if (participant.submissionStatus === "submitted") {
+        return res.status(200).json(
+            new ApiResponse(200, "Already submitted", {
+                startedAt: participant.startedAt,
+                endsAt: participant.finishedAt,
+            })
+        );
+    }
 
     const now = new Date();
     /* ---------------- SET startedAt (IDEMPOTENT) ---------------- */

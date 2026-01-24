@@ -5,12 +5,13 @@ import { Button } from "../components";
 import { useSocketContext } from "../contexts/socket.context";
 import { useParams , useNavigate} from "react-router-dom";
 import { getContestByIdService } from "../services/contest.services";
-import { enterLiveContestService } from "../services/contestParticipant.service";
+import { enterLiveContestService , submitContestService} from "../services/contestParticipant.service";
 import toast from "react-hot-toast";
 
 
 function LiveContest() {
   const containerRef = useRef(null);
+  const enteredRef = useRef(false);
   const {contestId} = useParams()
 
   const navigate = useNavigate()
@@ -30,10 +31,37 @@ function LiveContest() {
   const chatEnabled = isGroupContest && contestStatus === "live";
 
   // timer 
-  const minutes = Math.floor(timeLeft / 60);
-  const seconds = timeLeft % 60;
+  const safeTime = timeLeft ?? 0;
+  const minutes = Math.floor(safeTime / 60);
+  const seconds = safeTime % 60;
   const isDanger = timeLeft < 300;
 
+  const [attempts, setAttempts] = useState({});
+
+  const markAttempt = (status) => {
+    const q = contestQuestions[activeQuestion];
+    if (!q) return;
+
+    setAttempts(prev => ({
+      ...prev,
+      [q._id]: {
+        questionId: q._id,
+        status,
+        timeSpent: (prev[q._id]?.timeSpent || 0) + 10,
+      }
+    }));
+    console.log(attempts)
+  };
+
+  const submitContest = async (e) => {
+    e.preventDefault();
+    const payload = {
+    attempts: Object.values(attempts)
+  };
+
+    console.log("submitted", payload)
+
+  }
 
 
   const fetchContest = async () => {
@@ -44,7 +72,15 @@ function LiveContest() {
 
   // Fetch contest once
   useEffect( ()=>{
-      fetchContest();
+      (
+        async () => {
+          await fetchContest();
+        }
+      )()
+      console.log(contest?.status)
+      if(contest?.status === "ended"){
+        navigate('/user/contests')
+      }
   }, [contestId])
 
   // socket event
@@ -61,15 +97,21 @@ function LiveContest() {
   useEffect(() => {
     if (!contest) return;
     if (contest.status !== "live") return;
+    if (enteredRef.current) return;
 
-    const enterContest = async () => {
+    enteredRef.current = true;
+
+    (async () => {
+      try {
         const data = await enterLiveContestService(contestId);
         setEndsAt(data.endsAt);
-        setStartedAt(data.startedAt)
-    }
-
-    enterContest()
-  }, [contest?.status]);
+        setStartedAt(data.startedAt);
+      } catch (err) {
+        console.error(err);
+        toast.error("Failed to start contest");
+      }
+    })();
+  }, [contest?.status, contestId]);
 
   
   // timer logic
@@ -89,13 +131,12 @@ function LiveContest() {
     return () => clearInterval(interval);
   }, [endsAt]);
 
-  useEffect( () => {
-    if(endsAt !== 0) return
-
-    toast.success("Contest Submitted")
-    navigate('user/dashboard')
-
-  }, [endsAt])
+  useEffect(() => {
+    if (timeLeft === 0 && contest?.status === "live") {
+      toast.success("Contest auto-submitted");
+      navigate("/user/dashboard");
+    }
+  }, [timeLeft]);
 
 
   useGSAP(
@@ -211,8 +252,8 @@ function LiveContest() {
 
           {/* ACTIONS */}
           <div className="flex gap-4 pt-4">
-            <Button variant="secondary">Mark Attempted</Button>
-            <Button variant="primary">Mark Solved</Button>
+            <Button variant="secondary" onClick={() => markAttempt("unsolved")} >Mark Attempted</Button>
+            <Button variant="primary" onClick={() => markAttempt("solved")} >Mark Solved</Button>
           </div>
         </main>
 
@@ -263,7 +304,9 @@ function LiveContest() {
       </div>
 
       {/* BOTTOM BAR */}
-      <form className="h-16 px-6 border-t border-slate-700 flex items-center justify-between">
+      <form className="h-16 px-6 border-t border-slate-700 flex items-center justify-between"
+      onSubmit={submitContest}
+      >
         <p className="text-xs text-slate-400">
           Progress auto-saved · Auto-submit on time end
         </p>

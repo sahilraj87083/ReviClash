@@ -36,7 +36,15 @@ function GroupContestLobby() {
 
   // Fetch contest once
   useEffect(()=>{
-      fetchContest();
+      (async () => {
+        await fetchContest();
+        if(contest?.status === 'ended'){
+          navigate('/user/contests')
+        }
+        if(contest?.status === "live"){
+          navigate(`/contests/${contestId}/live`);
+        }
+      })()
   }, [contestId])
 
 
