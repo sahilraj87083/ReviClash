@@ -6,7 +6,8 @@ import { validate } from "../middlewares/validate.middleware.js";
 import {
     joinContest,
     leaveContest,
-    startContestForUser,
+    enterLiveContest,
+    getLiveTimer,
     submitContest,
     getMyContestRank,
     getMyParticipantState,
@@ -46,8 +47,18 @@ router.route("/:contestId/start")
     verifyJWT,
     [param("contestId").isMongoId().withMessage("Invalid contest ID")],
     validate,
-    startContestForUser
+    enterLiveContest
 );
+
+// live contest timer
+
+router.route("/:contestId/time")
+.get(
+    verifyJWT,
+    [param("contestId").isMongoId().withMessage("Invalid contest ID")],
+    validate,
+    getLiveTimer
+)
 
 // submit contest
 router.route("/:contestId/submit")

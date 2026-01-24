@@ -88,19 +88,14 @@ const leaveContest = asyncHandler(async (req, res) => {
 });
 
 // start contest for user :  start timer for this user
-const startContestForUser = asyncHandler(async (req, res) => {
+const enterLiveContest = asyncHandler(async (req, res) => {
     const { contestId } = req.params;
 
     const contest = await Contest.findById(contestId);
     if (!contest) throw new ApiError(404, "Contest not found");
 
-    if (contest.status !== "live") {
-        throw new ApiError(403, "Contest not started yet");
-    }
-
-    if (contest.endsAt < new Date()) {
-        throw new ApiError(403, "Contest already ended");
-    }
+    if (contest.status !== "live")
+        throw new ApiError(403, "Contest not live");
 
     const participant = await ContestParticipant.findOne({
         contestId,
@@ -109,25 +104,61 @@ const startContestForUser = asyncHandler(async (req, res) => {
 
     if (!participant) throw new ApiError(403, "Not joined");
 
-    if (participant.startedAt) {
-        return res.json(new ApiResponse(200, "Already started", participant));
+    const now = new Date();
+    /* ---------------- SET startedAt (IDEMPOTENT) ---------------- */
+    if (!participant.startedAt) {
+        participant.startedAt = now;
+        await participant.save();
     }
 
-    const attempts = contest.questionIds.map(q => ({
+    // 🔁 idempotent attempt creation
+    const existingAttempts = await QuestionAttempt.countDocuments({
         contestId,
-        questionId: q,
         userId: req.user._id,
-    }));
+    });
 
-    await QuestionAttempt.insertMany(attempts);
+    if (existingAttempts === 0) {
+        const attempts = contest.questionIds.map((q) => ({
+            contestId,
+            questionId: q,
+            userId: req.user._id,
+            status: "unsolved",
+            timeSpent: 0,
+        }));
 
-    participant.startedAt = new Date();
-    await participant.save();
+        await QuestionAttempt.insertMany(attempts);
+    }
 
-    return res.json(
-        new ApiResponse(200, "Contest started for user", participant)
+    return res.status(200).json(
+        new ApiResponse(200, "Entered live contest", {
+            startedAt: participant.startedAt,
+            durationInMin: contest.durationInMin,
+            endsAt: new Date(
+                participant.startedAt.getTime() + contest.durationInMin * 60000
+            ),
+        })
     );
 });
+
+
+const getLiveTimer = asyncHandler(async (req, res) => {
+    const contest = await Contest.findById(req.params.contestId);
+
+    if (!contest.startsAt)
+        throw new ApiError(400, "Contest not started");
+
+    const remaining = Math.max(
+        0,
+        Math.floor(
+        (contest.startsAt.getTime() +
+            contest.durationInMin * 60000 -
+            Date.now()) / 1000
+        )
+    );
+
+    return res.status(200).json(new ApiResponse(200, "Timer", { remaining }));
+});
+
 
 const submitContest = asyncHandler(async (req, res) => {
     const { contestId } = req.params
@@ -310,7 +341,8 @@ const getContestParticipants = asyncHandler(async (req, res) => {
 export {
     joinContest,
     leaveContest,
-    startContestForUser,
+    enterLiveContest,
+    getLiveTimer,
     submitContest,
     getMyContestRank,
     getMyParticipantState,

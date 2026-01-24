@@ -11,10 +11,14 @@ export const leaveContestService = async (contestId) => {
     api.delete(`/contest-participants/${contestId}/leave`).then(res => res.data.data);
 }
 
+export const getLiveTimerService = async (contestId) => {
+    api.get(`/contest-participants/${contestId}/time`).then(res => res.data.data)
+}
 
 /* START (USER TIMER) */
-export const startContestForUserService = (contestId) => {
-    api.post(`/contest-participants/${contestId}/start`).then(res => res.data.data);
+export const enterLiveContestService = async (contestId) => {
+    const res = await api.post(`/contest-participants/${contestId}/start`)
+    return res.data.data
 }
 
 

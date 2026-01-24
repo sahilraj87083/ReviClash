@@ -1,60 +1,102 @@
 import { useState, useRef, useEffect } from "react";
 import gsap from "gsap";
 import { useGSAP } from "@gsap/react";
-import { Button, Input } from "../components";
-
+import { Button } from "../components";
+import { useSocketContext } from "../contexts/socket.context";
+import { useParams , useNavigate} from "react-router-dom";
+import { getContestByIdService } from "../services/contest.services";
+import { enterLiveContestService } from "../services/contestParticipant.service";
+import toast from "react-hot-toast";
 
 
 function LiveContest() {
   const containerRef = useRef(null);
+  const {contestId} = useParams()
 
-  const TOTAL_TIME = 60 * 60; // seconds
-  const [timeLeft, setTimeLeft] = useState(TOTAL_TIME);
+  const navigate = useNavigate()
+  const { socket } = useSocketContext()
+
+  const [contest, setContest] = useState()
+  const [contestQuestions, setContestQuestions] = useState()
   const [activeQuestion, setActiveQuestion] = useState(0);
+  const [timeLeft, setTimeLeft] = useState(null);
+  const [endsAt, setEndsAt] = useState(null);
+  const [startedAt, setStartedAt] = useState(null)
+
 
   // contest state
-  const contestStatus = "live"; // live | ended
-  const chatEnabled = contestStatus === "live";
-    //   const isGroupContest = contest.visibility !== "private";
-    const isGroupContest = false;
+  const contestStatus = contest?.status; // live | ended
+  const isGroupContest = contest?.visibility === "shared";
+  const chatEnabled = isGroupContest && contestStatus === "live";
 
-  const questions = [
-    {
-      id: 1,
-      title: "Two Sum",
-      platform: "LeetCode",
-      difficulty: "Easy",
-      url: "https://leetcode.com/problems/two-sum/",
-      status: "unsolved",
-    },
-    {
-      id: 2,
-      title: "Binary Search",
-      platform: "LeetCode",
-      difficulty: "Easy",
-      url: "https://leetcode.com/problems/binary-search/",
-      status: "solved",
-    },
-    {
-      id: 3,
-      title: "Valid Parentheses",
-      platform: "LeetCode",
-      difficulty: "Medium",
-      url: "https://leetcode.com/problems/valid-parentheses/",
-      status: "attempted",
-    },
-  ];
+  // timer 
+  const minutes = Math.floor(timeLeft / 60);
+  const seconds = timeLeft % 60;
+  const isDanger = timeLeft < 300;
 
-  // timer
+
+
+  const fetchContest = async () => {
+      const contest = await getContestByIdService(contestId);
+      setContest(contest);
+      setContestQuestions(contest.questions);
+  };
+
+  // Fetch contest once
+  useEffect( ()=>{
+      fetchContest();
+  }, [contestId])
+
+  // socket event
   useEffect(() => {
-    if (timeLeft <= 0) return;
+    socket.emit("join-contest-live", { contestId });
 
-    const timer = setInterval(() => {
-      setTimeLeft((t) => t - 1);
-    }, 1000);
+    return () => {
+      socket.emit("leave-contest-live", { contestId });
+    };
+  }, [contestId]);
 
-    return () => clearInterval(timer);
-  }, [timeLeft]);
+  
+  // logs user into contest : timer starts
+  useEffect(() => {
+    if (!contest) return;
+    if (contest.status !== "live") return;
+
+    const enterContest = async () => {
+        const data = await enterLiveContestService(contestId);
+        setEndsAt(data.endsAt);
+        setStartedAt(data.startedAt)
+    }
+
+    enterContest()
+  }, [contest?.status]);
+
+  
+  // timer logic
+  useEffect(() => {
+    if (!contest?.startsAt) return;
+
+    const endTime = new Date(endsAt).getTime();
+
+    const update = () => {
+      const remaining = Math.max( 0, Math.floor((endTime - Date.now()) / 1000));
+      setTimeLeft(remaining);
+    };
+
+    update(); // immediate
+    const interval = setInterval(update, 1000);
+
+    return () => clearInterval(interval);
+  }, [endsAt]);
+
+  useEffect( () => {
+    if(endsAt !== 0) return
+
+    toast.success("Contest Submitted")
+    navigate('user/dashboard')
+
+  }, [endsAt])
+
 
   useGSAP(
     () => {
@@ -68,9 +110,6 @@ function LiveContest() {
     { scope: containerRef }
   );
 
-  const minutes = Math.floor(timeLeft / 60);
-  const seconds = timeLeft % 60;
-  const isDanger = timeLeft < 300;
 
   return (
     <div className="h-[90vh] bg-slate-900 text-white flex flex-col">
@@ -80,7 +119,7 @@ function LiveContest() {
         <div>
             <div className="flex items-center gap-3">
                 <h1 className="font-semibold text-lg">
-                DSA Sprint
+                {contest?.title}
                 </h1>
 
                 <span className="px-2 py-0.5 rounded text-xs font-medium bg-slate-800 text-slate-400">
@@ -99,7 +138,7 @@ function LiveContest() {
             isDanger ? "bg-red-600" : "bg-slate-800"
           }`}
         >
-          {minutes}:{seconds.toString().padStart(2, "0")}
+          {minutes} MIN : {seconds.toString().padStart(2, "0")} SEC
         </div>
       </header>
 
@@ -110,9 +149,10 @@ function LiveContest() {
         <aside className="w-64 border-r border-slate-700 p-4 space-y-3 overflow-y-auto">
           <p className="text-sm text-slate-400 mb-2">Questions</p>
 
-          {questions.map((q, idx) => (
-            <button
-              key={q.id}
+          {contestQuestions?.map((q, idx) => {
+            return (
+              <button
+              key={q._id}
               onClick={() => setActiveQuestion(idx)}
               className={`w-full text-left px-4 py-3 rounded-md transition
                 ${
@@ -124,10 +164,11 @@ function LiveContest() {
             >
               <div className="flex justify-between items-center">
                 <span>{idx + 1}. {q.title}</span>
-                <StatusDot status={q.status} />
+                <DifficultyDot status={q.difficulty} />
               </div>
             </button>
-          ))}
+            )
+          })}
         </aside>
 
         {/* QUESTION AREA */}
@@ -135,15 +176,16 @@ function LiveContest() {
 
           <div>
             <h2 className="text-xl font-semibold">
-              {questions[activeQuestion].title}
+              {contestQuestions && contestQuestions[activeQuestion].title}
+              
             </h2>
 
             <div className="flex items-center gap-3 mt-1 text-sm">
               <span className="px-2 py-0.5 rounded bg-slate-800">
-                {questions[activeQuestion].platform}
+                {contestQuestions && contestQuestions[activeQuestion].platform}
               </span>
               <span className="text-slate-400">
-                {questions[activeQuestion].difficulty}
+                { contestQuestions && contestQuestions[activeQuestion].difficulty}
               </span>
             </div>
           </div>
@@ -158,7 +200,7 @@ function LiveContest() {
             </div>
 
             <a
-              href={questions[activeQuestion].url}
+              href={contestQuestions? contestQuestions[activeQuestion].problemUrlOriginal : ""}
               target="_blank"
               rel="noopener noreferrer"
               className="px-4 py-2 rounded-md bg-red-600 hover:bg-red-500 transition font-medium"
@@ -176,7 +218,9 @@ function LiveContest() {
 
         
         {/* CHAT PANEL */}
-        <aside className="w-80 border-l border-slate-700 flex flex-col h-full">
+        {
+          isGroupContest && (
+            <aside className="w-80 border-l border-slate-700 flex flex-col h-full">
 
         {/* Header */}
         <div className="px-4 py-3 border-b border-slate-700 font-medium">
@@ -211,32 +255,34 @@ function LiveContest() {
             </div>
         )}
         </aside>
+          )
+        }
 
 
 
       </div>
 
       {/* BOTTOM BAR */}
-      <footer className="h-16 px-6 border-t border-slate-700 flex items-center justify-between">
+      <form className="h-16 px-6 border-t border-slate-700 flex items-center justify-between">
         <p className="text-xs text-slate-400">
           Progress auto-saved · Auto-submit on time end
         </p>
 
-        <Button variant="danger">
+        <Button variant="danger" type = "submit">
           Submit Contest
         </Button>
-      </footer>
+      </form>
     </div>
   );
 }
 
 /* ---------- Helpers ---------- */
 
-function StatusDot({ status }) {
+function DifficultyDot({ status }) {
   const colors = {
-    solved: "bg-green-500",
-    attempted: "bg-yellow-400",
-    unsolved: "bg-slate-500",
+    easy: "bg-green-500",
+    medium: "bg-yellow-400",
+    hard: "bg-red-600",
   };
 
   return (
