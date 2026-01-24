@@ -13,11 +13,22 @@ import { createContestParticipantService, finalizeContestSubmissionService } fro
 
 // join contest
 const joinContest = asyncHandler(async (req, res) => {
-    const { id } = req.params;
+    const { identifier } = req.params;
 
-    const contest = await Contest.findOne({
-        $or: [{ _id: id }, { contestCode: id }],
-    });
+    let contest;
+
+    if (mongoose.isValidObjectId(identifier)) {
+        contest = await Contest.findOne({
+            $or: [
+                { _id: identifier },
+                { contestCode: identifier }
+            ]
+        });
+    } else {
+        contest = await Contest.findOne({
+            contestCode: identifier
+        });
+    }
 
     if (!contest) throw new ApiError(404, "Contest not found");
 
@@ -282,7 +293,8 @@ const getContestParticipants = asyncHandler(async (req, res) => {
                 submissionStatus: 1,
                 "user.username": 1,
                 "user.fullName": 1,
-                "user.avatar": 1
+                "user.avatar": 1,
+                "user._id" : 1,
             }
         },
         { $sort: { joinedAt: 1 } }

@@ -19,13 +19,13 @@ const router = Router();
 
 
 // join contest
-router.route("/:contestId/join")
+router.route("/:identifier/join")
 .post(
     verifyJWT,
     [
-        param("contestId")
+        param("identifier")
             .isLength({ min: 3 })
-            .withMessage("Invalid contest ID or code"),
+            .withMessage("Invalid contest id or code"),
     ],
     validate,
     joinContest

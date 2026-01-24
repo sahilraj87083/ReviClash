@@ -8,7 +8,9 @@ import { Contest } from "../models/contest.model.js";
 import { Collection } from "../models/collection.model.js"
 import { ContestParticipant } from '../models/contestParticipant.model.js'
 import { createContestService } from '../services/contest.services.js'
+import { createContestParticipantService } from "../services/contestParticipant.services.js";
 
+import { io } from '../socket.js';
 
 // TODO: wrap createContest in mongoose session when more side effects added
 const createContest = asyncHandler(async (req, res) => {
@@ -59,6 +61,12 @@ const createContest = asyncHandler(async (req, res) => {
             visibility
         }
     )
+    // host is the first participant 
+    await createContestParticipantService({
+        contestId: contest._id,
+        userId: req.user._id,
+        joinedAt: new Date()
+    });
 
     return res
         .status(201)
@@ -98,6 +106,10 @@ const startContest = asyncHandler(async (req, res) => {
     contest.status = "live";
 
     await contest.save();
+
+    io.to(`contest:${contest._id}:lobby`).emit("contest-started", {
+        contestId: contest._id
+    });
 
     return res.status(200).json(
         new ApiResponse(200, "Contest started", contest)
@@ -227,15 +239,18 @@ const getContestById = asyncHandler(async (req, res) => {
                     visibility: 1,
                     startsAt: 1,
                     endsAt: 1,
+                    
 
                     "owner.fullName": 1,
                     "owner.username": 1,
                     "owner.avatar": 1,
+                    "owner._id" : 1,
                     
                     "questions._id": 1,
                     "questions.title": 1,
                     "questions.difficulty": 1,
-                    "questions.platform": 1
+                    "questions.platform": 1,
+                    "questions.problemUrlOriginal" : 1
                 }
             }
         ]
