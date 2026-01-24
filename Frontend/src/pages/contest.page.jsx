@@ -3,9 +3,12 @@ import { Input, Button, Select, ContestRow } from "../components";
 import { useNavigate } from "react-router-dom";
 import gsap from "gsap";
 import { useGSAP } from "@gsap/react";
-import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { getActiveContestsService } from "../services/contest.services";
-gsap.registerPlugin(ScrollTrigger);
+import { getMyCollections } from "../services/collection.service";
+import { createContestService } from "../services/contest.services";
+import { joinContestService } from "../services/contestParticipant.service";
+import { useSocketContext } from "../contexts/socket.context";
+import toast from "react-hot-toast";
 
 function Contests() {
     const containerRef = useRef(null);
@@ -15,28 +18,44 @@ function Contests() {
     const actionRef = useRef(null);
     const navRef = useRef(null);
     const activeRef = useRef(null);
+    const { socket } = useSocketContext();
 
+    // join contest by code 
     const [contestCode, setContestCode] = useState("");
-    const [contestCollection, setContestCollection] = useState("");
-    const [contestQuestionCount, setContestQuestionCount] = useState(4)
+
+    // create contest 
+    const [collections, setCollections] = useState([]);
+    const [collectionOptions, setCollectionOptions] = useState([])
+    const [contestCollectionId, setContestCollectionId] = useState("");
+    const [contestTitle, setContestTitle] = useState("")
+    const [contestQuestionCount, setContestQuestionCount] = useState(1)
     const [contestDuration , setContestDuration] = useState(90)
     const [contestVisibility, setContestVisiblity] = useState("private")
-    const [contests, setContests] = useState([]);
+
+    const selectedCollection = collections.find(
+      c => c._id === contestCollectionId
+    );
+
+
+    const [activeContests, setActiveContests] = useState([]);
 
     useEffect(() => {
-  (async () => {
-    const data = await getActiveContestsService();
-    setContests(data);
-  })();
-}, []);
+      (async () => {
+          const data = await getActiveContestsService();
+          setActiveContests(data);
 
-    const QUESTION_COUNT_OPTIONS = [
-        { label: "1 Questions", value: 1 },
-        { label: "2 Questions", value: 2 },
-        { label: "3 Questions", value: 3 },
-        { label: "4 Questions", value: 4 },
-        { label: "5 Questions", value: 5 },
-    ];
+          const myCollections = await getMyCollections();
+          setCollections(myCollections);
+
+          setCollectionOptions(myCollections.map((c) => ({
+              label: c.name,
+              value: c._id,
+          })))
+          
+      })();
+
+    }, []);
+
 
     const DURATION_OPTIONS = [
         { label: "30 Minutes", value: 30 },
@@ -46,15 +65,52 @@ function Contests() {
     ];
 
     const VISIBILITY_OPTIONS = [
-        { label: "Private", value: "private" },
-        { label: "Shared", value: "shared" },
-        { label: "Public", value: "public" },
+        { label: "Private (Invite only)", value: "private" },
+        { label: "Shared (With code)", value: "shared" },
+        { label: "Public (Discoverable)", value: "public" },
     ];
 
-    const collectionOptions = [
-        { label: "DSA Core", value: "1" },
-        { label: "Binary Search", value: "2" },
-    ];
+    const createContestHandler = async (e) => {
+        e.preventDefault()
+        // console.log("here")
+
+        const data = {
+            title : contestTitle,
+            questionCount : contestQuestionCount,
+            durationInMin : contestDuration,
+            visibility : contestVisibility,
+            collectionId : contestCollectionId
+        }
+        const contest = await createContestService(data)
+        if (contest.visibility === "private") {
+          navigate(`/user/contests/private/${contest._id}`);
+        } else {
+          navigate(`/user/contests/public/${contest._id}`);
+        }
+
+    }
+
+    const joinContesthandler = async (e) => {
+        e.preventDefault()
+        try {
+          setContestCode("")
+          // console.log("joined", contestCode)
+          const participant = await joinContestService(contestCode)
+          // console.log(participant)
+          if(!participant){
+            
+            toast.error("You can't join private contest")
+            navigate('/user/contests')
+          }
+          // join socket room immediately
+          socket.emit("join-contest", { contestId: participant.contestId });
+          navigate(`/user/contests/public/${participant.contestId}`);
+        } catch (error) {
+            console.log("contest is private ",error)
+            
+        }
+    }
+      
 
     const navigateToContest = (contest) => {
       if (contest.status === "upcoming") {
@@ -115,7 +171,7 @@ function Contests() {
     // ACTIVE CONTESTS
     useGSAP(
       () => {
-        if (!contests.length) return;
+        if (!activeContests.length) return;
         gsap.fromTo(
             ".contest-row",
             { opacity: 0, y: 30 },
@@ -132,7 +188,7 @@ function Contests() {
             }
           );
       },
-      { dependencies: [contests] }
+      { dependencies: [activeContests] }
     );
 
 
@@ -158,75 +214,96 @@ function Contests() {
         <section  ref = {actionRef} className="grid md:grid-cols-2 gap-8">
 
             {/* JOIN CONTEST */}
-            <div className="bg-slate-900/60 border border-slate-700/50 rounded-xl p-6 space-y-6">
+            <form className="bg-slate-900/60 border border-slate-700/50 rounded-xl p-6 space-y-6"
+              onSubmit={joinContesthandler}
+            >
                 <h2 className="text-xl font-semibold text-white">
-                Join a Contest
+                  Join a Contest
                 </h2>
 
                 <Input
-                label="Contest Code"
-                placeholder="Enter contest code"
-                value={contestCode}
-                onChange={(e) => setContestCode(e.target.value)}
+                  label="Contest Code"
+                  placeholder="Enter contest code"
+                  value={contestCode}
+                  onChange={(e) => setContestCode(e.target.value)}
+                  required
                 />
 
                 <Button
-                variant="primary"
-                className="w-full"
-                onClick={() => console.log("Join contest", contestCode)}
+                  type = 'submit'
+                  variant="primary"
+                  className="w-full"
                 >
-                Join Contest
+                  Join Contest
                 </Button>
 
-                <p className="text-xs text-slate-400">
-                You can also join using a shared contest link.
-                </p>
-            </div>
+                <div className="flex justify-center items-center">
+                  <p className="text-xs text-slate-400 justify-center mt-[80px]">
+                    You can also join using a shared contest link.
+                  </p>
+                </div>
+            </form>
 
             {/* CREATE CONTEST */}
-            <div className="bg-slate-900/60 border border-slate-700/50 rounded-xl p-6 space-y-6">
-            <h2 className="text-xl font-semibold text-white">
-                Create a Contest
-            </h2>
+            <form className="bg-slate-900/60 border border-slate-700/50 rounded-xl p-6 space-y-6"
+            onSubmit={createContestHandler}
+            >
+              <h2 className="text-xl font-semibold text-white">
+                  Create a Contest
+              </h2>
 
-            <Select
-                label="Collection"
-                placeholder="Select collection"
-                value = {contestCollection}
-                onChange = {(e) => (setContestCollection(e.target.value))}
-                options={collectionOptions}
-            />
+              <Select
+                  label="Collection"
+                  placeholder="Select collection"
+                  value = {contestCollectionId}
+                  onChange = {(e) => (setContestCollectionId(e.target.value))}
+                  options={collectionOptions}
+                  required
+              />
 
-            <div className="grid grid-cols-2 gap-4">
-                <Select
-                value = {contestQuestionCount}
-                onChange = {(e) => (setContestQuestionCount(e.target.value))}
-                label="Questions"
-                placeholder="Select count"
-                options={QUESTION_COUNT_OPTIONS}
-                />
+              <Input
+                label="Contest Title"
+                name="title"
+                placeholder="e.g. DSA Sprint"
+                value={contestTitle}
+                onChange={(e) => {setContestTitle(e.target.value)}}
+                required
+              />
 
-                <Select
-                value = {contestDuration}
-                onChange = {(e) => (setContestDuration(e.target.value))}
-                label="Duration"
-                placeholder="Select duration"
-                options={DURATION_OPTIONS}
-                />
-            </div>
+              <div className="grid grid-cols-2 gap-4">
+                  <Input
+                    label="Questions"
+                    type="number"
+                    name="questionCount"
+                    min={1}
+                    max={selectedCollection?.questionsCount || 5}
+                    value={contestQuestionCount}
+                    onChange={(e) => {setContestQuestionCount(e.target.value)}}
+                  />
 
-            <Select
-                value = {contestVisibility}
-                onChange = {(e) => (setContestVisiblity(e.target.value))}
-                label="Visibility"
-                placeholder="Select visibility"
-                options={VISIBILITY_OPTIONS}
-            />
+                  <Select
+                  value = {contestDuration}
+                  onChange = {(e) => (setContestDuration(e.target.value))}
+                  label="Duration"
+                  placeholder="Select duration"
+                  options={DURATION_OPTIONS}
+                  />
+              </div>
 
-            <Button variant="primary" className="w-full">
-                Create Contest
-            </Button>
-            </div>
+              <Select
+                  value = {contestVisibility}
+                  onChange = {(e) => (setContestVisiblity(e.target.value))}
+                  label="Visibility"
+                  placeholder="Select visibility"
+                  options={VISIBILITY_OPTIONS}
+              />
+
+              <Button type = 'submit'
+              variant="primary" className="w-full"
+              >
+                  Create Contest
+              </Button>
+            </form>
 
 
         </section>
@@ -283,7 +360,7 @@ function Contests() {
           </h2>
 
           <div className="bg-slate-900/60 border border-slate-700/50 rounded-xl divide-y divide-slate-700/40">
-            {contests.map((c) => (
+            {activeContests.map((c) => (
               <ContestRow
                 key={c._id}
                 contest={c}
