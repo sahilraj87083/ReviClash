@@ -1,29 +1,106 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect} from "react";
 import { Button, Input, PublicMetaCards } from "../components";
 import gsap from "gsap";
 import { useGSAP } from "@gsap/react";
+import { useParams, useNavigate } from "react-router-dom";
+import { getContestByIdService, startContestService } from "../services/contest.services";
+import { getAllParticipantsService, leaveContestService } from "../services/contestParticipant.service";
+import { useUserContext } from "../contexts/UserContext";
+import { useSocketContext } from "../contexts/socket.context";
 
 function GroupContestLobby() {
   const containerRef = useRef(null);
 
+  const [contest, setContest] = useState()
+  const [participants, setParticipants] = useState()
+  const [contestQuestions, setContestQuestions] = useState()
+
+  const navigate = useNavigate()
+
+  const { user } = useUserContext()
+  const { socket } = useSocketContext()
+
   // ---- Mock state (replace with backend/socket later)
-  const isHost = true;
-  const contestStatus = "waiting"; // waiting | live | ended
-  const chatEnabled = contestStatus !== "live";
+  const isHost = user?._id === contest?.owner?._id;
+  // contest?.status; // upcoming | live | ended
+  const chatEnabled = contest?.status !== "live";
 
-  const participants = [
-    { id: 1, name: "Sahil", host: true },
-    { id: 2, name: "Aman" },
-    { id: 3, name: "Riya" },
-  ];
+  const { contestId } = useParams()
 
-  const questions = [
-    { id: 1, title: "Two Sum", difficulty: "easy" },
-    { id: 2, title: "Maximum Subarray", difficulty: "medium" },
-    { id: 3, title: "Binary Search", difficulty: "easy" },
-    { id: 4, title: "Merge Intervals", difficulty: "medium" },
-    { id: 5, title: "LRU Cache", difficulty: "hard" },
-  ];
+
+  const fetchContest = async () => {
+    const contest = await getContestByIdService(contestId);
+    setContest(contest);
+    setContestQuestions(contest.questions);
+  };
+
+  // Fetch contest once
+  useEffect(()=>{
+      fetchContest();
+  }, [contestId])
+
+
+  // Poll participants every X seconds
+  useEffect(() => {
+      let interval ;
+
+      const fetchParticipants = async () => {
+          const data = await getAllParticipantsService(contestId);
+          // console.log(data)
+          setParticipants(data)
+      }
+      fetchParticipants()
+
+      interval = setInterval(fetchParticipants, 5000); // 5s polling
+
+      return () => clearInterval(interval); // cleanup
+  }, [contestId])
+
+  // useEffect(() => {
+  //   if (!socket) return;
+
+  //   socket.emit("join-contest", { contestId });
+
+  //   return () => {
+  //     socket.emit("leave-contest", { contestId });
+  //   };
+  // }, [socket, contestId]);
+
+  useEffect(() => {
+      if (!socket) return;
+
+      socket.emit("join-contest-lobby", { contestId });
+
+      return () => {
+        socket.emit("leave-contest-lobby", { contestId });
+      };
+  }, [contestId, socket]);
+
+  const leaveContest = async () => {
+      await leaveContestService(contest._id);
+      socket.emit("leave-contest", { contestId: contest._id });
+      navigate("/user/contests");
+  }
+
+  const startContestHandler = async () => {
+      await startContestService(contest._id)
+  }
+
+  useEffect(() => {
+    if (!socket) return;
+
+    const handleStart = ({ contestId }) => {
+      navigate(`/contests/${contestId}/live`);
+    };
+
+    socket.on("contest-started", handleStart);
+
+    return () => {
+      socket.off("contest-started", handleStart);
+    };
+  }, [socket, navigate]);
+
+
 
   useGSAP(() => {
     gsap.from(containerRef.current.children, {
@@ -43,45 +120,45 @@ function GroupContestLobby() {
         <section className="flex items-center justify-between bg-slate-900/60 border border-slate-700/50 rounded-xl p-4">
           <div>
             <h1 className="text-xl font-semibold text-white">
-              DSA Sprint – Group Contest
+              {contest?.title}
             </h1>
             <p className="text-sm text-slate-400">
-              Status: {contestStatus === "waiting" ? "Waiting Room" : contestStatus}
+              Status: {contest?.status === "upcoming" ? "Waiting Room" : contest?.status}
             </p>
           </div>
 
           <span
             className={`px-3 py-1 rounded text-sm font-medium ${
-              contestStatus === "waiting"
+              contest?.status === "upcoming"
                 ? "bg-green-600"
-                : contestStatus === "live"
+                : contest?.status === "live"
                 ? "bg-red-600"
                 : "bg-slate-600"
             }`}
           >
-            {contestStatus.toUpperCase()}
+            {contest?.status.toUpperCase()}
           </span>
         </section>
 
         {/* ---------------- CONTEST META ---------------- */}
         <section className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <PublicMetaCards label="Contest Code" value="AB12CD" copy />
-          <PublicMetaCards label="Questions" value={`${questions.length}`} />
-          <PublicMetaCards label="Duration" value="60 min" />
+          <PublicMetaCards label="Contest Code" value={contest?.contestCode} copy />
+          <PublicMetaCards label="Questions" value={`${contest?.questions.length}`} />
+          <PublicMetaCards label="Duration" value={`${contest?.durationInMin} MIN`} />
         </section>
 
 
         {/* ---------------- SYSTEM MESSAGE ---------------- */}
         <section className="bg-slate-800/60 border text-center border-slate-700 rounded-lg p-4 text-sm text-slate-300">
-          {contestStatus === "waiting" && (
+          {contest?.status === "upcoming" && (
             <>
               Waiting for host to start the contest. You can chat freely before
               the contest begins.
             </>
           )}
-          {contestStatus === "live" && (
+          {contest?.status === "live" && (
             <>
-              Contest is live. Joining and chat are disabled.
+              Contest is live. Joining is disabled.
             </>
           )}
         </section>
@@ -92,25 +169,41 @@ function GroupContestLobby() {
           {/* PARTICIPANTS */}
           <div className="md:col-span-2 bg-slate-900/60 border border-slate-700/50 rounded-xl p-6">
             <h2 className="text-lg font-semibold text-white mb-4">
-              Participants ({participants.length})
+              Participants ({participants?.length})
             </h2>
 
             <div className="space-y-3">
-              {participants.map((p) => (
-                <div
-                  key={p.id}
-                  className="flex items-center justify-between bg-slate-800/50 rounded-lg px-4 py-3"
-                >
-                  <span className="text-white">
-                    {p.name}
-                    {p.host && (
-                      <span className="ml-2 text-xs text-red-400">(Host)</span>
-                    )}
-                  </span>
+              {participants?.map((p) => {
+                const isHostUser = p.user._id === contest?.owner?._id;
 
-                  <span className="text-xs text-slate-400">Ready</span>
-                </div>
-              ))}
+                return (
+                  (
+                    <div
+                      key={p._id}
+                      className="flex items-center justify-between bg-slate-800/50 rounded-lg px-4 py-3"
+                    >
+                      <span className="text-white">
+                        {p.user.fullName}
+                        {isHostUser && (
+                          <span className="ml-2 text-xs text-red-400">(Host)</span>
+                        )}
+                      </span>
+
+                      <div >
+                        <span className="text-xs text-slate-400 mr-3">
+                          {p.joinedAt ? "Ready" : "Joined"}
+                        </span>
+                        {!isHost && !isHostUser && (
+                          <Button variant="danger" onClick={leaveContest}>
+                            <i className="ri-logout-box-r-line"></i>
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+                  )
+                )
+              }
+            )}
             </div>
           </div>
 
@@ -118,13 +211,15 @@ function GroupContestLobby() {
           <div className="space-y-6">
 
             {/* HOST CONTROLS */}
-            {isHost && contestStatus === "waiting" && (
+            {isHost && contest?.status === "upcoming" && (
               <div className="bg-slate-900/60 border border-slate-700/50 rounded-xl p-6">
                 <h3 className="text-lg font-semibold text-white mb-3">
                   Host Controls
                 </h3>
 
-                <Button variant="primary" className="w-full">
+                <Button variant="primary" className="w-full"
+                onClick = {startContestHandler}
+                >
                   Start Contest
                 </Button>
 
@@ -176,9 +271,9 @@ function GroupContestLobby() {
           </h2>
 
           <div className="space-y-3">
-            {questions.map((q, i) => (
+            {contestQuestions?.map((q, i) => (
               <div
-                key={q.id}
+                key={q._id}
                 className="flex items-center justify-between bg-slate-800/60 px-4 py-3 rounded-lg"
               >
                 <span className="text-white">
