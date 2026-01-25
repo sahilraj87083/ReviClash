@@ -330,10 +330,10 @@ const getCreatedContests = asyncHandler(async (req, res) => {
 
     const [contests, total] = await Promise.all([
         Contest.find(filter)
-        .select("title status startsAt endsAt visibility")
-        .sort({ createdAt: -1 })
-        .skip(skip)
-        .limit(l),
+            .select("title status startsAt endsAt visibility")
+            .sort({ createdAt: -1 })
+            .skip(skip)
+            .limit(l),
         Contest.countDocuments(filter)
     ]);
 
@@ -357,29 +357,37 @@ const getJoinedContests = asyncHandler(async (req, res) => {
 
     const [data, total] = await Promise.all([
         ContestParticipant.aggregate([
-        { $match: { userId: req.user._id } },
-        {
-            $lookup: {
-            from: "contests",
-            localField: "contestId",
-            foreignField: "_id",
-            as: "contest"
-            }
-        },
-        { $unwind: "$contest" },
-        { $sort: { joinedAt: -1 } },
-        { $skip: skip },
-        { $limit: l },
-        {
-            $project: {
-            _id: "$contest._id",
-            title: "$contest.title",
-            status: "$contest.status",
-            startsAt: "$contest.startsAt",
-            endsAt: "$contest.endsAt",
-            visibility: "$contest.visibility"
-            }
-        }
+            { $match: { userId: req.user._id } },
+            {
+                $lookup: {
+                from: "contests",
+                localField: "contestId",
+                foreignField: "_id",
+                as: "contest"
+                }
+            },
+            { $unwind: "$contest" },
+
+            // EXCLUDE contests user created
+            {
+                $match: { "contest.owner": { $ne: req.user._id } }
+            },
+            { $sort: { joinedAt: -1 } },
+            { $skip: skip },
+            { $limit: l },
+            {
+                $project: {
+                    _id: "$contest._id",
+                    title: "$contest.title",
+                    status: "$contest.status",
+                    startsAt: "$contest.startsAt",
+                    endsAt: "$contest.endsAt",
+                    visibility: "$contest.visibility"
+                }
+            },
+            { $group: { _id: "$_id", doc: { $first: "$$ROOT" } } },
+            { $replaceRoot: { newRoot: "$doc" } }
+
         ]),
         ContestParticipant.countDocuments({ userId: req.user._id })
     ]);
@@ -401,33 +409,47 @@ const getAllContests = asyncHandler(async (req, res) => {
     const { page, limit, status } = req.query;
     const { skip, limit: l, page: p } = paginate({ page, limit });
 
-    const filter = {
-        visibility: "public"
-    };
+    const pipeline = [
+        {
+            $lookup: {
+                from: "contestparticipants",
+                localField: "_id",
+                foreignField: "contestId",
+                as: "participants"
+            }
+        },
+        {
+            $match: {
+                $or: [
+                    { owner: req.user._id },
+                    { "participants.userId": req.user._id }
+                ],
+                ...(status && { status })
+            }
+        },
+        { $sort: { createdAt: -1 } },
+        {
+            $facet: {
+                data: [{ $skip: skip }, { $limit: l }],
+                total: [{ $count: "count" }]
+            }
+        }
+    ];
 
-    if (status) {
-        filter.status = status;
-    }
+    const result = await Contest.aggregate(pipeline);
 
-    const [contests, total] = await Promise.all([
-        Contest.find(filter)
-        .select("title status startsAt endsAt owner visibility")
-        .populate("owner", "username fullName avatar")
-        .sort({ createdAt: -1 })
-        .skip(skip)
-        .limit(l),
-        Contest.countDocuments(filter)
-    ]);
+    const contests = result[0].data;
+    const total = result[0].total[0]?.count || 0;
 
     return res.json(
-        new ApiResponse(200, "All public contests", {
-        contests,
-        meta: {
-            page: p,
-            limit: l,
-            total,
-            pages: Math.ceil(total / l)
-        }
+        new ApiResponse(200, "All my contests", {
+            contests,
+            meta: {
+                page: p,
+                limit: l,
+                total,
+                pages: Math.ceil(total / l)
+            }
         })
     );
 });

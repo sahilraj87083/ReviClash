@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { body, param } from "express-validator";
+import { body, param, query } from "express-validator";
 import { verifyJWT } from "../middlewares/auth.middleware.js";
 import { validate } from "../middlewares/validate.middleware.js";
 
@@ -13,6 +13,21 @@ import {
     getAllContests,
     getJoinedContests
 } from "../controllers/contest.controller.js";
+
+const paginationValidation = [
+    query("page")
+        .optional()
+        .toInt()
+        .isInt({ min: 1 })
+        .withMessage("Page must be >= 1"),
+
+    query("limit")
+        .optional()
+        .toInt()
+        .isInt({ min: 1, max: 100 })
+        .withMessage("Limit must be between 1 and 100"),
+];
+
 
 const router = Router();
 
@@ -61,32 +76,49 @@ router.route("/:contestId/start")
 );
 
 // get active contests
-router.route('/active')
+router.route("/active")
 .get(
     verifyJWT,
+    // paginationValidation,
+    // validate,
     getActiveContests
-)
+);
+
 
 // get created contest
-router.route('/created')
+router.route("/created")
 .get(
     verifyJWT,
+    paginationValidation,
+    validate,
     getCreatedContests
-)
+);
+
+
+// get joined contest
+router.route("/joined")
+.get(
+    verifyJWT,
+    paginationValidation,
+    validate,
+    getJoinedContests
+);
 
 // get all contest 
-router.route('/all')
+router.route("/all")
 .get(
     verifyJWT,
+    [
+        ...paginationValidation,
+        query("visibility")
+        .optional()
+        .isIn(["public", "shared"])
+        .withMessage("Invalid visibility filter"),
+    ],
+    validate,
     getAllContests
-)
-// get joined contest
+);
 
-router.route('/joined')
-.get(
-    verifyJWT,
-    getJoinedContests
-)
 
 // get contest by id
 router.route("/:contestId")
