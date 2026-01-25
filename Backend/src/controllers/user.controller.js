@@ -457,11 +457,22 @@ const getUserProfile = asyncHandler( async (req, res) => {
         },
         // Collections
         {
-            $lookup : {
-                from : 'collections',
-                localField : '_id',
-                foreignField : 'ownerId',
-                as : 'collections'
+            $lookup: {
+                from: "collections",
+                let: { userId: "$_id" },
+                pipeline: [
+                {
+                    $match: {
+                    $expr: {
+                        $and: [
+                        { $eq: ["$ownerId", "$$userId"] },
+                        { $eq: ["$visibility", "public"] }
+                        ]
+                    }
+                    }
+                }
+                ],
+                as: "collections"
             }
         },
         // Is viewer following this user?
