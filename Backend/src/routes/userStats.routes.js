@@ -8,8 +8,6 @@ import {
   getUserTopicStats,
   getUserContestHistory,
   getLeaderboard,
-  getUserCreatedContests,
-  getUserJoinedContests
 } from "../controllers/userStats.controller.js";
 
 const router = Router();
@@ -82,46 +80,5 @@ router.route("/:userId/history")
 );
 
 
-// user created contest
-router.route("/:userId/contests/created")
-.get(
-    verifyJWT,
-    [
-        param("userId")
-            .isMongoId()
-            .withMessage("Invalid user ID"),
-
-        query("page")
-            .optional()
-            .isInt({ min: 1 }),
-
-        query("limit")
-            .optional()
-            .isInt({ min: 1, max: 50 }),
-    ],
-    validate,
-    getUserCreatedContests
-);
-
-// user joined contest
-router.route("/:userId/contests/joined")
-.get(
-    verifyJWT,
-    [
-        param("userId")
-            .isMongoId()
-            .withMessage("Invalid user ID"),
-
-        query("page")
-            .optional()
-            .isInt({ min: 1 }),
-
-        query("limit")
-            .optional()
-            .isInt({ min: 1, max: 50 }),
-    ],
-    validate,
-    getUserJoinedContests
-);
 
 export default router;

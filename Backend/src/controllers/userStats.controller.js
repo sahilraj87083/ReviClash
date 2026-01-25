@@ -158,94 +158,6 @@ const getLeaderboard = asyncHandler(async (req , res) => {
 })
 
 
-const getUserCreatedContests = asyncHandler(async (req, res) => {
-    const { userId } = req.params;
-    const { page = 1, limit = 20 } = req.query;
-
-    if (!isValidObjectId(userId)) {
-        throw new ApiError(400, "Invalid user ID");
-    }
-
-    const pageNum = Number(page) || 1;
-    const limitNum = Math.min(Number(limit) || 20, 50);
-    const skip = (pageNum - 1) * limitNum;
-
-    const [contests, total] = await Promise.all([
-        Contest.find({ owner: userId })
-            .sort({ createdAt: -1 })
-            .skip(skip)
-            .limit(limitNum)
-            .select("title contestCode status startsAt endsAt"),
-
-        Contest.countDocuments({ owner: userId })
-    ]);
-
-    return res.status(200).json(
-        new ApiResponse(200, "Created contests fetched", {
-            total,
-            page: pageNum,
-            pages: Math.ceil(total / limitNum),
-            contests
-        })
-    );
-});
-
-
-
-const getUserJoinedContests = asyncHandler(async (req, res) => {
-    const { userId } = req.params;
-    const { page = 1, limit = 20 } = req.query;
-
-    if (!mongoose.isValidObjectId(userId)) {
-        throw new ApiError(400, "Invalid user ID");
-    }
-
-    const pageNum = Number(page) || 1;
-    const limitNum = Math.min(Number(limit) || 20, 50);
-    const skip = (pageNum - 1) * limitNum;
-
-    const matchStage = { userId: new mongoose.Types.ObjectId(userId) };
-
-    const [contests, total] = await Promise.all([
-        ContestParticipant.aggregate([
-            { $match: matchStage },
-            {
-                $lookup: {
-                    from: "contests",
-                    localField: "contestId",
-                    foreignField: "_id",
-                    as: "contest"
-                }
-            },
-            { $unwind: "$contest" },
-            { $sort: { finishedAt: -1 } },
-            { $skip: skip },
-            { $limit: limitNum },
-            {
-                $project: {
-                    contestId: "$contest._id",
-                    title: "$contest.title",
-                    contestCode: "$contest.contestCode",
-                    status: "$contest.status",
-                    score: 1,
-                    solvedCount: 1,
-                    timeTaken: 1,
-                    finishedAt: 1
-                }
-            }
-        ]),
-        ContestParticipant.countDocuments(matchStage)
-    ]);
-
-    return res.status(200).json(
-        new ApiResponse(200, "Joined contests fetched", {
-            total,
-            page: pageNum,
-            pages: Math.ceil(total / limitNum),
-            contests
-        })
-    );
-});
 
 
 
@@ -254,6 +166,5 @@ export {
     getUserTopicStats,
     getUserContestHistory,
     getLeaderboard,
-    getUserCreatedContests,
-    getUserJoinedContests
+
 }
