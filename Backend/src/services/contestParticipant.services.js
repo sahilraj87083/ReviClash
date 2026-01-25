@@ -2,6 +2,7 @@ import {ApiError} from '../utils/ApiError.utils.js'
 import { ContestParticipant } from "../models/contestParticipant.model.js";
 import { QuestionAttempt } from "../models/questionAttempt.model.js";
 import { Userstat } from "../models/userStats.model.js";
+import { Contest } from '../models/contest.model.js';
 
 const createContestParticipantService = async (
     {
@@ -106,46 +107,114 @@ const finalizeContestSubmissionService = async ({
         { userId },
         [
             {
-                $set: {
-                    totalContests: { $add: ["$totalContests", 1] },
-                    totalQuestionsSolved: { $add: ["$totalQuestionsSolved", solved] },
-                    totalQuestionsAttempted: { $add: ["$totalQuestionsAttempted", attempted] },
+            $set: {
+                totalContests: {
+                    $add: [{ $ifNull: ["$totalContests", 0] }, 1]
+                },
 
-                    avgAccuracy: {
-                        $cond: [
-                            { $eq: [{ $add: ["$totalQuestionsAttempted", attempted] }, 0] },
-                            0,
-                            {
-                                $multiply: [
-                                    {
-                                        $divide: [
-                                            { $add: ["$totalQuestionsSolved", solved] },
-                                            { $add: ["$totalQuestionsAttempted", attempted] }
-                                        ]
-                                    },
-                                    100
-                                ]
-                            }
-                        ]
-                    },
+                totalQuestionsSolved: {
+                    $add: [{ $ifNull: ["$totalQuestionsSolved", 0] }, solved]
+                },
 
-                    avgTimePerQuestion: {
-                        $cond: [
-                            { $eq: [{ $add: ["$totalQuestionsAttempted", attempted] }, 0] },
-                            0,
-                            {
-                                $divide: [
-                                    { $add: ["$totalTimeSpent", totalTime] },
-                                    { $add: ["$totalQuestionsAttempted", attempted] }
-                                ]
-                            }
-                        ]
-                    }
+                totalQuestionsAttempted: {
+                    $add: [{ $ifNull: ["$totalQuestionsAttempted", 0] }, attempted]
+                },
+
+                totalTimeSpent: {
+                    $add: [{ $ifNull: ["$totalTimeSpent", 0] }, totalTime]
+                },
+
+                avgAccuracy: {
+                    $cond: [
+                        {
+                            $eq: [
+                                {
+                                    $add: [
+                                        { $ifNull: ["$totalQuestionsAttempted", 0] },
+                                        attempted
+                                    ]
+                                },
+                                0
+                            ]
+                        },
+                        0,
+                        {
+                            $multiply: [
+                                {
+                                    $divide: [
+                                        {
+                                            $add: [
+                                                { $ifNull: ["$totalQuestionsSolved", 0] },
+                                                solved
+                                            ]
+                                        },
+                                        {
+                                            $add: [
+                                                { $ifNull: ["$totalQuestionsAttempted", 0] },
+                                                attempted
+                                            ]
+                                        }
+                                    ]
+                                },
+                                100
+                            ]
+                        }
+                    ]
+                },
+
+                avgTimePerQuestion: {
+                    $cond: [
+                        {
+                            $eq: [
+                                {
+                                    $add: [
+                                        { $ifNull: ["$totalQuestionsAttempted", 0] },
+                                        attempted
+                                    ]
+                                },
+                                0
+                            ]
+                        },
+                        0,
+                        {
+                            $divide: [
+                                {
+                                    $add: [
+                                        { $ifNull: ["$totalTimeSpent", 0] },
+                                        totalTime
+                                    ]
+                                },
+                                {
+                                    $add: [
+                                        { $ifNull: ["$totalQuestionsAttempted", 0] },
+                                        attempted
+                                    ]
+                                }
+                            ]
+                        }
+                    ]
                 }
-                }
-            ],
-            { upsert: true, updatePipeline: true }
+            }
+            }
+        ],
+        { upsert: true, updatePipeline: true }
+    );
+
+
+    const pending = await ContestParticipant.countDocuments({
+        contestId: contest._id,
+        submissionStatus: "not_submitted"
+    });
+
+    if (pending === 0) {
+        await Contest.updateOne(
+            { _id: contest._id },
+            {
+            status: "ended",
+            endedAt: new Date()
+            }
         );
+    }
 };
 
 export {
