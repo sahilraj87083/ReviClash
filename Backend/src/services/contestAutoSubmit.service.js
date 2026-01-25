@@ -1,10 +1,11 @@
 import { ContestParticipant } from "../models/contestParticipant.model.js";
 import { finalizeContestSubmissionService } from "./contestParticipant.services.js"
+import { Contest } from "../models/contest.model.js";
 
 const autoSubmitExpiredParticipants = async () => {
-  const now = new Date();
+    const now = new Date();
 
-  const expiredParticipants = await ContestParticipant.aggregate([
+    const expiredParticipants = await ContestParticipant.aggregate([
         {
             $match: {
                 submissionStatus: "not_submitted",
@@ -47,7 +48,12 @@ const autoSubmitExpiredParticipants = async () => {
 
     if (expiredParticipants.length === 0) return;
 
+    // collect unique contest ids
+    const contestIds = new Set();
+
     for (const p of expiredParticipants) {
+        contestIds.add(p.contestId.toString());
+
         try {
             await finalizeContestSubmissionService({
                 contest: p.contest,
@@ -57,6 +63,23 @@ const autoSubmitExpiredParticipants = async () => {
             });
         } catch (err) {
             console.error("Auto-submit failed for participant", p._id, err);
+        }
+    }
+    // FINALIZE contests (only once)
+    for (const contestId of contestIds) {
+        const pending = await ContestParticipant.countDocuments({
+            contestId,
+            submissionStatus: "not_submitted"
+        });
+
+        if (pending === 0) {
+        await Contest.updateOne(
+            { _id: contestId, status: "live" },
+            {
+            status: "ended",
+            endedAt: now
+            }
+        );
         }
     }
 };
