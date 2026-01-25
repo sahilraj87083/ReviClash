@@ -1,6 +1,6 @@
 import { useRef, useState , useEffect} from "react";
 import { Input, Button, Select, ContestRow } from "../components";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import gsap from "gsap";
 import { useGSAP } from "@gsap/react";
 import { getActiveContestsService , getAllContestsService} from "../services/contest.services";
@@ -13,7 +13,8 @@ import toast from "react-hot-toast";
 function Contests() {
     const containerRef = useRef(null);
     const navigate = useNavigate()
-
+    const createFormRef = useRef(null);
+    const joinFormRef = useRef(null);
     const heroRef = useRef(null);
     const actionRef = useRef(null);
     const navRef = useRef(null);
@@ -41,6 +42,23 @@ function Contests() {
 
     const [activeContests, setActiveContests] = useState([]);
     const [allContests, setAllContests] = useState([]);
+    
+    const location = useLocation();
+    const tab = new URLSearchParams(location.search).get("tab");
+
+    useEffect(() => {
+      if (!tab) return;
+
+      const map = {
+        create: createFormRef,
+        join: joinFormRef
+      };
+
+      map[tab]?.current?.scrollIntoView({ behavior: "smooth" });
+    }, [tab]);
+
+
+
 
     useEffect(() => {
       (async () => {
@@ -58,7 +76,7 @@ function Contests() {
       })();
 
     }, []);
-    const createdCache = useRef()
+    
 
 
     const DURATION_OPTIONS = [
@@ -230,6 +248,7 @@ function Contests() {
             {/* JOIN CONTEST */}
             <form className="bg-slate-900/60 border border-slate-700/50 rounded-xl p-6 space-y-6"
               onSubmit={joinContesthandler}
+              ref={joinFormRef}
             >
                 <h2 className="text-xl font-semibold text-white">
                   Join a Contest
@@ -261,6 +280,7 @@ function Contests() {
             {/* CREATE CONTEST */}
             <form className="bg-slate-900/60 border border-slate-700/50 rounded-xl p-6 space-y-6"
             onSubmit={createContestHandler}
+            ref={createFormRef}
             >
               <h2 className="text-xl font-semibold text-white">
                   Create a Contest

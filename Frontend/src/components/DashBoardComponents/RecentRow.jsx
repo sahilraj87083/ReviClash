@@ -1,13 +1,23 @@
-function RecentRow({ title, score, rank }) {
+function RecentRow({ title, score, solved, total, onClick }) {
   return (
-    <div className="flex items-center justify-between px-6 py-4 border-b border-slate-700/40 last:border-none">
-      <div>
-        <p className="text-white font-medium">{title}</p>
-        <p className="text-slate-400 text-sm">Score: {score}</p>
+    <div
+      onClick={onClick}
+      className="cursor-pointer flex justify-between items-center px-6 py-4 hover:bg-slate-800 transition"
+    >
+      <div >
+        <p className="font-medium text-white">{title}</p>
+        <p className="text-s font-medium text-slate-400">
+          Solved {solved}/{total}
+        </p>
       </div>
-      <span className="text-slate-300 text-sm">{rank}</span>
+
+      <div className="text-right">
+        <p className="font-semibold text-white">{score}</p>
+        <p className="text-xs text-slate-400">Score</p>
+      </div>
     </div>
   );
 }
+
 
 export default RecentRow

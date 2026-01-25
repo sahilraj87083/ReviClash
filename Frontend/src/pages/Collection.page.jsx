@@ -2,7 +2,7 @@ import { useState, useRef , useEffect} from "react";
 import gsap from "gsap";
 import { useGSAP } from "@gsap/react";
 import { Button, Input, } from "../components";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import {CreateContestModal, CreateCollectionModal, EmptyState, CollectionCard} from '../components'
 import { createCollection, getMyCollections, deleteCollection } from "../services/collection.service";
 import toast from "react-hot-toast";
@@ -11,6 +11,9 @@ import {createContestService} from '../services/contest.services'
 function Collections() {
   
     const containerRef = useRef(null);
+    const createRef = useRef(null);
+    const listRef = useRef(null);
+
     const [showCreate, setShowCreate] = useState(false);
     const [collections, setCollections] = useState([])
     const [search, setSearch] = useState("");
@@ -23,12 +26,24 @@ function Collections() {
     );
     const navigate = useNavigate()
 
+    const location = useLocation();
+    const action = new URLSearchParams(location.search).get("action");
+
     useEffect(() => {
       (async () => {
         const response = await getMyCollections()
         setCollections(response)
       })()
     },[])
+
+    useEffect(() => {
+      if (action === "create") {
+        createRef.current?.scrollIntoView({ behavior: "smooth" });
+      } else {
+        listRef.current?.scrollIntoView({ behavior: "smooth" });
+      }
+    }, [action]);
+
 
     const handleCreateCollection = async (data) => {
       try {
@@ -90,7 +105,7 @@ function Collections() {
       <div ref={containerRef} className="max-w-7xl mx-auto space-y-8">
 
         {/* HEADER */}
-        <section className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <section className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4" ref={createRef}>
           <div>
             <h1 className="text-3xl font-bold text-white">
               Collections
@@ -118,7 +133,7 @@ function Collections() {
         {collections.length === 0 ? (
           <EmptyState onCreate={() => setShowCreate(true)} />
         ) : (
-          <section className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          <section className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6" ref={listRef}>
             {filteredCollections.map((c) => (
               <CollectionCard key={c._id} collection={c} onCreateContest = {handleCreateContestClick} onDelete={handleDeleteCollection}/>
             ))}

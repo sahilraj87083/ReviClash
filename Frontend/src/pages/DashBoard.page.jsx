@@ -1,4 +1,4 @@
-import { useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import gsap from "gsap";
 import { useGSAP } from "@gsap/react";
 import {
@@ -8,10 +8,36 @@ import {
   RecentRow
 } from "../components";
 import { useNavigate } from "react-router-dom";
+import { useUserContext } from "../contexts/UserContext";
+import { getUserStats, getUserContestHistory } from "../services/userStat.services";
 
 function Dashboard() {
   const containerRef = useRef(null);
   const navigate = useNavigate()
+  const { user } = useUserContext()
+  const [userStat, setUserStat] = useState()
+  const [recentContests, setRecentContests] = useState();
+
+
+  const fetchUserStats = async () => {
+    if (!user?._id) return;
+    const data = await getUserStats(user._id)
+    setUserStat(data)
+  }
+
+  useEffect(() => {
+    fetchUserStats();
+  }, [])
+
+  useEffect(() => {
+    if (!user?._id) return;
+
+    (async () => {
+      const history = await getUserContestHistory(user._id, 3);
+      setRecentContests(history);
+    })();
+  }, [user?._id]);
+
 
   useGSAP(() => {
     gsap.from(containerRef.current.children, {
@@ -23,15 +49,20 @@ function Dashboard() {
     });
   }, []);
 
-  const user = {
-    name: "Sahil",
-    bio: "DSA enthusiast • Building consistency daily 🚀",
-    cover:
-      "https://images.unsplash.com/photo-1557683316-973673baf926?q=80&w=2000",
+  const handleCreateCollection = () => {
+    navigate("/user/collections?action=create");
   };
 
-  const HandleCollectionClick = () => {
-    navigate('/user/collections')
+  const handleHostContest = () => {
+    navigate("/user/contests?tab=create");
+  };
+
+  const handleJoinContest = () => {
+    navigate("/user/contests?tab=join");
+  };
+
+  const handleViewCollections = () => {
+    navigate("/user/collections?action=list");
   }
   const HandleQuestionClick = () => {
     navigate('/user/questions')
@@ -47,8 +78,7 @@ function Dashboard() {
           <div
             className="h-40 w-full bg-cover bg-center"
             style={{
-              backgroundImage:
-                "url(https://images.unsplash.com/photo-1517433456452-f9633a875f6f)",
+              backgroundImage: (user?.coverImage ? user?.coverImage : "url(https://images.unsplash.com/photo-1517433456452-f9633a875f6f)")
             }}
           />
 
@@ -58,16 +88,17 @@ function Dashboard() {
             {/* Left: Profile */}
             <div className="flex items-center gap-4">
               <div className="w-16 h-16 rounded-full bg-slate-700 border-2 border-slate-600 flex items-center justify-center text-xl font-bold text-white">
-                S
+                {user?.avatar? user?.avatar : <p className="capitalize">{user.fullName[0]}</p>}
               </div>
 
               <div>
                 <h1 className="text-2xl font-bold text-white">
-                  Sahil Singh
+                  {user?.fullName}
                 </h1>
-                <p className="text-slate-400 text-sm">
-                  AI & Backend Developer · DSA Enthusiast
-                </p>
+                <p className="text-slate-400 text-sm" >@{user.username}</p>
+                {user?.bio ? user.bio : (<p className="text-slate-400 text-sm capitalize">
+                  {user.role}
+                </p>)}
                 <p className="text-slate-500 text-xs mt-1">
                   Welcome back! Ready to clash your skills today ⚔️
                 </p>
@@ -79,7 +110,7 @@ function Dashboard() {
               <Button variant="secondary" onClick = {HandleQuestionClick}>
                 My Questions
               </Button>
-              <Button variant="secondary" onClick = {HandleCollectionClick}>
+              <Button variant="secondary" onClick = {handleViewCollections}>
                 My Collections
               </Button>
             </div>
@@ -89,10 +120,10 @@ function Dashboard() {
 
         {/* STATS */}
         <section className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          <StatCard title="Contests Played" value="12" />
-          <StatCard title="Problems Solved" value="340" />
-          <StatCard title="Accuracy" value="72%" />
-          <StatCard title="Avg Time / Q" value="3m 20s" />
+          <StatCard title="Contests Played" value={userStat?.totalContests} />
+          <StatCard title="Problems Solved" value= {userStat?.totalQuestionsSolved} />
+          <StatCard title="Accuracy" value= {userStat?.avgAccuracy} />
+          <StatCard title="Avg Time / Q" value= {userStat?.avgTimePerQuestion.toFixed(3)} />
         </section>
 
         {/* QUICK ACTIONS */}
@@ -106,32 +137,49 @@ function Dashboard() {
               title="Create Collection"
               desc="Organize problems from different platforms."
               action="Create"
+              onClick={handleCreateCollection}
             />
             <ActionCard
               title="Host a Contest"
               desc="Generate a contest from your collection."
               action="Host"
+              onClick={handleHostContest}
             />
             <ActionCard
               title="Join Contest"
               desc="Enter a contest using code or link."
               action="Join"
+              onClick={handleJoinContest}
             />
           </div>
         </section>
 
         {/* RECENT CONTESTS */}
         <section>
-          <h2 className="text-xl font-semibold text-white mb-4">
-            Recent Contests
-          </h2>
+  <h2 className="text-xl font-semibold text-white mb-4">
+    Recent Contests
+  </h2>
 
-          <div className="bg-slate-900/60 border border-slate-700/50 rounded-xl overflow-hidden">
-            <RecentRow title="DSA Sprint #12" score="420" rank="5 / 48" />
-            <RecentRow title="Binary Search Battle" score="380" rank="9 / 61" />
-            <RecentRow title="Graphs Weekly" score="460" rank="2 / 34" />
-          </div>
-        </section>
+  <div className="bg-slate-900/60 border border-slate-700/50 rounded-xl overflow-hidden">
+    {recentContests?.length === 0 ? (
+      <div className="p-6 text-slate-400 text-center">
+        No contests played yet
+      </div>
+    ) : (
+      recentContests?.map((c) => (
+        <RecentRow
+          key={c.contestId}
+          title={c.contest.title}
+          score={Math.round(c.score)}
+          solved={c.solvedCount}
+          total={c.solvedCount + c.unsolvedCount}
+          onClick={() => navigate(`/contests/${c.contestId}/leaderboard`)}
+        />
+      ))
+    )}
+  </div>
+</section>
+
       </div>
     </div>
   );
