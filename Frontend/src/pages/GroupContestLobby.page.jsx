@@ -7,6 +7,7 @@ import { getContestByIdService, startContestService } from "../services/contest.
 import { getAllParticipantsService, leaveContestService } from "../services/contestParticipant.service";
 import { useUserContext } from "../contexts/UserContext";
 import { useSocketContext } from "../contexts/socket.context";
+import toast from 'react-hot-toast'
 
 function GroupContestLobby() {
   const containerRef = useRef(null);
@@ -29,9 +30,17 @@ function GroupContestLobby() {
 
 
   const fetchContest = async () => {
-    const contest = await getContestByIdService(contestId);
-    setContest(contest);
-    setContestQuestions(contest.questions);
+    try {
+      const contest = await getContestByIdService(contestId);
+      setContest(contest);
+      setContestQuestions(contest.questions);
+      if(contest.status === 'live'){
+        navigate(`/contests/${contestId}/live`);
+      }
+    } catch (error) {
+      toast.error("Contest not found")
+      navigate('/user/contests')
+    }
   };
 
   // Fetch contest once

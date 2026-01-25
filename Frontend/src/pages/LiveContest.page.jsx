@@ -41,13 +41,15 @@ function LiveContest() {
   const markAttempt = (status) => {
     const q = contestQuestions[activeQuestion];
     if (!q) return;
+    
+    const timeSpent = Math.floor((Date.now() - new Date(startedAt).getTime()) / 1000);
 
     setAttempts(prev => ({
       ...prev,
       [q._id]: {
         questionId: q._id,
         status,
-        timeSpent: (prev[q._id]?.timeSpent || 0) + 10,
+        timeSpent: timeSpent,
       }
     }));
     console.log(attempts)
@@ -149,8 +151,11 @@ function LiveContest() {
 
   useEffect(() => {
     if (timeLeft === 0 && contest?.status === "live") {
-      toast.success("Contest submitted");
-      navigate("/user/dashboard");
+      submitContestService(contestId, { attempts: Object.values(attempts) })
+      .finally(() => {
+        toast.success("Contest auto-submitted");
+        navigate("/user/dashboard");
+      });
     }  
   }, [timeLeft]);
 
@@ -327,7 +332,8 @@ function LiveContest() {
           Progress auto-saved · Auto-submit on time end
         </p>
 
-        <Button variant="danger" type = "submit">
+        <Button variant="danger" type = "submit"
+        disabled={timeLeft === 0}>
           Submit Contest
         </Button>
       </form>
