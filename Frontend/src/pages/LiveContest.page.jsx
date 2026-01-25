@@ -60,15 +60,12 @@ function LiveContest() {
     };
 
     try {
-      console.log(payload)
       await submitContestService(contestId, payload);
       toast.success("Contest Submitted")
       navigate('/user/dashboard')
     } catch (error) {
       toast.error("Try again")
     }
-
-    console.log("submitted", payload)
 
   }
 

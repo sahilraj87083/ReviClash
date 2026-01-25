@@ -27,7 +27,6 @@ export const useContestList = (type) => {
         setLoading(true);
         try {
             const res = await serviceMap[type](page);
-            console.log(res.meta.total)
             setContests(prev => {
                 const map = new Map(prev.map(c => [c._id, c]));
                 res.contests.forEach(c => map.set(c._id, c));
