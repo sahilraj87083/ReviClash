@@ -14,11 +14,27 @@ function PrivateContestLobby() {
 
   const [contest, setContest] = useState()
 
+  const fetchContest = async () => {
+    try {
+        const contest = await getContestByIdService(contestId);
+        console.log(contest)
+        setContest(contest);
+        
+        if(contest.status === 'live'){
+          navigate(`/contests/${contestId}/live`)
+        }
+        if(contest?.status === 'ended'){
+            navigate('/user/contests')
+        }
+    } catch (error) {
+        toast.error("Contest not found")
+        navigate('/user/contests')
+    }
+  }
 
   useEffect(() => {
     (async () => {
-      const data = await getContestByIdService(contestId);
-      setContest(data);
+      await fetchContest()
     })();
   }, [contestId]);
 
