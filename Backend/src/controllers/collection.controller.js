@@ -226,7 +226,6 @@ const getPublicCollectionQuestions = asyncHandler(async (req, res) => {
 
     const questions = await CollectionQuestion.aggregate([
         { $match: { collectionId: new mongoose.Types.ObjectId(collectionId) } },
-        { $sort: { order: 1, addedAt: -1 } },
         {
             $lookup: {
                 from: "questions",
@@ -237,16 +236,17 @@ const getPublicCollectionQuestions = asyncHandler(async (req, res) => {
         },
         { $unwind: "$question" },
         { $match: { "question.isDeleted": false } },
+        { $sort: { order: 1, addedAt: -1 } },
         {
             $project: {
                 _id: 0,
                 order: 1,
                 addedAt: 1,
                 question: {
-                title: 1,
-                difficulty: 1,
-                platform: 1,
-                problemUrlOriginal: 1,
+                    title: "$question.title",
+                    difficulty: "$question.difficulty",
+                    platform: "$question.platform",
+                    problemUrlOriginal: "$question.problemUrlOriginal"
                 },
             },
         },
