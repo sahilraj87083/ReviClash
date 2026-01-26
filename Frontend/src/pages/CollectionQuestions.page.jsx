@@ -4,7 +4,7 @@ import { addQuestionToCollection, getCollectionAllQuestions, removeQuestionFromC
 import { useParams } from "react-router-dom";
 import { uploadQuestionService } from "../services/question.services";
 import toast from "react-hot-toast";
-
+import { Input, } from "../components";
 
 function CollectionQuestions({mode = 'owner'}) {
     const [openAddQuestionPanel, setOpenAddQuestionPanel] = useState(false);
@@ -14,6 +14,14 @@ function CollectionQuestions({mode = 'owner'}) {
     const [questions, setquestions] = useState([])
     const [collection, setcollection] = useState({})
     const [isLoading, setIsLoading] = useState(true);
+
+    const [selectedQuestions , setSelectedQuestions] = useState([])
+    const [search, setSearch] = useState("");
+
+    const normalizedSearch = search.toLowerCase();
+    const filteredQuestions = questions.filter(q =>
+        q.question.title?.toLowerCase().includes(normalizedSearch)
+    );
 
     const fetchDataPrivate = async () => {
       try {
@@ -105,15 +113,23 @@ function CollectionQuestions({mode = 'owner'}) {
             </div>
 
             {/* Action */}
-            <button
-            onClick={() => setOpenAddQuestionPanel(true)}
-            className="self-start px-5 py-2.5
-            bg-red-600 hover:bg-red-500
-            rounded-md text-sm font-semibold
-            transition"
-            >
-            + Add Question
-            </button>
+            <div className="flex gap-3 w-full sm:w-auto">
+              <Input
+                placeholder="Search collections..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="w-full sm:w-64"
+              />
+              <button
+              onClick={() => setOpenAddQuestionPanel(true)}
+              className="self-start px-5 py-2.5
+              bg-red-600 hover:bg-red-500
+              rounded-md text-sm font-semibold
+              transition"
+              >
+              + Add Question
+              </button>
+            </div>
         </div>
 
         {/* Meta row */}
@@ -142,7 +158,7 @@ function CollectionQuestions({mode = 'owner'}) {
             />
           ) : (
             <div className="space-y-4">
-              {questions?.map((q, index) => (
+              {filteredQuestions?.map((q, index) => (
                 <QuestionRow key={q.question?._id} q={q.question} index={index}  removeQuestion={handleRemoveQuestionFromCollection} mode = {mode} />
               ))}
             </div>
