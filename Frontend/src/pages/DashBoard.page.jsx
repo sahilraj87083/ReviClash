@@ -120,10 +120,10 @@ function Dashboard() {
 
         {/* STATS */}
         <section className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          <StatCard title="Contests Played" value={userStat?.totalContests} />
-          <StatCard title="Problems Solved" value= {userStat?.totalQuestionsSolved} />
-          <StatCard title="Accuracy" value= {userStat?.avgAccuracy} />
-          <StatCard title="Avg Time / Q" value= {userStat?.avgTimePerQuestion.toFixed(3)} />
+          <StatCard title="Contests Played" value ={userStat?.totalContests} />
+          <StatCard title="Problems Solved" value = {userStat?.totalQuestionsSolved} />
+          <StatCard title="Accuracy" value = {userStat?.avgAccuracy.toFixed(3)} />
+          <StatCard title="Avg Time / Q" value = {userStat?.avgTimePerQuestion.toFixed(3)} />
         </section>
 
         {/* QUICK ACTIONS */}
@@ -156,29 +156,29 @@ function Dashboard() {
 
         {/* RECENT CONTESTS */}
         <section>
-  <h2 className="text-xl font-semibold text-white mb-4">
-    Recent Contests
-  </h2>
+          <h2 className="text-xl font-semibold text-white mb-4">
+            Recent Contests
+          </h2>
 
-  <div className="bg-slate-900/60 border border-slate-700/50 rounded-xl overflow-hidden">
-    {recentContests?.length === 0 ? (
-      <div className="p-6 text-slate-400 text-center">
-        No contests played yet
-      </div>
-    ) : (
-      recentContests?.map((c) => (
-        <RecentRow
-          key={c.contestId}
-          title={c.contest.title}
-          score={Math.round(c.score)}
-          solved={c.solvedCount}
-          total={c.solvedCount + c.unsolvedCount}
-          onClick={() => navigate(`/contests/${c.contestId}/leaderboard`)}
-        />
-      ))
-    )}
-  </div>
-</section>
+          <div className="bg-slate-900/60 border border-slate-700/50 rounded-xl overflow-hidden">
+            {recentContests?.length === 0 ? (
+              <div className="p-6 text-slate-400 text-center">
+                No contests played yet
+              </div>
+            ) : (
+              recentContests?.map((c) => (
+                <RecentRow
+                  key={c.contestId}
+                  title={c.contest.title}
+                  score={Math.round(c.score)}
+                  solved={c.solvedCount}
+                  total={c.solvedCount + c.unsolvedCount}
+                  onClick={() => navigate(`/contests/${c.contestId}/leaderboard`)}
+                />
+              ))
+            )}
+          </div>
+        </section>
 
       </div>
     </div>

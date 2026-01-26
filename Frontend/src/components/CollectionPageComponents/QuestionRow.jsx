@@ -3,7 +3,7 @@ import {Button} from '../'
 import { useParams } from "react-router-dom";
 
 
-function QuestionRow({ q , index, removeQuestion }) {
+function QuestionRow({ q , index, removeQuestion , mode = 'owner' }) {
   // console.log(q)
   const {collectionId} = useParams()
 
@@ -71,14 +71,14 @@ function QuestionRow({ q , index, removeQuestion }) {
           <ExternalLink size={16} />
         </a>
 
-        <Button 
+        {mode === 'owner' && <Button 
         onClick = {(e) => {
           HandleRemove(e)
         }}
         variant = "primary" size = 'sm'>
           <i className="ri-delete-bin-2-line"></i>
           <p>Remove</p>
-        </Button>
+        </Button>}
 
       </div>
     </div>
