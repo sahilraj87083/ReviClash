@@ -216,41 +216,52 @@ const getPublicCollectionQuestions = asyncHandler(async (req, res) => {
 
     const collection = await Collection.findOne({
         _id: collectionId,
-        visibility: "public",
-        isDeleted: false,
+        isPublic: true,
     }).select("name description ownerId");
 
     if (!collection) {
         throw new ApiError(404, "Collection not found or private");
     }
 
-    const questions = await CollectionQuestion.aggregate([
-        { $match: { collectionId: new mongoose.Types.ObjectId(collectionId) } },
-        {
-            $lookup: {
-                from: "questions",
-                localField: "questionId",
-                foreignField: "_id",
-                as: "question",
+    const questions = await CollectionQuestion.aggregate(
+        [
+            { 
+                $match : {
+                    collectionId : new mongoose.Types.ObjectId(collectionId),
+                }
             },
-        },
-        { $unwind: "$question" },
-        { $match: { "question.isDeleted": false } },
-        { $sort: { order: 1, addedAt: -1 } },
-        {
-            $project: {
-                _id: 0,
-                order: 1,
-                addedAt: 1,
-                question: {
-                    title: "$question.title",
-                    difficulty: "$question.difficulty",
-                    platform: "$question.platform",
-                    problemUrlOriginal: "$question.problemUrlOriginal"
-                },
+            {
+                $sort : {
+                    order : 1,
+                    addedAt : -1
+                }
             },
-        },
-    ]);
+            {
+                $lookup : {
+                    from: "questions",
+                    localField: "questionId",
+                    foreignField: "_id",
+                    as: "question",
+                }
+            },
+            {
+                $unwind : "$question"
+            },
+            {
+                $match : {
+                    "question.isDeleted": false
+                }
+            },
+            {
+                $project: {
+                    _id: 0,
+                    order: 1,
+                    addedAt: 1,
+                    question: 1,
+                }
+            }
+        ]
+    )
 
     return res.json(
         new ApiResponse(200, "Public collection questions", {

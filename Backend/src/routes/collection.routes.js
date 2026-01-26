@@ -101,6 +101,8 @@ router.route("/:collectionId")
     deleteCollections
 );
 
+
+
 // get all the questions of the collection
 router.route("/:collectionId/questions")
 .get(
