@@ -6,6 +6,7 @@ import { useParams } from "react-router-dom";
 import { getUserProfileService} from "../services/profile.services";
 import { useUserContext } from "../contexts/UserContext";
 import { ActivityTab,CollectionsTab, FollowersTab, Stat, Tab } from "../components/profilePageComponent";
+import { FollowButton , ProfileActions } from '../components'
 
 const TABS = {
   ACTIVITY: "activity",
@@ -80,30 +81,37 @@ function MyProfile() {
             <p className="text-slate-300 mt-2 max-w-lg">
               {profile?.bio}
             </p>
+            <div className="flex gap-6 font-semibold text-white">
+              <span>Followers {profile?.followersCount}</span>
+              <span>Following {profile?.followingCount}</span>
+            </div>
           </div>
+          
 
-          {/* ACTIONS */}
-          <div className="flex gap-3">
-            { isUserLoggedIn  
-                && (isOwnProfile ? (
-                    <>
-                        <Button variant="secondary">Edit Profile</Button>
-                        <Button variant="ghost">Share</Button>
-                    </>
-                    ) : (
-                    <>
-                        {!isOwnProfile && (
-                          profile?.isFollowedByViewer ? (
-                            <Button variant="secondary">Following</Button>
-                          ) : (
-                            <Button variant="primary">Follow</Button>
-                          )
-                        )}
-                        {profile?.isFollowedByViewer && <Button variant="secondary">Message</Button>}
-                    </>
-                    )) 
-            }
-          </div>
+
+          {/* PROFILE ACTIONS */}
+          {/* {isUserLoggedIn && (
+            <div className="flex gap-3">
+              {isOwnProfile ? (
+                <>
+                  <Button variant="secondary">Edit Profile</Button>
+                  <Button variant="ghost">Share</Button>
+                </>
+              ) : (
+                <>
+                  <FollowButton userId={profileUserId} />
+                  <Button variant="secondary">Message</Button>
+                </>
+              )}
+            </div>
+          )} */}
+          <ProfileActions
+            isOwnProfile={isOwnProfile}
+            isUserLoggedIn={isUserLoggedIn}
+            profileUserId={profileUserId}
+          />
+
+
         </section>
 
         {/* STATS */}

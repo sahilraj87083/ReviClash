@@ -34,6 +34,9 @@ import PublicMetaCards from './PublicContestLobbyComponents/MetaCard'
 import ChatSidebar from './messageComponents/ChatSidebar'
 import ChatWindow from './messageComponents/ChatWindow'
 
+import FollowButton from './FollowComponents/FollowButton'
+import ProfileActions from './FollowComponents/ProfileActions'
+
 export {
     Header,
     Footer,
@@ -66,5 +69,10 @@ export {
     PublicMetaCards,
 
     ChatSidebar,
-    ChatWindow
+    ChatWindow,
+
+
+
+    FollowButton,
+    ProfileActions
 }
