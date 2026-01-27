@@ -73,7 +73,7 @@ function MyProfile() {
           
 
           <div className="flex-1 text-center md:text-left">
-            <h1 className="text-2xl font-bold text-white">
+            <h1 className="text-2xl font-bold text-white capitalize">
               {profile?.fullName}
             </h1>
             <p className="text-slate-400">@{profile?.username}</p>
