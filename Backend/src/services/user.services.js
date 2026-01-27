@@ -1,6 +1,9 @@
 import {User} from '../models/user.model.js'
 import { ApiError } from '../utils/ApiError.utils.js'
 import { hashToken } from '../utils/hashToken.utils.js'
+import crypto from "crypto";
+import { sendMail } from "./email.service.js";
+
 
 
 const createNewUserService = async (
@@ -37,8 +40,28 @@ const generateAccessAndRefereshTokensService = async (userId) => {
     }
 }
 
+const sendVerificationEmail = async (user) => {
+    const token = crypto.randomBytes(32).toString("hex");
+
+    user.emailVerificationToken = hashToken(token);
+    user.emailVerificationExpires = Date.now() + 10 * 60 * 1000;
+
+    await user.save({ validateBeforeSave: false });
+
+    const verifyUrl = `${process.env.FRONTEND_URL}/verify-email?token=${token}`;
+
+    await sendMail({
+        to: user.email,
+        subject: "Verify your email",
+        html: `
+        <h2>Verify your email</h2>
+        <a href="${verifyUrl}">Click here to verify</a>
+        `,
+    });
+};
 
 export {
     createNewUserService,
-    generateAccessAndRefereshTokensService
+    generateAccessAndRefereshTokensService,
+    sendVerificationEmail
 }

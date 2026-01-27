@@ -8,7 +8,11 @@ import {
     updateAccountDetails,
     updateUserAvatar,
     updateUserCoverImage,
-    getUserProfile
+    getUserProfile,
+    verifyEmail,
+    resendVerificationEmail,
+    forgotPassword,
+    resetPassword
 } from "../controllers/user.controller.js";
 
 import { Router } from "express";
@@ -102,5 +106,11 @@ router.patch(
     upload.single("coverImage"),
     updateUserCoverImage
 );
+
+router.get("/verify-email", verifyEmail);
+router.post("/resend-verification", verifyJWT, resendVerificationEmail);
+router.post("/forgot-password", forgotPassword);
+router.post("/reset-password", resetPassword);
+
 
 export default router;

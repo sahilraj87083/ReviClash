@@ -6,7 +6,7 @@ import {hashToken} from '../utils/hashToken.utils.js'
 import {User} from '../models/user.model.js'
 import jwt from 'jsonwebtoken'
 import mongoose from 'mongoose'
-import { createNewUserService, generateAccessAndRefereshTokensService } from '../services/user.services.js'
+import { createNewUserService, generateAccessAndRefereshTokensService, sendVerificationEmail } from '../services/user.services.js'
 
 
 const registerUser = asyncHandler(async(req, res) => {
@@ -40,6 +40,12 @@ const registerUser = asyncHandler(async(req, res) => {
     if(!createdUser){
         throw new ApiError(500, "Something went wrong while registering the user")
     }
+
+    sendVerificationEmail(createdUser)
+    .then(() => {
+        console.log("mail sent")
+    })
+    .catch((e) => {console.log("Error While Sending Verification mail", e)})
 
     return res.status(201).json(
         new ApiResponse(201, "User registered successfully", createdUser)
@@ -527,11 +533,88 @@ const getUserProfile = asyncHandler( async (req, res) => {
     );
 })
 
-// later 
-// verifyEmail
-// resendVerificationEmail
-// forgotPassword
-// resetPassword
+const verifyEmail = asyncHandler(async (req, res) => {
+    const { token } = req.query;
+
+    if (!token) throw new ApiError(400, "Token missing");
+
+    const hashed = hashToken(token);
+
+    const user = await User.findOne({
+        emailVerificationToken: hashed,
+        emailVerificationExpires: { $gt: Date.now() }
+    });
+
+    if (!user) throw new ApiError(400, "Token invalid or expired");
+
+    user.emailVerified = true;
+    user.emailVerificationToken = undefined;
+    user.emailVerificationExpiry = undefined;
+
+    await user.save();
+
+    res.json(new ApiResponse(200, "Email verified successfully"));
+});
+
+
+const resendVerificationEmail = asyncHandler(async (req, res) => {
+    const user = await User.findById(req.user._id);
+
+    if (!user) throw new ApiError(404, "User not found");
+    if (user.emailVerified) throw new ApiError(400, "Already verified");
+
+    await sendVerificationEmail(user);
+
+    res.json(new ApiResponse(200, "Verification email resent"));
+});
+
+const forgotPassword = asyncHandler(async (req, res) => {
+    const { email } = req.body;
+
+    const user = await User.findOne({ email });
+    if (!user) return res.json({ success: true }); // anti-enumeration
+
+    const token = crypto.randomBytes(32).toString("hex");
+
+    user.passwordResetToken = hashToken(token);
+    user.passwordResetExpiry = Date.now() + 10 * 60 * 1000;
+
+    await user.save({ validateBeforeSave: false });
+
+    const url = `${process.env.FRONTEND_URL}/reset-password?token=${token}`;
+
+    await sendMail({ 
+        to: email,
+        subject: "Reset password",
+        html: `<a href="${url}">Reset Password</a>`
+    });
+
+    res.json(new ApiResponse(200, "Reset link sent"));
+});
+
+const resetPassword = asyncHandler(async (req, res) => {
+    const { token, password } = req.body;
+
+    const hashed = hashToken(token);
+
+    const user = await User.findOne({
+        passwordResetToken: hashed,
+        passwordResetExpires: { $gt: Date.now() }
+    }).select("+password");
+
+    if (!user) throw new ApiError(400, "Token expired");
+
+    user.password = password;
+    user.passwordResetToken = undefined;
+    user.passwordResetExpiry = undefined;
+
+    await user.save();
+
+    res.json(new ApiResponse(200, "Password reset successful"));
+});
+
+
+
 
 export {
     registerUser,
@@ -543,7 +626,11 @@ export {
     updateAccountDetails,
     updateUserAvatar,
     updateUserCoverImage,
-    getUserProfile
+    getUserProfile,
+    verifyEmail,
+    resendVerificationEmail,
+    forgotPassword,
+    resetPassword
 }
 
 
