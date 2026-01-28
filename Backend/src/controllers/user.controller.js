@@ -35,16 +35,13 @@ const registerUser = asyncHandler(async(req, res) => {
         username : username
     })
 
-    const createdUser = await User.findById(user._id)
+    const createdUser = await User.findById(user._id).select('+emailVerificationToken +emailVerificationExpiry')
 
     if(!createdUser){
         throw new ApiError(500, "Something went wrong while registering the user")
     }
 
     sendVerificationEmail(createdUser)
-    .then(() => {
-        console.log("mail sent")
-    })
     .catch((e) => {console.log("Error While Sending Verification mail", e)})
 
     return res.status(201).json(
@@ -158,7 +155,7 @@ const refreshAccessToken = asyncHandler( async (req, res) => {
                 _id : decodedToken._id,
                 refreshToken : hashedToken
             }
-        ).select("+refreshToken");
+        ).select("+refreshToken +emailVerified");
 
         if (!user) {
             throw new ApiError(401, "Refresh token revoked");
@@ -542,10 +539,14 @@ const verifyEmail = asyncHandler(async (req, res) => {
 
     const user = await User.findOne({
         emailVerificationToken: hashed,
-        emailVerificationExpires: { $gt: Date.now() }
-    });
+        emailVerificationExpiry: { $gt: Date.now() }
+    }).select("+emailVerificationToken");
 
     if (!user) throw new ApiError(400, "Token invalid or expired");
+    
+    if (user.emailVerified) {
+        return res.json(new ApiResponse(200, "Email already verified"));
+    }
 
     user.emailVerified = true;
     user.emailVerificationToken = undefined;

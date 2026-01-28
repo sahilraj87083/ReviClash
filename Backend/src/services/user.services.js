@@ -44,7 +44,7 @@ const sendVerificationEmail = async (user) => {
     const token = crypto.randomBytes(32).toString("hex");
 
     user.emailVerificationToken = hashToken(token);
-    user.emailVerificationExpires = Date.now() + 10 * 60 * 1000;
+    user.emailVerificationExpiry = Date.now() + 10 * 60 * 1000;
 
     await user.save({ validateBeforeSave: false });
 

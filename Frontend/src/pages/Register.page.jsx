@@ -27,7 +27,6 @@ function Register() {
         }
 
         const response = await registerService(newUser)
-        console.log(response)
 
         if(response.status === 201){
             navigate('/user/login')

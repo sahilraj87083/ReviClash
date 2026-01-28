@@ -2,10 +2,12 @@ import { NavLink } from "react-router-dom";
 import { useEffect, useRef, useState } from "react";
 import { logoutService } from "../../services/auth.services";
 import { useUserContext } from "../../contexts/UserContext";
+import { useNavigate } from "react-router-dom";
 
 function ProfileDropdown({ user }) {
   const [open, setOpen] = useState(false);
   const dropdownRef = useRef(null);
+  const navigate = useNavigate()
 
 
   const { logout } = useUserContext();
@@ -16,6 +18,7 @@ function ProfileDropdown({ user }) {
     } finally {
       logout();              // frontend clears state
       setOpen(false);
+      navigate('/explore')
     }
   };
 

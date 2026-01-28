@@ -13,6 +13,10 @@ import CollectionQuestions from './CollectionQuestions.page.jsx'
 import PrivateContestLobby from './PrivateContestLobby.page.jsx'
 import Questions from './Questions.page.jsx'
 import ContestListPage from './ContestsListPage.jsx'
+import ResetPassword from './ResetPassword.page.jsx'
+import EditProfile from './EditProfile.page.jsx'
+import VerifyEmail from './VerifyEmail.page.jsx'
+import ForgotPassword from './ForgotPassword.page.jsx'
 
 export {
     Home,
@@ -29,5 +33,9 @@ export {
     CollectionQuestions,
     PrivateContestLobby,
     Questions,
-    ContestListPage
+    ContestListPage,
+    ResetPassword,
+    EditProfile,
+    ForgotPassword,
+    VerifyEmail
 }

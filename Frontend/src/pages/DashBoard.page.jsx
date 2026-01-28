@@ -88,16 +88,16 @@ function Dashboard() {
             {/* Left: Profile */}
             <div className="flex items-center gap-4">
               <div className="w-16 h-16 rounded-full bg-slate-700 border-2 border-slate-600 flex items-center justify-center text-xl font-bold text-white">
-                {user?.avatar? user?.avatar : <p className="capitalize">{user.fullName[0]}</p>}
+                {user?.avatar? user?.avatar : <p className="capitalize">{user?.fullName[0]}</p>}
               </div>
 
               <div>
                 <h1 className="text-2xl font-bold text-white">
                   {user?.fullName}
                 </h1>
-                <p className="text-slate-400 text-sm" >@{user.username}</p>
+                <p className="text-slate-400 text-sm" >@{user?.username}</p>
                 {user?.bio ? user.bio : (<p className="text-slate-400 text-sm capitalize">
-                  {user.role}
+                  {user?.role}
                 </p>)}
                 <p className="text-slate-500 text-xs mt-1">
                   Welcome back! Ready to clash your skills today ⚔️

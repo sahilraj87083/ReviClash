@@ -7,6 +7,8 @@ import { getUserProfileService} from "../services/profile.services";
 import { useUserContext } from "../contexts/UserContext";
 import { ActivityTab,CollectionsTab, FollowersTab, Stat, Tab } from "../components/profilePageComponent";
 import { FollowButton , ProfileActions } from '../components'
+import { resendVerificationEmailService  } from "../services/auth.services";
+import toast from "react-hot-toast";
 
 const TABS = {
   ACTIVITY: "activity",
@@ -35,9 +37,19 @@ function MyProfile() {
     })();
   }, [username]);
   
+  const resendEmail = async () => {
+    console.log("clicked")
+  try {
+    await resendVerificationEmailService();
+    toast.success("Verification email sent");
+  } catch (err) {
+    toast.error(err.response?.data?.message || "Failed to send email");
+  }
+};
 
 
-  const loggedInUserId = loggedInUser._id;
+
+  const loggedInUserId = loggedInUser?._id;
   const profileUserId = profile?._id; 
   const isOwnProfile = loggedInUserId === profileUserId;
   const isUserLoggedIn = !!loggedInUser
@@ -113,7 +125,12 @@ function MyProfile() {
 
 
         </section>
-
+            {isOwnProfile && !loggedInUser?.emailVerified && (
+            <div className="flex bg-white-400 rounded justify-end items-center gap-3">
+              <p className="text-red-500 underline text-sm">Email not verified</p>
+              <Button variant = 'ghost' onClick={resendEmail}>Verify → </Button>
+            </div>
+          )}
         {/* STATS */}
         <section className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
           <Stat title="Contests Played" value={profile?.stats?.totalContests || 0} />
