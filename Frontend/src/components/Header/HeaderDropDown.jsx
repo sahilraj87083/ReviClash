@@ -39,7 +39,7 @@ function ProfileDropdown({ user }) {
     <div className="relative nav-anim" ref={dropdownRef}>
       {/* Avatar */}
       <img
-        src={user.avatar}
+        src={user?.avatar?.url}
         alt="avatar"
         className="w-8 h-8 rounded-full cursor-pointer"
         onClick={() => setOpen((prev) => !prev)}

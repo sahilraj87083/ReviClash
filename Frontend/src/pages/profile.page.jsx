@@ -74,7 +74,7 @@ function MyProfile() {
         <section className="bg-slate-900/60 border border-slate-700/50 rounded-xl p-6 flex flex-col md:flex-row gap-6 items-center">
           {profile?.avatar? (
               <img
-                src={profile?.avatar}
+                src={profile?.avatar.url}
                 alt="avatar"
                 className="w-28 h-28 rounded-full border-2 border-red-500 object-cover"
               />

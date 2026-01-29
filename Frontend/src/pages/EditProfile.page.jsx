@@ -1,50 +1,88 @@
 import { useState } from "react";
-import { updateAccountDetailsService } from "../services/auth.services";
-// import { updateAvatarService, updateCoverService } from "../services/user.services";
+import {
+    ProfileSideBar as Sidebar,
+    ProfileSection,
+    AccountSection,
+    SecuritySection,
+    EmailSection,
+    DangerZone,
+    ImageUploadModal
+} from "../components";
+import { useUserContext } from "../contexts/UserContext";
+import { updateAccountDetailsService , changeCurrentPasswordService, updateUserNameService} from "../services/auth.services";
 import toast from "react-hot-toast";
 
-function EditProfile() {
-    const [fullName, setFullName] = useState("");
-    const [bio, setBio] = useState("");
+function EditProfilePage() {
+    const [active, setActive] = useState("profile");
+    const [openUpload, setOpenUpload] = useState(false);
+    const [uploadType, setUploadType] = useState(null);
 
-    const handleUpdate = async (e) => {
-        e.preventDefault();
+    const { setUser, logout } = useUserContext();
 
-        try {
-            await updateAccountDetailsService({ fullName, bio });
-            toast.success("Profile updated");
-        } catch {
-            toast.error("Failed to update profile");
-        }
+    const openUploader = (type) => {
+        setUploadType(type); // "avatar" | "coverImage"
+        setOpenUpload(true);
     };
 
+    const updateDetails = async (data) => {
+        try {
+            const user = await updateAccountDetailsService(data)
+            setUser(user);
+        } catch (error) {
+            toast.error("Updation failed. Please try again")
+            throw error;
+        }
+    }
+    
+    const updatePassword = async (data) => {
+        try {
+            await changeCurrentPasswordService(data)
+            logout()
+        } catch (error) {
+            toast.error("Invalid Old password")
+            throw error;
+        }
+    }
+
+    const updateUserName = async ( data ) => {
+        try {
+            const user = await updateUserNameService(data)
+            setUser(user)
+            toast.success("username updated")
+        } catch (error) {
+            const message = error?.message ||  error?.response?.data?.message || "Something went wrong";
+            toast.error(message)
+        }
+    }
+
     return (
-        <div className="min-h-screen p-10 text-white max-w-3xl mx-auto">
+        <div className="min-h-screen bg-slate-900 text-white flex">
 
-            <h1 className="text-2xl font-bold mb-6">Edit Profile</h1>
+            <Sidebar active={active} setActive={setActive} />
 
-            <form onSubmit={handleUpdate} className="space-y-4">
+            <div className="flex-1 p-10 max-w-4xl">
 
-                <input
-                    placeholder="Full name"
-                    value={fullName}
-                    onChange={e => setFullName(e.target.value)}
-                    className="w-full p-2 bg-slate-800"
-                />
+                {active === "profile" && (
+                    <ProfileSection 
+                        onOpenUpload={openUploader} 
+                        updateDetails = {updateDetails}
+                    />
+                )}
 
-                <textarea
-                    placeholder="Bio"
-                    value={bio}
-                    onChange={e => setBio(e.target.value)}
-                    className="w-full p-2 bg-slate-800"
-                />
+                {active === "account" && (<AccountSection updateUserName = {updateUserName} />)}
+                {active === "security" && <SecuritySection  updatePassword = {updatePassword} />}
+                {active === "email" && <EmailSection />}
+                {active === "danger" && <DangerZone />}
+            </div>
 
-                <button className="bg-red-600 px-6 py-2 rounded">
-                    Save Changes
-                </button>
-            </form>
+            <ImageUploadModal
+                open={openUpload}
+                type={uploadType}
+                onClose={() => setOpenUpload(false)}
+                onSuccess={(user) => setUser(user)}
+            />
         </div>
     );
 }
 
-export default EditProfile;
+export default EditProfilePage;

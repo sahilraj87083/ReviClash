@@ -78,7 +78,7 @@ function Dashboard() {
           <div
             className="h-40 w-full bg-cover bg-center"
             style={{
-              backgroundImage: (user?.coverImage ? user?.coverImage : "url(https://images.unsplash.com/photo-1517433456452-f9633a875f6f)")
+              backgroundImage: `url(${user?.coverImage?.url ||"https://images.unsplash.com/photo-1517433456452-f9633a875f6f"})` 
             }}
           />
 
@@ -87,8 +87,19 @@ function Dashboard() {
 
             {/* Left: Profile */}
             <div className="flex items-center gap-4">
-              <div className="w-16 h-16 rounded-full bg-slate-700 border-2 border-slate-600 flex items-center justify-center text-xl font-bold text-white">
-                {user?.avatar? user?.avatar : <p className="capitalize">{user?.fullName[0]}</p>}
+              {/* Avatar */}
+              <div className="w-16 h-16 rounded-full overflow-hidden border-2 border-slate-600 bg-slate-700 flex items-center justify-center">
+                {user?.avatar?.url ? (
+                  <img
+                    src={user.avatar.url}
+                    alt="avatar"
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <p className="text-xl font-bold text-white capitalize">
+                    {user?.fullName?.[0]}
+                  </p>
+                )}
               </div>
 
               <div>
@@ -96,7 +107,7 @@ function Dashboard() {
                   {user?.fullName}
                 </h1>
                 <p className="text-slate-400 text-sm" >@{user?.username}</p>
-                {user?.bio ? user.bio : (<p className="text-slate-400 text-sm capitalize">
+                {user?.bio ? <p className="text-slate-400 text-sm">{user.bio}</p> : (<p className="text-slate-400 text-sm capitalize">
                   {user?.role}
                 </p>)}
                 <p className="text-slate-500 text-xs mt-1">

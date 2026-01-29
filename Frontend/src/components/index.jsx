@@ -37,6 +37,15 @@ import ChatWindow from './messageComponents/ChatWindow'
 import FollowButton from './FollowComponents/FollowButton'
 import ProfileActions from './FollowComponents/ProfileActions'
 
+import ProfileSideBar from './EditProfileComponents/Sidebar'
+import ProfileSection from './EditProfileComponents/ProfileSection'
+import SecuritySection from './EditProfileComponents/SecuritySection'
+import EmailSection from './EditProfileComponents/EmailSection'
+import DangerZone from './EditProfileComponents/DangerZone'
+import AccountSection from './EditProfileComponents/AccountSection'
+import ImageUploadModal from './EditProfileComponents/ImageUploadModal'
+
+
 export {
     Header,
     Footer,
@@ -74,5 +83,14 @@ export {
 
 
     FollowButton,
-    ProfileActions
+    ProfileActions,
+
+
+    ProfileSideBar,
+    ProfileSection,
+    SecuritySection,
+    EmailSection,
+    AccountSection,
+    DangerZone,
+    ImageUploadModal
 }
