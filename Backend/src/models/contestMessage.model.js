@@ -12,7 +12,9 @@ const contestMessageSchema = new mongoose.Schema(
         senderId: {
             type: mongoose.Schema.Types.ObjectId,
             ref: "User",
-            required: true,
+            required: function () {
+                return this.messageType === "text"; // only user messages require sender
+            },
         },
 
         message: {
