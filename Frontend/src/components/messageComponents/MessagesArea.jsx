@@ -1,15 +1,9 @@
 import { useEffect, useRef } from "react";
 
-function MessagesArea({ messages }) {
+function MessagesArea({ messages, currentUserId }) {
   const containerRef = useRef(null);
 
   useEffect(() => {
-    // if (!containerRef.current) return;
-
-    // containerRef.current.scrollTo({
-    //   top: containerRef.current.scrollHeight,
-    //   behavior: "smooth",
-    // });
     const container = containerRef.current;
     if (!container) return;
 
@@ -30,26 +24,62 @@ function MessagesArea({ messages }) {
   return (
     <div
       ref={containerRef}
-      className="flex-1 overflow-y-auto px-6 py-4 space-y-3"
+      className="flex-1 overflow-y-auto px-4 py-4 space-y-4"
     >
-      {messages.map((msg, i) => (
-        <div
-          key={i}
-          className={`max-w-md px-4 py-2 rounded-lg text-sm
-            ${
-              msg.fromMe
-                ? "ml-auto bg-red-600 text-white"
-                : "bg-slate-800 text-slate-200"
-            }
-          `}
-        >
-          {msg.text}
-        </div>
-      ))}
+      {messages.map((msg, i) => {
+        // SYSTEM MESSAGE
+        if (msg.type === "system") {
+          return (
+            <div
+              key={msg.id || i}
+              className="text-center text-xs text-slate-400"
+            >
+              {msg.text}
+            </div>
+          );
+        }
+
+        // const isMe = String (msg.sender._id) === String(currentUserId);
+        const isMe = msg.fromMe;
+        const avatar = msg.sender?.avatar?.url;
+        const name = msg.sender?.fullName || "User";
+
+        return (
+          <div
+            key={msg.id || i}
+            className={`flex items-end gap-2 ${
+              isMe ? "justify-end" : "justify-start"
+            }`}
+          >
+            {/* Avatar for other users */}
+            {!isMe && (
+              <div className="w-8 h-8 rounded-full overflow-hidden bg-slate-700 flex items-center justify-center text-xs text-white">
+                {avatar ? (
+                  <img src={avatar} alt={name} className="w-full h-full" />
+                ) : (
+                  name[0].toUpperCase()
+                )}
+              </div>
+            )}
+
+            {/* Bubble */}
+            <div
+              className={`max-w-[70%] px-4 py-2 rounded-2xl text-sm break-words ${
+                isMe
+                  ? "bg-red-600 text-white rounded-br-none"
+                  : "bg-slate-800 text-slate-200 rounded-bl-none"
+              }`}
+            >
+              {!isMe && (
+                <p className="text-xs text-slate-400 mb-1">{name}</p>
+              )}
+              {msg.text}
+            </div>
+          </div>
+        );
+      })}
     </div>
   );
 }
 
-
-
-export default MessagesArea
+export default MessagesArea;
