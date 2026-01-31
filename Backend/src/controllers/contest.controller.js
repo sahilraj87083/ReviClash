@@ -107,7 +107,7 @@ const startContest = asyncHandler(async (req, res) => {
 
     await contest.save();
 
-    io.to(`contest:${contest._id}:lobby`).emit("contest-started", {
+    io.to(`contest:${contest._id}:lobby`).emit("contest:started", {
         contestId: contest._id
     });
 
