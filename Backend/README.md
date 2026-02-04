@@ -375,91 +375,126 @@ The complete API documentation with all endpoints, request/response formats, and
 
 ### Quick Endpoint Summary
 
+**Total:** 62+ endpoints across 11 route modules
+
 #### Authentication & User Management (15 endpoints)
-- `POST /api/v1/users/register` - Create account
-- `POST /api/v1/users/login` - Authenticate user
-- `POST /api/v1/users/logout` - End session
-- `POST /api/v1/users/refresh-token` - Get new access token
-- `GET /api/v1/users/current-user` - Get authenticated user
-- `GET /api/v1/users/c/:username` - Get public profile
-- `POST /api/v1/users/change-password` - Change password
-- `PATCH /api/v1/users/update-username` - Update username
-- `PATCH /api/v1/users/update-account` - Update profile
-- `PATCH /api/v1/users/update-avatar` - Upload avatar
-- `PATCH /api/v1/users/update-coverImage` - Upload cover image
-- `GET /api/v1/users/verify-email` - Verify email with token
-- `POST /api/v1/users/resend-verification` - Resend verification email
-- `POST /api/v1/users/forgot-password` - Request password reset
-- `POST /api/v1/users/reset-password` - Reset password with token
+
+| # | Method | Endpoint | Description | Auth |
+|---|--------|----------|-------------|------|
+| 1 | POST | `/users/register` | Create account | ❌ |
+| 2 | POST | `/users/login` | Authenticate user | ❌ |
+| 3 | POST | `/users/logout` | End session | ✅ |
+| 4 | POST | `/users/refresh-token` | Get new access token | ❌ |
+| 5 | GET | `/users/current-user` | Get authenticated user | ✅ |
+| 6 | GET | `/users/c/:username` | Get public profile | ❌ |
+| 7 | POST | `/users/change-password` | Change password | ✅ |
+| 8 | PATCH | `/users/update-username` | Update username | ✅ |
+| 9 | PATCH | `/users/update-account` | Update profile | ✅ |
+| 10 | PATCH | `/users/update-avatar` | Upload avatar | ✅ |
+| 11 | PATCH | `/users/update-coverImage` | Upload cover image | ✅ |
+| 12 | GET | `/users/verify-email` | Verify email with token | ❌ |
+| 13 | POST | `/users/resend-verification` | Resend verification email | ✅ |
+| 14 | POST | `/users/forgot-password` | Request password reset | ❌ |
+| 15 | POST | `/users/reset-password` | Reset password with token | ❌ |
 
 #### Question Management (5 endpoints)
-- `POST /api/v1/question` - Create question
-- `GET /api/v1/question` - List questions with filters
-- `GET /api/v1/question/:questionId` - Get specific question
-- `PATCH /api/v1/question/:questionId` - Update question
-- `DELETE /api/v1/question/:questionId` - Delete question
 
-#### Collection Management (6 endpoints)
-- `POST /api/v1/collections` - Create collection
-- `GET /api/v1/collections` - List user's collections
-- `GET /api/v1/collections/:collectionId` - Get collection details
-- `GET /api/v1/collections/:collectionId/questions` - Get collection's questions
-- `GET /api/v1/collections/:collectionId/questions/public` - Get public collection
-- `PATCH /api/v1/collections/:collectionId` - Update collection
-- `DELETE /api/v1/collections/:collectionId` - Delete collection
+| # | Method | Endpoint | Description | Auth |
+|---|--------|----------|-------------|------|
+| 16 | POST | `/question` | Create question | ✅ |
+| 17 | GET | `/question` | List questions with filters | ✅ |
+| 18 | GET | `/question/:questionId` | Get specific question | ✅ |
+| 19 | PATCH | `/question/:questionId` | Update question | ✅ |
+| 20 | DELETE | `/question/:questionId` | Delete question | ✅ |
+
+#### Collection Management (7 endpoints)
+
+| # | Method | Endpoint | Description | Auth |
+|---|--------|----------|-------------|------|
+| 21 | POST | `/collections` | Create collection | ✅ |
+| 22 | GET | `/collections` | List user's collections | ✅ |
+| 23 | GET | `/collections/:collectionId` | Get collection details | ✅ |
+| 24 | GET | `/collections/:collectionId/questions` | Get collection's questions | ✅ |
+| 25 | GET | `/collections/:collectionId/questions/public` | Get public collection | ❌ |
+| 26 | PATCH | `/collections/:collectionId` | Update collection | ✅ |
+| 27 | DELETE | `/collections/:collectionId` | Delete collection | ✅ |
 
 #### Collection Questions (6 endpoints)
-- `POST /api/v1/collectionQuestions/:collectionId/questions` - Add question
-- `POST /api/v1/collectionQuestions/:collectionId/questions/bulk` - Bulk add
-- `PATCH /api/v1/collectionQuestions/:collectionId/questions/:questionId/order` - Reorder
-- `DELETE /api/v1/collectionQuestions/:collectionId/questions/:questionId` - Remove question
-- `DELETE /api/v1/collectionQuestions/:collectionId/questions/bulk` - Bulk remove
-- `DELETE /api/v1/collectionQuestions/:collectionId/questions` - Remove all
 
-#### Contest Management (7 endpoints)
-- `POST /api/v1/contests` - Create contest
-- `POST /api/v1/contests/:contestId/start` - Start contest
-- `GET /api/v1/contests/active` - Get active contests
-- `GET /api/v1/contests/created` - Get created contests
-- `GET /api/v1/contests/joined` - Get joined contests
-- `GET /api/v1/contests/all` - Get all public/shared contests
-- `GET /api/v1/contests/:contestId` - Get contest details
-- `GET /api/v1/contests/:contestId/leaderboard` - Get leaderboard
+| # | Method | Endpoint | Description | Auth |
+|---|--------|----------|-------------|------|
+| 28 | POST | `/collectionQuestions/:collectionId/questions` | Add question to collection | ✅ |
+| 29 | POST | `/collectionQuestions/:collectionId/questions/bulk` | Bulk add questions | ✅ |
+| 30 | PATCH | `/collectionQuestions/:collectionId/questions/:questionId/order` | Reorder question | ✅ |
+| 31 | DELETE | `/collectionQuestions/:collectionId/questions/:questionId` | Remove question | ✅ |
+| 32 | DELETE | `/collectionQuestions/:collectionId/questions/bulk` | Bulk remove questions | ✅ |
+| 33 | DELETE | `/collectionQuestions/:collectionId/questions` | Remove all questions | ✅ |
+
+#### Contest Management (8 endpoints)
+
+| # | Method | Endpoint | Description | Auth |
+|---|--------|----------|-------------|------|
+| 34 | POST | `/contests` | Create contest | ✅ |
+| 35 | POST | `/contests/:contestId/start` | Start contest | ✅ |
+| 36 | GET | `/contests/active` | Get active contests | ✅ |
+| 37 | GET | `/contests/created` | Get created contests | ✅ |
+| 38 | GET | `/contests/joined` | Get joined contests | ✅ |
+| 39 | GET | `/contests/all` | Get all public/shared contests | ✅ |
+| 40 | GET | `/contests/:contestId` | Get contest details | ✅ |
+| 41 | GET | `/contests/:contestId/leaderboard` | Get contest leaderboard | ✅ |
 
 #### Contest Participants (8 endpoints)
-- `POST /api/v1/contestParticipants/:identifier/join` - Join contest
-- `DELETE /api/v1/contestParticipants/:contestId/leave` - Leave contest
-- `POST /api/v1/contestParticipants/:contestId/start` - Enter live contest
-- `GET /api/v1/contestParticipants/:contestId/time` - Get remaining time
-- `POST /api/v1/contestParticipants/:contestId/submit` - Submit contest
-- `GET /api/v1/contestParticipants/:contestId/rank` - Get user's rank
-- `GET /api/v1/contestParticipants/:contestId/state` - Get participation state
-- `GET /api/v1/contestParticipants/:contestId/participants` - Get all participants
+
+| # | Method | Endpoint | Description | Auth |
+|---|--------|----------|-------------|------|
+| 42 | POST | `/contestParticipants/:identifier/join` | Join contest | ✅ |
+| 43 | DELETE | `/contestParticipants/:contestId/leave` | Leave contest | ✅ |
+| 44 | POST | `/contestParticipants/:contestId/start` | Enter live contest | ✅ |
+| 45 | GET | `/contestParticipants/:contestId/time` | Get remaining time | ✅ |
+| 46 | POST | `/contestParticipants/:contestId/submit` | Submit contest | ✅ |
+| 47 | GET | `/contestParticipants/:contestId/rank` | Get user's rank | ✅ |
+| 48 | GET | `/contestParticipants/:contestId/state` | Get participation state | ✅ |
+| 49 | GET | `/contestParticipants/:contestId/participants` | Get all participants | ✅ |
 
 #### Contest Messages (1 endpoint)
-- `GET /api/v1/contestMessages/:contestId` - Get contest chat messages
+
+| # | Method | Endpoint | Description | Auth |
+|---|--------|----------|-------------|------|
+| 50 | GET | `/contestMessages/:contestId` | Get contest chat messages | ✅ |
 
 #### Private Messages (2 endpoints)
-- `GET /api/v1/privateMessages/inbox` - Get conversation list
-- `GET /api/v1/privateMessages/inbox/:otherUserId` - Get messages with user
+
+| # | Method | Endpoint | Description | Auth |
+|---|--------|----------|-------------|------|
+| 51 | GET | `/privateMessages/inbox` | Get conversation list | ✅ |
+| 52 | GET | `/privateMessages/inbox/:otherUserId` | Get messages with user | ✅ |
 
 #### Follow System (5 endpoints)
-- `POST /api/v1/follow/:targetUserId` - Follow user
-- `DELETE /api/v1/follow/:targetUserId` - Unfollow user
-- `GET /api/v1/follow/followers/:userId` - Get followers
-- `GET /api/v1/follow/following/:userId` - Get following list
-- `GET /api/v1/follow/status/:targetUserId` - Get follow status
+
+| # | Method | Endpoint | Description | Auth |
+|---|--------|----------|-------------|------|
+| 53 | POST | `/follow/:targetUserId` | Follow user | ✅ |
+| 54 | DELETE | `/follow/:targetUserId` | Unfollow user | ✅ |
+| 55 | GET | `/follow/followers/:userId` | Get followers | ✅ |
+| 56 | GET | `/follow/following/:userId` | Get following list | ✅ |
+| 57 | GET | `/follow/status/:targetUserId` | Get follow status | ✅ |
 
 #### User Statistics (4 endpoints)
-- `GET /api/v1/userStats/leaderboard` - Get global leaderboard
-- `GET /api/v1/userStats/:userId` - Get user statistics
-- `GET /api/v1/userStats/:userId/topics` - Get topic-wise stats
-- `GET /api/v1/userStats/:userId/history` - Get contest history
+
+| # | Method | Endpoint | Description | Auth |
+|---|--------|----------|-------------|------|
+| 58 | GET | `/userStats/leaderboard` | Get global leaderboard | ✅ |
+| 59 | GET | `/userStats/:userId` | Get user statistics | ✅ |
+| 60 | GET | `/userStats/:userId/topics` | Get topic-wise stats | ✅ |
+| 61 | GET | `/userStats/:userId/history` | Get contest history | ✅ |
 
 #### Health Check (1 endpoint)
-- `GET /api/v1/health` - Server health status
 
-**Total:** 62+ endpoints across 11 route modules
+| # | Method | Endpoint | Description | Auth |
+|---|--------|----------|-------------|------|
+| 62 | GET | `/health` | Server health status | ❌ |
+
+**Legend:** ✅ = Authentication Required | ❌ = Public
 
 ---
 
