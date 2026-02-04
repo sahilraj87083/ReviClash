@@ -173,7 +173,7 @@ function MyProfile() {
               )}
 
             {activeTab === TABS.COLLECTIONS && <CollectionsTab  collections = {profile?.collections}/>}
-            {activeTab === TABS.FOLLOWERS && <FollowersTab />}
+            {activeTab === TABS.FOLLOWERS && <FollowersTab userId={profile?._id}/>}
           </div>
         </section>
 

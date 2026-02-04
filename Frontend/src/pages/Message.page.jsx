@@ -27,7 +27,7 @@ function Messages() {
         onSelect={handleSelectChat}
       />
 
-      <ChatWindow activeChat={activeChat} messages = {messages} send = {send} isTyping={isTyping} />
+      <ChatWindow activeChat={activeChat} messages = {messages} send = {send} isTyping={isTyping} loadMore={loadMore} hasMore={hasMore}/>
     </div>
   );
 }
