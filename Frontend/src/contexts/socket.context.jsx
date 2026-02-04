@@ -14,11 +14,16 @@ export const useSocketContext = () => {
 export const SocketContextProvider = ({ children }) => {
     const socketRef = useRef(null);
 
+    // 1. Determine the URL based on the environment (Same logic as Axios)
+    const socketURL = import.meta.env.PROD 
+      ? import.meta.env.VITE_PROD_API 
+      : import.meta.env.VITE_LOCAL_API;
+
     if (!socketRef.current) {
         socketRef.current = io(
-            import.meta.env.VITE_API_URL,
+            socketURL,
             {
-                transports: ["websocket"],
+                transports: ["websocket", "polling"],
                 withCredentials: true,
             }
         );
