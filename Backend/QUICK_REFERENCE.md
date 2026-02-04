@@ -1,6 +1,6 @@
 # Quick Reference Guide - ReviCode API
 
-**Last Updated:** January 10, 2026
+**Last Updated:** February 4, 2026
 
 ## 📚 Documentation Files Created
 
@@ -100,6 +100,120 @@ All protected endpoints require `accessToken` cookie.
    - Client calls POST /refresh-token
    - Server validates refreshToken and generates new accessToken
    - Or user must login again
+```
+
+---
+
+## 🔌 WebSocket (Socket.io) Quick Start
+
+### Connection
+```javascript
+import io from 'socket.io-client';
+
+const socket = io('http://localhost:5000', {
+  auth: {
+    token: accessToken
+  }
+});
+
+// User automatically joins personal room for inbox updates
+```
+
+### Contest Events
+
+**Join Lobby:**
+```javascript
+socket.emit('contest:lobby:join', { contestId: '507f...' });
+```
+
+**Join Live Contest:**
+```javascript
+socket.emit('contest:live:join', { contestId: '507f...' });
+```
+
+**Join Chat & Send Message:**
+```javascript
+socket.emit('contest:chat:join', { contestId: '507f...' });
+
+socket.emit('contest:message', {
+  contestId: '507f...',
+  message: 'Hello team!',
+  phase: 'live'
+});
+
+// Listen for messages
+socket.on('contest:receive', (message) => {
+  console.log(message); // { senderId, message, createdAt, phase }
+});
+```
+
+### Private Messaging Events
+
+**Join Chat:**
+```javascript
+socket.emit('private:join', { otherUserId: '507f...' });
+```
+
+**Send Message:**
+```javascript
+socket.emit('private:send', {
+  to: '507f...',
+  message: 'Hi there!'
+});
+
+// Delivery confirmation
+socket.on('private:delivered', (messageId) => {
+  console.log('Message sent:', messageId);
+});
+
+// Receive message
+socket.on('private:receive', (message) => {
+  console.log(message); // { senderId, message, status, createdAt }
+});
+```
+
+**Mark as Read:**
+```javascript
+socket.emit('private:seen', {
+  messageIds: ['msg1', 'msg2'],
+  otherUserId: '507f...'
+});
+
+socket.on('private:seen', (messageIds) => {
+  console.log('Messages read by other user:', messageIds);
+});
+```
+
+**Typing Indicator:**
+```javascript
+socket.emit('private:typing', { to: '507f...' });
+
+socket.on('private:typing', (userId) => {
+  console.log(`${userId} is typing...`);
+});
+```
+
+**Real-time Inbox Updates:**
+```javascript
+// Listen to inbox updates in sidebar (always active)
+socket.on('inbox:update', (data) => {
+  console.log('Inbox updated:', data);
+  // { senderId, receiverId, message, createdAt, sender }
+  // Update sidebar immediately without opening chat
+});
+```
+
+### Socket Room Architecture
+
+```
+Contest: "123"
+├── contest:123:lobby      → Pre-contest participants
+├── contest:123:live       → Active participants + timer
+└── contest:123:chat       → All messages shared
+
+User: "abc"
+├── abc                    → Personal inbox updates
+└── conv_abc_xyz          → 1-on-1 chat with user xyz
 ```
 
 ---

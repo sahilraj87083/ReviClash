@@ -53,6 +53,9 @@ Cheat sheet with:
 - All endpoints at a glance
 - Public vs protected endpoints
 - Authentication flow diagram
+- WebSocket (Socket.io) quick start with code examples
+- Contest and private messaging socket events
+- Real-time inbox updates and typing indicators
 - Request/response templates
 - Error response examples
 - Field validation rules
@@ -61,7 +64,7 @@ Cheat sheet with:
 - Known issues summary
 - API statistics
 
-**Time to read:** 5-10 minutes (reference document)
+**Time to read:** 10-15 minutes (reference document)
 
 
 ---
@@ -95,9 +98,9 @@ Cheat sheet with:
 
 | Document | Topics | Best For |
 |----------|--------|----------|
-| [README.md](./README.md) | Setup, Architecture, Guidelines | Onboarding, Architecture |
-| [API_DOCUMENTATION.md](./API_DOCUMENTATION.md) | 10 Endpoints, Schema, Examples | API Integration |
-| [QUICK_REFERENCE.md](./QUICK_REFERENCE.md) | Cheat sheet, Quick lookup | Daily Development |
+| [README.md](./README.md) | Setup, Architecture, WebSocket, Guidelines | Onboarding, Architecture |
+| [API_DOCUMENTATION.md](./API_DOCUMENTATION.md) | 44 Endpoints, WebSocket Events, Schema, Examples | API Integration, Real-time |
+| [QUICK_REFERENCE.md](./QUICK_REFERENCE.md) | Cheat sheet, Socket.io examples, Quick lookup | Daily Development, Socket.io |
 
 
 ---
@@ -110,6 +113,17 @@ Cheat sheet with:
 - ✅ Token refresh mechanism
 - ✅ Password hashing with bcrypt
 - ✅ Secure cookie storage
+
+### Real-time Features (WebSocket)
+- ✅ Socket.io connection with JWT auth
+- ✅ Contest multi-room architecture (lobby/live/chat)
+- ✅ User-specific personal rooms for inbox updates
+- ✅ Real-time inbox synchronization
+- ✅ Message delivery confirmation (`private:delivered`)
+- ✅ Typing indicators (`private:typing`)
+- ✅ Read receipts (`private:seen`)
+- ✅ Phase-aware contest messaging
+- ✅ Detailed message flow examples
 
 ### User Management
 - ✅ Profile retrieval and updates
@@ -137,7 +151,7 @@ Cheat sheet with:
 ## 📊 Documentation Statistics
 
 - **Total Files:** 5 (including this index)
-- **Total Words:** 28,000+
+- **Total Words:** 35,000+
 - **Endpoints Documented:** 44/44 (100%)
   - User Endpoints: 10
   - Question Endpoints: 5
@@ -146,11 +160,18 @@ Cheat sheet with:
   - Contest Endpoints: 6
   - Follow Endpoints: 5
   - User Statistics Endpoints: 6
+- **WebSocket Events Documented:** 20+ socket events
+  - Contest Events: 9 (lobby, live, chat)
+  - Private Messaging Events: 7 (send, receive, typing, etc.)
+  - Real-time Features: 5 (inbox updates, delivery, etc.)
+- **Socket Room Architecture:** Fully documented with diagrams
+- **Message Flow Examples:** 2 (contest chat, private chat)
 - **Code Issues Identified:** 8
 - **Missing Features:** 8
 - **Security Recommendations:** 11
-- **Example Commands:** 35+
-- **JSON Examples:** 100+
+- **Example Commands:** 40+
+- **JavaScript Socket.io Examples:** 10+
+- **JSON Examples:** 120+
 
 ---
 
@@ -203,6 +224,15 @@ Cheat sheet with:
 ### Q: How do I integrate with this API?
 **A:** [QUICK_REFERENCE.md](./QUICK_REFERENCE.md) > Frontend Integration Tips
 
+### Q: How do I set up real-time features (Socket.io)?
+**A:** [README.md](./README.md) > Real-time Features or [API_DOCUMENTATION.md](./API_DOCUMENTATION.md) > WebSocket Events
+
+### Q: What socket events are available?
+**A:** [API_DOCUMENTATION.md](./API_DOCUMENTATION.md) > WebSocket Events section or [QUICK_REFERENCE.md](./QUICK_REFERENCE.md) > WebSocket Quick Start
+
+### Q: How does inbox synchronization work?
+**A:** [README.md](./README.md) > Real-time Architecture Patterns or [API_DOCUMENTATION.md](./API_DOCUMENTATION.md) > inbox:update event
+
 ### Q: What are the environment variables?
 **A:** [README.md](./README.md) > Environment Variables section
 
@@ -211,16 +241,20 @@ Cheat sheet with:
 ## ✅ Documentation Checklist
 
 - ✅ All 44 endpoints documented
+- ✅ WebSocket/Socket.io events documented (20+ events)
 - ✅ Request/response structures included
 - ✅ Validation rules listed
 - ✅ Error responses mapped
 - ✅ Authentication flow explained
 - ✅ File upload process documented
+- ✅ Real-time architecture documented (contest/private rooms)
+- ✅ Socket room patterns explained
+- ✅ Message flow examples provided
 - ✅ Database schema described
 - ✅ Security recommendations provided
 - ✅ Performance tips included
 - ✅ Setup instructions provided
-- ✅ Code examples included
+- ✅ Code examples included (REST + Socket.io)
 - ✅ Known issues identified
 - ✅ Missing features listed
 - ✅ Effort estimates provided
@@ -255,6 +289,9 @@ README.md (Start here)
 ## 🎉 What's Included
 
 - ✅ **Complete API Reference** (44 endpoints)
+- ✅ **WebSocket Events Documentation** (20+ socket events)
+- ✅ **Real-time Architecture Guide** (Contest & Private messaging)
+- ✅ **Socket.io Integration Examples** (JavaScript code)
 - ✅ **Setup & Installation Guide**
 - ✅ **Architecture Overview**
 - ✅ **Security Analysis** (11 recommendations)
@@ -266,5 +303,6 @@ README.md (Start here)
 - ✅ **Development Guidelines**
 - ✅ **Quick Reference Guide**
 - ✅ **Example cURL Commands**
+- ✅ **Message Flow Diagrams** (Text-based)
 
 ---

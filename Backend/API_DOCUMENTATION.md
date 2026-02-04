@@ -2,7 +2,7 @@
 
 **Base URL:** `http://localhost:5000/api/v1`
 
-**Last Updated:** January 10, 2026
+**Last Updated:** February 4, 2026
 
 ---
 
@@ -13,21 +13,22 @@
 3. [Collection Management](#collection-management)
 4. [Collection Questions Management](#collection-questions-management)
 5. [Contest Management](#contest-management)
-6. [Follow System](#follow-system)
-7. [User Statistics](#user-statistics)
-8. [Error Responses](#error-responses)
-9. [Response Format](#response-format)
-10. [User Model Schema](#user-model-schema)
-11. [Question Model Schema](#question-model-schema)
-12. [Collection Model Schema](#collection-model-schema)
-13. [CollectionQuestion Model Schema](#collectionquestion-model-schema)
-14. [Contest Model Schema](#contest-model-schema)
-15. [ContestParticipant Model Schema](#contestparticipant-model-schema)
-16. [Follow Model Schema](#follow-model-schema)
+6. [Contest Participants](#contest-participants)
+7. [Contest Messages](#contest-messages)
+8. [Private Messages](#private-messages)
+9. [Follow System](#follow-system)
+10. [User Statistics](#user-statistics)
+11. [Health Check](#health-check)
+12. [WebSocket Events (Socket.io)](#websocket-events-socketio)
+13. [Error Responses](#error-responses)
+14. [Response Format](#response-format)
+15. [Database Models](#database-models)
 
 ---
 
 ## Authentication & User Management
+
+### Base Path: `/users`
 
 ### 1. Register User
 
@@ -49,10 +50,10 @@
 
 **Validation Rules:**
 - All fields are required and cannot be empty
-- Email must be valid format
-- Username must be 3-30 characters
+- Email must be valid format and unique
+- Username must be 3-30 characters, unique, lowercase
 - Password must be at least 6 characters
-- Email and username must be unique
+- Username can contain letters, numbers, dots, and underscores
 
 **Response (201 Created):**
 ```json
@@ -64,19 +65,14 @@
     "username": "string",
     "fullName": "string",
     "email": "string",
-    "role": "student | admin",
-    "bio": "string | null",
-    "avatar": {
-      "public_id": "string | null",
-      "url": "string | null"
-    },
-    "coverImage": {
-      "public_id": "string | null",
-      "url": "string | null"
-    },
+    "role": "student",
+    "bio": null,
+    "avatar": null,
+    "coverImage": null,
     "followersCount": 0,
     "followingCount": 0,
     "isVerified": false,
+    "emailVerified": false,
     "isActive": true,
     "createdAt": "ISO 8601 timestamp",
     "updatedAt": "ISO 8601 timestamp"
@@ -91,7 +87,6 @@
 | 400 | Validation failed | Invalid input format |
 | 400 | All fields are required | Missing required fields |
 | 409 | User with email or username already exists | Duplicate email/username |
-| 500 | Something went wrong while registering the user | Server error |
 
 ---
 
@@ -111,10 +106,6 @@
 }
 ```
 
-**Validation Rules:**
-- Email must be valid format
-- Password must be at least 6 characters
-
 **Response (200 OK):**
 ```json
 {
@@ -126,38 +117,25 @@
       "username": "string",
       "fullName": "string",
       "email": "string",
-      "role": "student | admin",
-      "avatar": {
-        "public_id": "string | null",
-        "url": "string | null"
-      },
-      "coverImage": {
-        "public_id": "string | null",
-        "url": "string | null"
-      },
-      "bio": "string | null",
-      "followersCount": "number",
-      "followingCount": "number",
-      "isVerified": "boolean",
-      "isActive": "boolean",
-      "createdAt": "ISO 8601 timestamp",
-      "updatedAt": "ISO 8601 timestamp"
-    }
+      "avatar": null,
+      "followersCount": 0,
+      "followingCount": 0
+    },
+    "accessToken": "jwt_token"
   },
   "success": true
 }
 ```
 
 **Cookies Set:**
-- `accessToken` (httpOnly, secure) - JWT token for API requests
-- `refreshToken` (httpOnly, secure) - JWT token for token refresh
+- `accessToken` (httpOnly, secure)
+- `refreshToken` (httpOnly, secure)
 
 **Error Responses:**
 | Status | Message | Reason |
 |--------|---------|--------|
-| 400 | Validation failed | Invalid input format |
 | 400 | Email is required | Missing email |
-| 404 | User does not exist | Email not found in database |
+| 404 | User does not exist | User not found |
 | 401 | Invalid user credentials | Wrong password |
 
 ---
@@ -168,33 +146,17 @@
 
 **Authentication:** Required ✅
 
-**Description:** Invalidate user session and clear tokens
-
-**Request Headers:**
-```
-Cookie: accessToken=<token>
-```
-
-**Request Body:** None
+**Description:** End user session and invalidate tokens
 
 **Response (200 OK):**
 ```json
 {
   "errorCode": 200,
-  "message": "User logged Out",
+  "message": "User logged out successfully",
   "data": {},
   "success": true
 }
 ```
-
-**Cookies Cleared:**
-- `accessToken`
-- `refreshToken`
-
-**Error Responses:**
-| Status | Message | Reason |
-|--------|---------|--------|
-| 401 | Unauthorized request | Missing/invalid access token |
 
 ---
 
@@ -202,39 +164,27 @@ Cookie: accessToken=<token>
 
 **Endpoint:** `POST /users/refresh-token`
 
-**Authentication:** Not Required (uses refresh cookie)
+**Authentication:** Not Required (uses refresh token from cookie)
 
 **Description:** Get a new access token using refresh token
-
-**Request Headers:**
-```
-Cookie: refreshToken=<token>
-```
-
-**Request Body:** None
 
 **Response (200 OK):**
 ```json
 {
   "errorCode": 200,
-  "message": "Access token refreshed",
-  "data": null,
+  "message": "Access token refreshed successfully",
+  "data": {
+    "accessToken": "new_jwt_token"
+  },
   "success": true
 }
 ```
 
-**Cookies Set:**
-- `accessToken` (new JWT token)
-- `refreshToken` (new JWT token)
-
 **Error Responses:**
 | Status | Message | Reason |
 |--------|---------|--------|
-| 401 | unauthorized request | Missing refresh token |
-| 401 | Invalid refresh token | Token validation failed |
-| 401 | Refresh token revoked | Token not found in database |
-
-**Note:** Both old cookies are cleared on error
+| 401 | Refresh token expired | Token has expired |
+| 401 | Unauthorized | Invalid/missing refresh token |
 
 ---
 
@@ -244,14 +194,7 @@ Cookie: refreshToken=<token>
 
 **Authentication:** Required ✅
 
-**Description:** Retrieve currently authenticated user's profile
-
-**Request Headers:**
-```
-Cookie: accessToken=<token>
-```
-
-**Request Body:** None
+**Description:** Retrieve authenticated user's profile information
 
 **Response (200 OK):**
 ```json
@@ -260,25 +203,57 @@ Cookie: accessToken=<token>
   "message": "User fetched successfully",
   "data": {
     "_id": "ObjectId",
-    "username": "string",
-    "fullName": "string",
-    "email": "string",
-    "role": "student | admin",
+    "username": "john_doe",
+    "fullName": "John Doe",
+    "email": "john@example.com",
+    "role": "student",
+    "bio": "Bio text",
     "avatar": {
-      "public_id": "string | null",
-      "url": "string | null"
+      "public_id": "cloud_id",
+      "url": "https://..."
     },
-    "coverImage": {
-      "public_id": "string | null",
-      "url": "string | null"
+    "coverImage": null,
+    "followersCount": 10,
+    "followingCount": 5,
+    "isVerified": true,
+    "emailVerified": true,
+    "isActive": true
+  },
+  "success": true
+}
+```
+
+---
+
+### 6. Get User Profile
+
+**Endpoint:** `GET /users/c/:username`
+
+**Authentication:** Not Required
+
+**Description:** Retrieve public profile of any user
+
+**URL Parameters:**
+```
+username: string (3+ chars, required)
+```
+
+**Response (200 OK):**
+```json
+{
+  "errorCode": 200,
+  "message": "User fetched successfully",
+  "data": {
+    "_id": "ObjectId",
+    "username": "john_doe",
+    "fullName": "John Doe",
+    "bio": "Bio text",
+    "avatar": {
+      "url": "https://..."
     },
-    "bio": "string | null",
-    "followersCount": "number",
-    "followingCount": "number",
-    "isVerified": "boolean",
-    "isActive": "boolean",
-    "createdAt": "ISO 8601 timestamp",
-    "updatedAt": "ISO 8601 timestamp"
+    "followersCount": 10,
+    "followingCount": 5,
+    "isVerified": true
   },
   "success": true
 }
@@ -287,90 +262,95 @@ Cookie: accessToken=<token>
 **Error Responses:**
 | Status | Message | Reason |
 |--------|---------|--------|
-| 401 | Unauthorized | Missing/invalid access token |
+| 404 | User not found | User doesn't exist |
 
 ---
 
-### 6. Change Current Password
+### 7. Change Password
 
 **Endpoint:** `POST /users/change-password`
 
 **Authentication:** Required ✅
 
-**Description:** Change authenticated user's password
-
-**Request Headers:**
-```
-Cookie: accessToken=<token>
-```
+**Description:** Change current user's password
 
 **Request Body:**
 ```json
 {
-  "oldPassword": "string (must match current password)",
-  "newPassword": "string (min 6 chars, different from old)",
+  "oldPassword": "string (min 6 chars)",
+  "newPassword": "string (min 6 chars)",
   "confirmPassword": "string (must match newPassword)"
 }
 ```
-
-**Validation Rules:**
-- Old password must match current password
-- New password cannot be same as old password
-- New password and confirm password must match
 
 **Response (200 OK):**
 ```json
 {
   "errorCode": 200,
-  "message": "Password changed successfully. Please login again.",
+  "message": "Password changed successfully",
   "data": {},
   "success": true
 }
 ```
 
-**Cookies Cleared:**
-- `accessToken`
-- `refreshToken`
+**Error Responses:**
+| Status | Message | Reason |
+|--------|---------|--------|
+| 401 | Incorrect password | Old password doesn't match |
+| 400 | Passwords do not match | confirmPassword doesn't match newPassword |
+
+---
+
+### 8. Update Username
+
+**Endpoint:** `PATCH /users/update-username`
+
+**Authentication:** Required ✅
+
+**Description:** Change user's username (unique constraint)
+
+**Request Body:**
+```json
+{
+  "newUsername": "string (3-30 chars, lowercase, alphanumeric + _ .)"
+}
+```
+
+**Response (200 OK):**
+```json
+{
+  "errorCode": 200,
+  "message": "Username updated successfully",
+  "data": {
+    "username": "new_username"
+  },
+  "success": true
+}
+```
 
 **Error Responses:**
 | Status | Message | Reason |
 |--------|---------|--------|
-| 400 | New password must be different from old password | Same password provided |
-| 400 | New password and Confirm Password mismatch | Passwords don't match |
-| 401 | Invalid old password | Old password verification failed |
-| 404 | User not found | User deleted or invalid token |
-| 401 | Unauthorized | Missing/invalid access token |
-
-**Note:** User must login again after changing password
+| 409 | Username is already taken | Username exists |
+| 400 | Invalid username format | Contains invalid characters |
 
 ---
 
-### 7. Update Account Details
+### 9. Update Account Details
 
 **Endpoint:** `PATCH /users/update-account`
 
 **Authentication:** Required ✅
 
-**Description:** Update user's full name and/or bio
-
-**Request Headers:**
-```
-Cookie: accessToken=<token>
-Content-Type: application/json
-```
+**Description:** Update user profile information (fullName, bio)
 
 **Request Body:**
 ```json
 {
-  "fullName": "string (optional, min 3 chars)",
-  "bio": "string (optional, max 160 chars)"
+  "fullName": "string (3+ chars, optional)",
+  "bio": "string (max 300 chars, optional)"
 }
 ```
-
-**Validation Rules:**
-- At least one field (fullName or bio) is required
-- Full name must be minimum 3 characters
-- Bio must be maximum 160 characters
 
 **Response (200 OK):**
 ```json
@@ -379,89 +359,43 @@ Content-Type: application/json
   "message": "Account details updated successfully",
   "data": {
     "_id": "ObjectId",
-    "username": "string",
-    "fullName": "string",
-    "email": "string",
-    "role": "student | admin",
-    "avatar": {
-      "public_id": "string | null",
-      "url": "string | null"
-    },
-    "coverImage": {
-      "public_id": "string | null",
-      "url": "string | null"
-    },
-    "bio": "string",
-    "followersCount": "number",
-    "followingCount": "number",
-    "isVerified": "boolean",
-    "isActive": "boolean",
-    "createdAt": "ISO 8601 timestamp",
-    "updatedAt": "ISO 8601 timestamp"
+    "fullName": "John Doe Updated",
+    "bio": "New bio text"
   },
   "success": true
 }
 ```
 
-**Error Responses:**
-| Status | Message | Reason |
-|--------|---------|--------|
-| 400 | At least one field is required | Both fields are empty/missing |
-| 404 | User not found | Invalid user ID in token |
-| 401 | Unauthorized | Missing/invalid access token |
-
 ---
 
-### 8. Update User Avatar
+### 10. Update Avatar
 
 **Endpoint:** `PATCH /users/update-avatar`
 
 **Authentication:** Required ✅
 
-**Description:** Upload and update user's avatar image
+**Description:** Upload and set user avatar image
 
 **Request Headers:**
 ```
-Cookie: accessToken=<token>
 Content-Type: multipart/form-data
 ```
 
-**Request Body (Form Data):**
+**Form Data:**
 ```
-avatar: File (image only, multipart/form-data)
+avatar: File (image only, required)
 ```
-
-**File Requirements:**
-- Must be an image file (image/jpeg, image/png, image/webp, etc.)
-- Uploaded via multipart/form-data
-- Field name must be "avatar"
 
 **Response (200 OK):**
 ```json
 {
   "errorCode": 200,
-  "message": "Avatar image updated successfully",
+  "message": "Avatar updated successfully",
   "data": {
-    "_id": "ObjectId",
-    "username": "string",
-    "fullName": "string",
-    "email": "string",
-    "role": "student | admin",
     "avatar": {
-      "public_id": "string (Cloudinary ID)",
-      "url": "string (Cloudinary secure URL)"
-    },
-    "coverImage": {
-      "public_id": "string | null",
-      "url": "string | null"
-    },
-    "bio": "string | null",
-    "followersCount": "number",
-    "followingCount": "number",
-    "isVerified": "boolean",
-    "isActive": "boolean",
-    "createdAt": "ISO 8601 timestamp",
-    "updatedAt": "ISO 8601 timestamp"
+      "public_id": "cloudinary_id",
+      "url": "https://res.cloudinary.com/..."
+    }
   },
   "success": true
 }
@@ -470,391 +404,159 @@ avatar: File (image only, multipart/form-data)
 **Error Responses:**
 | Status | Message | Reason |
 |--------|---------|--------|
-| 400 | Avatar file is missing | No file uploaded |
-| 400 | Only image files are allowed | Non-image file uploaded |
-| 400 | Error while uploading avatar on Cloudinary | Cloudinary upload failed |
-| 500 | Error updating avatar in database | Database update failed |
-| 404 | User not found | Invalid user ID in token |
-| 401 | Unauthorized | Missing/invalid access token |
-
-**Flow:**
-1. Multer saves file temporarily
-2. File uploaded to Cloudinary
-3. Database updated with new avatar
-4. Old avatar deleted from Cloudinary
-5. Temporary local file deleted
+| 400 | No file uploaded | Missing file |
+| 400 | Invalid file type | Not an image |
 
 ---
 
-### 9. Update User Cover Image
+### 11. Update Cover Image
 
 **Endpoint:** `PATCH /users/update-coverImage`
 
 **Authentication:** Required ✅
 
-**Description:** Upload and update user's cover image
+**Description:** Upload and set user cover image
 
 **Request Headers:**
 ```
-Cookie: accessToken=<token>
 Content-Type: multipart/form-data
 ```
 
-**Request Body (Form Data):**
+**Form Data:**
 ```
-coverImage: File (image only, multipart/form-data)
-```
-
-**File Requirements:**
-- Must be an image file (image/jpeg, image/png, image/webp, etc.)
-- Uploaded via multipart/form-data
-- Field name must be "coverImage"
-
-**Response (200 OK):**
-```json
-{
-  "errorCode": 200,
-  "message": "CoverImage image updated successfully",
-  "data": {
-    "_id": "ObjectId",
-    "username": "string",
-    "fullName": "string",
-    "email": "string",
-    "role": "student | admin",
-    "avatar": {
-      "public_id": "string | null",
-      "url": "string | null"
-    },
-    "coverImage": {
-      "public_id": "string (Cloudinary ID)",
-      "url": "string (Cloudinary secure URL)"
-    },
-    "bio": "string | null",
-    "followersCount": "number",
-    "followingCount": "number",
-    "isVerified": "boolean",
-    "isActive": "boolean",
-    "createdAt": "ISO 8601 timestamp",
-    "updatedAt": "ISO 8601 timestamp"
-  },
-  "success": true
-}
-```
-
-**Error Responses:**
-| Status | Message | Reason |
-|--------|---------|--------|
-| 400 | CoverImage file is missing | No file uploaded |
-| 400 | Only image files are allowed | Non-image file uploaded |
-| 400 | Error while uploading CoverImage on Cloudinary | Cloudinary upload failed |
-| 500 | Error updating coverImage in database | Database update failed |
-| 404 | User not found | Invalid user ID in token |
-| 401 | Unauthorized | Missing/invalid access token |
-
-**Note:** Same flow as avatar update with rollback on failure
-
----
-
-### 10. Get User Profile
-
-**Endpoint:** `GET /users/c/:username`
-
-**Authentication:** Not Required (can fetch public profiles)
-
-**Description:** Retrieve a user's public profile with stats and relationships
-
-**URL Parameters:**
-```
-username: string (required, user's username)
-```
-
-**Request Headers:**
-```
-Cookie: accessToken=<token> (optional - for "isFollowedByViewer" field)
+coverImage: File (image only, required)
 ```
 
 **Response (200 OK):**
 ```json
 {
   "errorCode": 200,
-  "message": "User profile fetched successfully",
+  "message": "Cover image updated successfully",
   "data": {
-    "_id": "ObjectId",
-    "username": "string",
-    "fullName": "string",
-    "email": "string",
-    "role": "student | admin",
-    "avatar": {
-      "public_id": "string | null",
-      "url": "string | null"
-    },
     "coverImage": {
-      "public_id": "string | null",
-      "url": "string | null"
-    },
-    "bio": "string | null",
-    "followersCount": "number (calculated from aggregation)",
-    "followingCount": "number (calculated from aggregation)",
-    "isVerified": "boolean",
-    "isActive": "boolean",
-    "isFollowedByViewer": "boolean (only if authenticated)",
-    "stats": {
-      "_id": "ObjectId",
-      "userId": "ObjectId",
-      "totalQuestionsAttempted": "number",
-      "questionsCorrect": "number",
-      "questionsSolved": "number",
-      "totalContestsParticipated": "number",
-      // ... other stat fields
-    },
-    "collections": [
-      {
-        "_id": "ObjectId",
-        "title": "string",
-        "description": "string",
-        // ... collection fields
-      }
-    ],
-    "createdAt": "ISO 8601 timestamp",
-    "updatedAt": "ISO 8601 timestamp"
+      "public_id": "cloudinary_id",
+      "url": "https://res.cloudinary.com/..."
+    }
   },
   "success": true
 }
 ```
 
-**Fields Excluded (for privacy):**
-- `password`
-- `refreshToken`
+---
+
+### 12. Verify Email
+
+**Endpoint:** `GET /users/verify-email`
+
+**Authentication:** Not Required
+
+**Description:** Verify user's email using token from verification link
+
+**Query Parameters:**
+```
+token: string (required) - Token sent in email verification link
+```
+
+**Example:**
+```
+GET /users/verify-email?token=abc123def456
+```
+
+**Response (200 OK):**
+```json
+{
+  "errorCode": 200,
+  "message": "Email verified successfully",
+  "data": {},
+  "success": true
+}
+```
 
 **Error Responses:**
 | Status | Message | Reason |
 |--------|---------|--------|
-| 400 | Username is required | Username not provided or invalid |
-| 404 | User not found | Username doesn't exist or user is inactive |
-
-**Notes:**
-- Shows only active users (isActive: true)
-- Includes aggregated follower/following counts
-- Includes user stats and collections if they exist
-- If authenticated, includes whether viewer follows this user
-- This endpoint is public and doesn't require authentication
+| 400 | Token invalid or expired | Invalid/expired token |
+| 409 | Email already verified | Already verified |
 
 ---
 
-## Contest Management
+### 13. Resend Verification Email
 
-### 28. Create Contest
+**Endpoint:** `POST /users/resend-verification`
 
-**Endpoint:** `POST /contest`
+**Authentication:** Required ✅
 
-**Authentication:** Required (JWT)
+**Description:** Send a new email verification link
 
-**Description:** Create a new contest from a collection of questions
+**Response (200 OK):**
+```json
+{
+  "errorCode": 200,
+  "message": "Verification email resent",
+  "data": {},
+  "success": true
+}
+```
+
+**Error Responses:**
+| Status | Message | Reason |
+|--------|---------|--------|
+| 400 | Already verified | Email already verified |
+| 404 | User not found | User doesn't exist |
+
+---
+
+### 14. Forgot Password
+
+**Endpoint:** `POST /users/forgot-password`
+
+**Authentication:** Not Required
+
+**Description:** Initiate password reset process
 
 **Request Body:**
 ```json
 {
-  "collectionId": "string (MongoDB ObjectId)",
-  "title": "string (3-100 chars)",
-  "durationInMin": "number (1-720)",
-  "questionCount": "number (1-10)",
-  "visibility": "string (optional: 'private', 'shared', 'public')"
+  "email": "string (valid email)"
 }
 ```
 
-**Validation Rules:**
-- `collectionId`: Must be valid MongoDB ObjectId and user must own the collection
-- `title`: 3-100 characters, trimmed
-- `durationInMin`: Integer between 1-720 minutes
-- `questionCount`: Integer between 1-10, must not exceed available questions in collection
-- `visibility`: Optional, defaults to 'private', must be one of: 'private', 'shared', 'public'
-
-**Response (201):**
-```json
-{
-  "errorCode": 201,
-  "message": "Contest created successfully",
-  "data": {
-    "_id": "contest_id",
-    "title": "Sample Contest",
-    "owner": "user_id",
-    "questionIds": ["q1", "q2", "q3"],
-    "durationInMin": 60,
-    "visibility": "private",
-    "contestCode": "ABC123",
-    "status": "upcoming",
-    "createdAt": "2024-01-01T00:00:00.000Z"
-  },
-  "success": true
-}
-```
-
-**Error Responses:**
-| Status | Message | Reason |
-|--------|---------|--------|
-| 400 | Invalid collection ID | collectionId is not a valid ObjectId |
-| 404 | Collection not found | Collection doesn't exist or user doesn't own it |
-| 400 | Not enough questions in collection | Collection has fewer questions than requested |
-| 400 | questionCount must be greater than 0 | Invalid question count |
-| 400 | Title must be between 3 and 100 characters | Invalid title length |
-| 400 | Duration must be between 1 and 720 minutes | Invalid duration |
-| 400 | Invalid visibility | Visibility not one of allowed values |
-
-**Implementation Notes:**
-- Randomly selects questions from the specified collection
-- Generates a unique contest code for joining
-- Contest starts in 'upcoming' status
-- Only collection owner can create contests from their collections
-
----
-
-### 29. Get Contest
-
-**Endpoint:** `GET /contest/:contestId`
-
-**Authentication:** Required (JWT)
-
-**Description:** Get contest details and questions (for participants)
-
-**URL Parameters:**
-- `contestId`: Contest ID or contest code (string, min 3 chars)
-
-**Response (200):**
+**Response (200 OK):**
 ```json
 {
   "errorCode": 200,
-  "message": "Contest fetched successfully",
-  "data": {
-    "_id": "contest_id",
-    "title": "Sample Contest",
-    "questions": [
-      {
-        "_id": "q1",
-        "title": "Two Sum",
-        "platform": "LeetCode",
-        "difficulty": "easy",
-        "topics": ["array", "hash-table"]
-      }
-    ],
-    "durationInMin": 60,
-    "visibility": "private",
-    "status": "active",
-    "startTime": "2024-01-01T00:00:00.000Z",
-    "endTime": "2024-01-01T01:00:00.000Z",
-    "timeRemaining": 3540
-  },
+  "message": "Reset link sent",
+  "data": {},
   "success": true
 }
 ```
 
-**Error Responses:**
-| Status | Message | Reason |
-|--------|---------|--------|
-| 400 | Invalid contest ID or code | contestId parameter is invalid |
-| 404 | Contest not found | Contest doesn't exist |
-| 403 | Contest is private | User not authorized to view private contest |
-| 400 | Contest has ended | Contest is in 'completed' status |
-
-**Implementation Notes:**
-- Accepts both contest ID and contest code
-- Returns questions only if user is authorized to participate
-- Includes time remaining for active contests
-- Private contests require invitation or ownership
+**Note:** Response is the same regardless of whether email exists (anti-enumeration)
 
 ---
 
-### 30. Join Contest
+### 15. Reset Password
 
-**Endpoint:** `POST /contest/:id/join`
+**Endpoint:** `POST /users/reset-password`
 
-**Authentication:** Required (JWT)
+**Authentication:** Not Required
 
-**Description:** Join an upcoming or active contest
-
-**URL Parameters:**
-- `id`: Contest ID or contest code (string, min 3 chars)
-
-**Response (200):**
-```json
-{
-  "errorCode": 200,
-  "message": "Successfully joined contest",
-  "data": {
-    "contestId": "contest_id",
-    "participantId": "participant_id",
-    "joinedAt": "2024-01-01T00:00:00.000Z",
-    "status": "joined"
-  },
-  "success": true
-}
-```
-
-**Error Responses:**
-| Status | Message | Reason |
-|--------|---------|--------|
-| 400 | Invalid contest ID or code | id parameter is invalid |
-| 404 | Contest not found | Contest doesn't exist |
-| 403 | Contest is private | User not authorized to join |
-| 409 | Already joined this contest | User is already a participant |
-| 400 | Contest has ended | Contest status is 'completed' |
-| 400 | Contest not started yet | Contest is still 'upcoming' |
-
-**Implementation Notes:**
-- Creates ContestParticipant record
-- Sets initial status to 'joined'
-- Contest must be 'upcoming' or 'active' to join
-
----
-
-### 31. Submit Contest
-
-**Endpoint:** `POST /contest/:contestId/submit`
-
-**Authentication:** Required (JWT)
-
-**Description:** Submit contest answers and finalize participation
-
-**URL Parameters:**
-- `contestId`: Contest ID (MongoDB ObjectId)
+**Description:** Reset password using token from email link
 
 **Request Body:**
 ```json
 {
-  "attempts": [
-    {
-      "questionId": "string (MongoDB ObjectId)",
-      "status": "string ('solved' or 'unsolved')",
-      "timeSpent": "number (seconds spent on question)"
-    }
-  ]
+  "token": "string (from email link)",
+  "password": "string (min 6 chars)"
 }
 ```
 
-**Validation Rules:**
-- `attempts`: Array with at least 1 item
-- `questionId`: Must be valid ObjectId and part of contest
-- `status`: Must be 'solved' or 'unsolved'
-- `timeSpent`: Must be non-negative integer
-
-**Response (200):**
+**Response (200 OK):**
 ```json
 {
   "errorCode": 200,
-  "message": "Contest submitted successfully",
-  "data": {
-    "participantId": "participant_id",
-    "totalScore": 150,
-    "totalTimeSpent": 1800,
-    "rank": 3,
-    "attempts": [
-      {
-        "questionId": "q1",
-        "status": "solved",
-        "timeSpent": 300,
-        "points": 50
-      }
-    ]
-  },
+  "message": "Password reset successful",
+  "data": {},
   "success": true
 }
 ```
@@ -862,854 +564,22 @@ Cookie: accessToken=<token> (optional - for "isFollowedByViewer" field)
 **Error Responses:**
 | Status | Message | Reason |
 |--------|---------|--------|
-| 400 | Invalid contest ID | contestId is not valid ObjectId |
-| 404 | Contest not found | Contest doesn't exist |
-| 403 | Not a participant in this contest | User hasn't joined the contest |
-| 400 | Contest not active | Contest is not in 'active' status |
-| 400 | Attempts must be a non-empty array | Invalid attempts array |
-| 400 | Invalid question ID in attempts | Question not part of contest |
-| 400 | Invalid status | Status not 'solved' or 'unsolved' |
-
-**Implementation Notes:**
-- Calculates score based on solved questions and time penalties
-- Updates participant status to 'completed'
-- Generates ranking based on score and time
-- Auto-submission may occur if contest time expires
-
----
-
-### 32. Get Contest Leaderboard
-
-**Endpoint:** `GET /contest/:contestId/leaderboard`
-
-**Authentication:** Required (JWT)
-
-**Description:** Get ranked list of contest participants
-
-**URL Parameters:**
-- `contestId`: Contest ID (MongoDB ObjectId)
-
-**Response (200):**
-```json
-{
-  "errorCode": 200,
-  "message": "Leaderboard fetched successfully",
-  "data": {
-    "contestId": "contest_id",
-    "totalParticipants": 25,
-    "leaderboard": [
-      {
-        "rank": 1,
-        "participant": {
-          "_id": "user_id",
-          "username": "top_coder",
-          "fullName": "Top Coder"
-        },
-        "score": 300,
-        "timeSpent": 1500,
-        "questionsSolved": 6,
-        "accuracy": 100
-      }
-    ]
-  },
-  "success": true
-}
-```
-
-**Error Responses:**
-| Status | Message | Reason |
-|--------|---------|--------|
-| 400 | Invalid contest ID | contestId is not valid ObjectId |
-| 404 | Contest not found | Contest doesn't exist |
-| 403 | Contest is private | User not authorized to view leaderboard |
-| 400 | Contest not completed | Leaderboard only available for completed contests |
-
-**Implementation Notes:**
-- Only shows leaderboard for completed contests
-- Ranks by score (descending), then by time spent (ascending)
-- Includes participant statistics
-- Private contests require participation to view
-
----
-
-### 33. Get My Contest Rank
-
-**Endpoint:** `GET /contest/:contestId/me`
-
-**Authentication:** Required (JWT)
-
-**Description:** Get current user's ranking and performance in contest
-
-**URL Parameters:**
-- `contestId`: Contest ID (MongoDB ObjectId)
-
-**Response (200):**
-```json
-{
-  "errorCode": 200,
-  "message": "Contest rank fetched successfully",
-  "data": {
-    "rank": 5,
-    "totalParticipants": 25,
-    "score": 200,
-    "timeSpent": 1800,
-    "questionsSolved": 4,
-    "accuracy": 80,
-    "percentile": 80
-  },
-  "success": true
-}
-```
-
-**Error Responses:**
-| Status | Message | Reason |
-|--------|---------|--------|
-| 400 | Invalid contest ID | contestId is not valid ObjectId |
-| 404 | Contest not found | Contest doesn't exist |
-| 403 | Not a participant in this contest | User hasn't joined the contest |
-| 400 | Contest not completed | Rankings only available for completed contests |
-
-**Implementation Notes:**
-- Only available for completed contests
-- Shows user's relative performance
-- Includes percentile ranking
-
----
-
-## Follow System
-
-### 34. Follow User
-
-**Endpoint:** `POST /follow/:targetUserId`
-
-**Authentication:** Required (JWT)
-
-**Description:** Follow another user
-
-**URL Parameters:**
-- `targetUserId`: User ID to follow (MongoDB ObjectId)
-
-**Response (201):**
-```json
-{
-  "errorCode": 201,
-  "message": "User followed successfully",
-  "data": {
-    "followerId": "current_user_id",
-    "followingId": "target_user_id",
-    "followedAt": "2024-01-01T00:00:00.000Z"
-  },
-  "success": true
-}
-```
-
-**Error Responses:**
-| Status | Message | Reason |
-|--------|---------|--------|
-| 400 | Invalid user ID | targetUserId is not valid ObjectId |
-| 404 | User not found | Target user doesn't exist |
-| 409 | Already following this user | User is already following target |
-| 400 | Cannot follow yourself | User trying to follow themselves |
-
-**Implementation Notes:**
-- Creates Follow record between users
-- Updates follower/following counts
-- Cannot follow yourself
-- Cannot follow the same user twice
-
----
-
-### 35. Unfollow User
-
-**Endpoint:** `DELETE /follow/:targetUserId`
-
-**Authentication:** Required (JWT)
-
-**Description:** Unfollow a user
-
-**URL Parameters:**
-- `targetUserId`: User ID to unfollow (MongoDB ObjectId)
-
-**Response (200):**
-```json
-{
-  "errorCode": 200,
-  "message": "User unfollowed successfully",
-  "data": {
-    "followerId": "current_user_id",
-    "followingId": "target_user_id",
-    "unfollowedAt": "2024-01-01T00:00:00.000Z"
-  },
-  "success": true
-}
-```
-
-**Error Responses:**
-| Status | Message | Reason |
-|--------|---------|--------|
-| 400 | Invalid user ID | targetUserId is not valid ObjectId |
-| 404 | User not found | Target user doesn't exist |
-| 404 | Not following this user | User is not following target |
-
-**Implementation Notes:**
-- Removes Follow record between users
-- Updates follower/following counts
-- Only removes existing follow relationships
-
----
-
-### 36. Get Followers
-
-**Endpoint:** `GET /follow/followers/:userId`
-
-**Authentication:** Required (JWT)
-
-**Description:** Get list of users following a specific user
-
-**URL Parameters:**
-- `userId`: User ID to get followers for (MongoDB ObjectId)
-
-**Query Parameters:**
-- `page`: Page number (optional, default 1)
-- `limit`: Items per page (optional, default 20, max 50)
-
-**Response (200):**
-```json
-{
-  "errorCode": 200,
-  "message": "Followers fetched successfully",
-  "data": {
-    "userId": "target_user_id",
-    "followers": [
-      {
-        "_id": "follower_id",
-        "username": "follower_user",
-        "fullName": "Follower User",
-        "followedAt": "2024-01-01T00:00:00.000Z"
-      }
-    ],
-    "pagination": {
-      "page": 1,
-      "limit": 20,
-      "total": 45,
-      "pages": 3
-    }
-  },
-  "success": true
-}
-```
-
-**Error Responses:**
-| Status | Message | Reason |
-|--------|---------|--------|
-| 400 | Invalid user ID | userId is not valid ObjectId |
-| 404 | User not found | Target user doesn't exist |
-
-**Implementation Notes:**
-- Returns paginated list of followers
-- Includes follower details and follow date
-- Sorted by most recent follows first
-
----
-
-### 37. Get Following
-
-**Endpoint:** `GET /follow/following/:userId`
-
-**Authentication:** Required (JWT)
-
-**Description:** Get list of users that a specific user is following
-
-**URL Parameters:**
-- `userId`: User ID to get following for (MongoDB ObjectId)
-
-**Query Parameters:**
-- `page`: Page number (optional, default 1)
-- `limit`: Items per page (optional, default 20, max 50)
-
-**Response (200):**
-```json
-{
-  "errorCode": 200,
-  "message": "Following fetched successfully",
-  "data": {
-    "userId": "target_user_id",
-    "following": [
-      {
-        "_id": "following_id",
-        "username": "followed_user",
-        "fullName": "Followed User",
-        "followedAt": "2024-01-01T00:00:00.000Z"
-      }
-    ],
-    "pagination": {
-      "page": 1,
-      "limit": 20,
-      "total": 32,
-      "pages": 2
-    }
-  },
-  "success": true
-}
-```
-
-**Error Responses:**
-| Status | Message | Reason |
-|--------|---------|--------|
-| 400 | Invalid user ID | userId is not valid ObjectId |
-| 404 | User not found | Target user doesn't exist |
-
-**Implementation Notes:**
-- Returns paginated list of users being followed
-- Includes following details and follow date
-- Sorted by most recent follows first
-
----
-
-### 38. Get Follow Status
-
-**Endpoint:** `GET /follow/status/:targetUserId`
-
-**Authentication:** Required (JWT)
-
-**Description:** Check if current user follows target user and get follow stats
-
-**URL Parameters:**
-- `targetUserId`: User ID to check follow status for (MongoDB ObjectId)
-
-**Response (200):**
-```json
-{
-  "errorCode": 200,
-  "message": "Follow status fetched successfully",
-  "data": {
-    "targetUserId": "target_user_id",
-    "isFollowing": true,
-    "followerCount": 45,
-    "followingCount": 32,
-    "followedAt": "2024-01-01T00:00:00.000Z"
-  },
-  "success": true
-}
-```
-
-**Error Responses:**
-| Status | Message | Reason |
-|--------|---------|--------|
-| 400 | Invalid user ID | targetUserId is not valid ObjectId |
-| 404 | User not found | Target user doesn't exist |
-
-**Implementation Notes:**
-- Shows follow relationship between current user and target
-- Includes aggregated follower/following counts
-- Shows follow date if following
-
----
-
-## User Statistics
-
-### 39. Get Global Leaderboard
-
-**Endpoint:** `GET /userStats/leaderboard`
-
-**Authentication:** Required (JWT)
-
-**Description:** Get global user ranking based on contest performance
-
-**Query Parameters:**
-- `page`: Page number (optional, default 1)
-- `limit`: Items per page (optional, default 20, max 50)
-
-**Response (200):**
-```json
-{
-  "errorCode": 200,
-  "message": "Leaderboard fetched successfully",
-  "data": {
-    "leaderboard": [
-      {
-        "rank": 1,
-        "user": {
-          "_id": "user_id",
-          "username": "top_coder",
-          "fullName": "Top Coder"
-        },
-        "totalScore": 2500,
-        "contestsParticipated": 15,
-        "averageAccuracy": 85.5,
-        "winRate": 60
-      }
-    ],
-    "pagination": {
-      "page": 1,
-      "limit": 20,
-      "total": 500,
-      "pages": 25
-    }
-  },
-  "success": true
-}
-```
-
-**Error Responses:**
-| Status | Message | Reason |
-|--------|---------|--------|
-| None specific | Standard pagination errors | Invalid page/limit values |
-
-**Implementation Notes:**
-- Ranks users by total contest score
-- Includes participation statistics
-- Paginated for performance
-
----
-
-### 40. Get User Stats
-
-**Endpoint:** `GET /userStats/:userId`
-
-**Authentication:** Required (JWT)
-
-**Description:** Get comprehensive statistics for a user
-
-**URL Parameters:**
-- `userId`: User ID (MongoDB ObjectId)
-
-**Response (200):**
-```json
-{
-  "errorCode": 200,
-  "message": "User stats fetched successfully",
-  "data": {
-    "userId": "user_id",
-    "totalScore": 1200,
-    "contestsParticipated": 8,
-    "contestsWon": 2,
-    "averageAccuracy": 78.5,
-    "totalQuestionsSolved": 45,
-    "averageTimePerQuestion": 420,
-    "bestRank": 3,
-    "currentStreak": 5,
-    "longestStreak": 12
-  },
-  "success": true
-}
-```
-
-**Error Responses:**
-| Status | Message | Reason |
-|--------|---------|--------|
-| 400 | Invalid user ID | userId is not valid ObjectId |
-| 404 | User not found | User doesn't exist |
-
-**Implementation Notes:**
-- Aggregates data from contest participations
-- Includes various performance metrics
-- Shows ranking statistics
-
----
-
-### 41. Get User Topic Stats
-
-**Endpoint:** `GET /userStats/:userId/topics`
-
-**Authentication:** Required (JWT)
-
-**Description:** Get user's performance statistics by topic
-
-**URL Parameters:**
-- `userId`: User ID (MongoDB ObjectId)
-
-**Response (200):**
-```json
-{
-  "errorCode": 200,
-  "message": "User topic stats fetched successfully",
-  "data": {
-    "userId": "user_id",
-    "topicStats": [
-      {
-        "topic": "array",
-        "questionsSolved": 15,
-        "totalAttempts": 18,
-        "accuracy": 83.3,
-        "averageTime": 380
-      },
-      {
-        "topic": "string",
-        "questionsSolved": 12,
-        "totalAttempts": 15,
-        "accuracy": 80,
-        "averageTime": 420
-      }
-    ]
-  },
-  "success": true
-}
-```
-
-**Error Responses:**
-| Status | Message | Reason |
-|--------|---------|--------|
-| 400 | Invalid user ID | userId is not valid ObjectId |
-| 404 | User not found | User doesn't exist |
-
-**Implementation Notes:**
-- Aggregates performance by question topics
-- Shows accuracy and timing per topic
-- Helps identify strengths/weaknesses
-
----
-
-### 42. Get User Contest History
-
-**Endpoint:** `GET /userStats/:userId/history`
-
-**Authentication:** Required (JWT)
-
-**Description:** Get user's contest participation history
-
-**URL Parameters:**
-- `userId`: User ID (MongoDB ObjectId)
-
-**Query Parameters:**
-- `page`: Page number (optional, default 1)
-- `limit`: Items per page (optional, default 20, max 50)
-
-**Response (200):**
-```json
-{
-  "errorCode": 200,
-  "message": "Contest history fetched successfully",
-  "data": {
-    "userId": "user_id",
-    "contestHistory": [
-      {
-        "contestId": "contest_id",
-        "contestTitle": "Weekly Challenge",
-        "rank": 5,
-        "score": 200,
-        "totalParticipants": 50,
-        "participatedAt": "2024-01-01T00:00:00.000Z",
-        "status": "completed"
-      }
-    ],
-    "pagination": {
-      "page": 1,
-      "limit": 20,
-      "total": 25,
-      "pages": 2
-    }
-  },
-  "success": true
-}
-```
-
-**Error Responses:**
-| Status | Message | Reason |
-|--------|---------|--------|
-| 400 | Invalid user ID | userId is not valid ObjectId |
-| 404 | User not found | User doesn't exist |
-
-**Implementation Notes:**
-- Shows all contest participations
-- Includes ranking and performance data
-- Paginated for performance
-
----
-
-### 43. Get User Created Contests
-
-**Endpoint:** `GET /userStats/:userId/contests/created`
-
-**Authentication:** Required (JWT)
-
-**Description:** Get contests created by a user
-
-**URL Parameters:**
-- `userId`: User ID (MongoDB ObjectId)
-
-**Query Parameters:**
-- `page`: Page number (optional, default 1)
-- `limit`: Items per page (optional, default 20, max 50)
-
-**Response (200):**
-```json
-{
-  "errorCode": 200,
-  "message": "Created contests fetched successfully",
-  "data": {
-    "userId": "user_id",
-    "createdContests": [
-      {
-        "contestId": "contest_id",
-        "title": "My Contest",
-        "participants": 25,
-        "status": "completed",
-        "createdAt": "2024-01-01T00:00:00.000Z"
-      }
-    ],
-    "pagination": {
-      "page": 1,
-      "limit": 20,
-      "total": 5,
-      "pages": 1
-    }
-  },
-  "success": true
-}
-```
-
-**Error Responses:**
-| Status | Message | Reason |
-|--------|---------|--------|
-| 400 | Invalid user ID | userId is not valid ObjectId |
-| 404 | User not found | User doesn't exist |
-
-**Implementation Notes:**
-- Shows contests created by the user
-- Includes participation statistics
-- Paginated for performance
-
----
-
-### 44. Get User Joined Contests
-
-**Endpoint:** `GET /userStats/:userId/contests/joined`
-
-**Authentication:** Required (JWT)
-
-**Description:** Get contests joined by a user
-
-**URL Parameters:**
-- `userId`: User ID (MongoDB ObjectId)
-
-**Query Parameters:**
-- `page`: Page number (optional, default 1)
-- `limit`: Items per page (optional, default 20, max 50)
-
-**Response (200):**
-```json
-{
-  "errorCode": 200,
-  "message": "Joined contests fetched successfully",
-  "data": {
-    "userId": "user_id",
-    "joinedContests": [
-      {
-        "contestId": "contest_id",
-        "title": "Weekly Challenge",
-        "rank": 5,
-        "score": 200,
-        "joinedAt": "2024-01-01T00:00:00.000Z",
-        "status": "completed"
-      }
-    ],
-    "pagination": {
-      "page": 1,
-      "limit": 20,
-      "total": 15,
-      "pages": 1
-    }
-  },
-  "success": true
-}
-```
-
-**Error Responses:**
-| Status | Message | Reason |
-|--------|---------|--------|
-| 400 | Invalid user ID | userId is not valid ObjectId |
-| 404 | User not found | User doesn't exist |
-
-**Implementation Notes:**
-- Shows contests the user has participated in
-- Includes performance data
-- Paginated for performance
-
----
-
-## Error Responses
-
-### Standard Error Response Format:
-```json
-{
-  "errorCode": "HTTP status code",
-  "message": "Error message",
-  "data": null,
-  "success": false
-}
-```
-
-### Common HTTP Status Codes:
-
-| Code | Meaning |
-|------|---------|
-| 400 | Bad Request - Invalid input or validation failed |
-| 401 | Unauthorized - Missing or invalid authentication token |
-| 404 | Not Found - Resource doesn't exist |
-| 409 | Conflict - Resource already exists (duplicate) |
-| 500 | Internal Server Error - Server error |
-
----
-
-## Response Format
-
-All successful responses follow this structure:
-
-```json
-{
-  "errorCode": "HTTP status code",
-  "message": "Descriptive success message",
-  "data": "Response data or null",
-  "success": true
-}
-```
-
-### Status Code Mapping:
-- `errorCode < 400` → `success: true`
-- `errorCode >= 400` → `success: false`
-
----
-
-## User Model Schema
-
-```javascript
-{
-  username: {
-    type: String,
-    required: true,
-    unique: true,
-    lowercase: true,
-    trim: true,
-    minlength: 3,
-    maxlength: 30
-  },
-  
-  fullName: {
-    type: String,
-    required: true,
-    minlength: 3
-  },
-  
-  role: {
-    type: String,
-    enum: ["student", "admin"],
-    default: "student"
-  },
-  
-  email: {
-    type: String,
-    required: true,
-    unique: true,
-    lowercase: true,
-    minlength: 5,
-    trim: true
-  },
-  
-  password: {
-    type: String,
-    required: true,
-    select: false // Not returned by default
-  },
-  
-  avatar: {
-    public_id: String,      // Cloudinary public ID
-    url: String            // Cloudinary secure URL
-  },
-  
-  coverImage: {
-    public_id: String,      // Cloudinary public ID
-    url: String            // Cloudinary secure URL
-  },
-  
-  bio: {
-    type: String,
-    maxlength: 160
-  },
-  
-  followersCount: {
-    type: Number,
-    default: 0
-  },
-  
-  followingCount: {
-    type: Number,
-    default: 0
-  },
-  
-  isVerified: {
-    type: Boolean,
-    default: false
-  },
-  
-  isActive: {
-    type: Boolean,
-    default: true
-  },
-  
-  refreshToken: {
-    type: String,
-    select: false // Not returned by default
-  },
-  
-  timestamps: {
-    createdAt: "ISO 8601",
-    updatedAt: "ISO 8601"
-  }
-}
-```
-
----
-
-## Authentication Details
-
-### JWT Token Structure:
-
-**Access Token Payload:**
-```json
-{
-  "_id": "User ObjectId",
-  "role": "student | admin",
-  "iat": "issued at timestamp",
-  "exp": "expiration timestamp"
-}
-```
-
-**Refresh Token Payload:**
-```json
-{
-  "_id": "User ObjectId",
-  "iat": "issued at timestamp",
-  "exp": "expiration timestamp"
-}
-```
-
-### Token Storage:
-- **Access Token:** httpOnly cookie (name: `accessToken`)
-- **Refresh Token:** httpOnly, secure cookie (name: `refreshToken`)
-- Refresh token is hashed and stored in database for validation
-
-### Middleware:
-- `verifyJWT` - Validates access token and attaches user info to `req.user`
-- `upload.single('avatar/coverImage')` - Handles file upload via Multer
+| 400 | Token expired | Token has expired |
+| 400 | Invalid token | Token is invalid |
 
 ---
 
 ## Question Management
 
-### 11. Upload Question
+### Base Path: `/question`
+
+### 16. Upload Question
 
 **Endpoint:** `POST /question`
 
 **Authentication:** Required ✅
 
 **Description:** Create a new competitive programming question entry
-
-**Request Headers:**
-```
-Cookie: accessToken=<token>
-Content-Type: application/json
-```
 
 **Request Body:**
 ```json
@@ -1718,7 +588,7 @@ Content-Type: application/json
   "platform": "string (required, enum)",
   "problemUrl": "string (valid URL, required)",
   "difficulty": "string (required, enum)",
-  "topics": "array[string] (optional)"
+  "topics": ["string"] (optional)
 }
 ```
 
@@ -1727,7 +597,7 @@ Content-Type: application/json
 - platform: Required, must be one of: "LeetCode", "GFG", "Codeforces", "Other"
 - problemUrl: Required, must be valid URL
 - difficulty: Required, must be one of: "easy", "medium", "hard"
-- topics: Optional, must be array of strings if provided
+- topics: Optional, array of strings
 
 **Response (201 Created):**
 ```json
@@ -1736,16 +606,16 @@ Content-Type: application/json
   "message": "Question added successfully",
   "data": {
     "_id": "ObjectId",
-    "ownerId": "ObjectId (current user)",
-    "title": "string",
-    "platform": "LeetCode | GFG | Codeforces | Other",
-    "problemUrlOriginal": "string (original URL)",
-    "problemUrlNormalized": "string (normalized for duplicate detection)",
-    "difficulty": "easy | medium | hard",
-    "topics": ["string"],
+    "ownerId": "ObjectId",
+    "title": "Two Sum",
+    "platform": "LeetCode",
+    "problemUrlOriginal": "https://leetcode.com/problems/two-sum/",
+    "problemUrlNormalized": "https://leetcode.com/problems/two-sum",
+    "difficulty": "easy",
+    "topics": ["array", "hash-table"],
     "isDeleted": false,
-    "createdAt": "ISO 8601 timestamp",
-    "updatedAt": "ISO 8601 timestamp"
+    "createdAt": "ISO 8601",
+    "updatedAt": "ISO 8601"
   },
   "success": true
 }
@@ -1754,47 +624,32 @@ Content-Type: application/json
 **Error Responses:**
 | Status | Message | Reason |
 |--------|---------|--------|
-| 400 | All required fields must be provided | Missing required fields |
-| 400 | Validation error | Invalid input format |
-| 409 | You have already added this question | Duplicate problem URL |
-| 401 | Unauthorized | Missing/invalid access token |
-
-**Notes:**
-- Problem URLs are normalized for duplicate detection (case-insensitive, trailing slashes removed, query params stripped)
-- Topics are automatically deduplicated and lowercased
-- Each user can only add each problem URL once
+| 409 | You have already added this question | Duplicate URL |
+| 400 | Validation error | Invalid input |
 
 ---
 
-### 12. Get All Questions
+### 17. Get All Questions
 
 **Endpoint:** `GET /question`
 
 **Authentication:** Required ✅
 
-**Description:** Retrieve user's questions with filtering, sorting, and pagination
-
-**Request Headers:**
-```
-Cookie: accessToken=<token>
-```
+**Description:** Retrieve user's questions with filtering and pagination
 
 **Query Parameters:**
 ```
-difficulty=string (optional)    - Filter by: easy, medium, hard
-platform=string (optional)      - Filter by: LeetCode, GFG, Codeforces, Other
-topic=string (optional)         - Filter by topics (comma-separated)
-mode=string (optional)          - Topic matching mode: "any" (OR) or "all" (AND)
-search=string (optional)        - Full text search in title, topics, platform
-page=number (optional)          - Page number (default: 1, min: 1)
-limit=number (optional)         - Items per page (default: 20, max: 50)
+difficulty: string (optional) - easy, medium, hard
+platform: string (optional) - LeetCode, GFG, Codeforces, Other
+topic: string (optional) - comma-separated topic list
+mode: string (optional) - "any" (OR) or "all" (AND) for topic matching
+page: number (optional, default: 1)
+limit: number (optional, default: 20, max: 50)
 ```
 
-**Example Request:**
+**Example:**
 ```
 GET /question?difficulty=medium&platform=LeetCode&page=1&limit=20
-GET /question?topic=arrays,strings&mode=any
-GET /question?search=two pointer&limit=10
 ```
 
 **Response (200 OK):**
@@ -1810,72 +665,21 @@ GET /question?search=two pointer&limit=10
     "questions": [
       {
         "_id": "ObjectId",
-        "ownerId": "ObjectId",
-        "title": "string",
-        "platform": "LeetCode | GFG | Codeforces | Other",
-        "problemUrlOriginal": "string",
-        "problemUrlNormalized": "string",
-        "difficulty": "easy | medium | hard",
-        "topics": ["string"],
-        "isDeleted": false,
-        "createdAt": "ISO 8601 timestamp",
-        "updatedAt": "ISO 8601 timestamp"
+        "title": "Two Sum",
+        "platform": "LeetCode",
+        "difficulty": "easy",
+        "topics": ["array"],
+        "createdAt": "ISO 8601"
       }
-      // ... more questions
     ]
   },
   "success": true
 }
 ```
 
-**Filtering Examples:**
-
-1. **By Difficulty:**
-   ```
-   GET /question?difficulty=hard
-   ```
-
-2. **By Platform:**
-   ```
-   GET /question?platform=LeetCode
-   ```
-
-3. **By Topics (Match Any):**
-   ```
-   GET /question?topic=arrays,strings&mode=any
-   ```
-
-4. **By Topics (Match All):**
-   ```
-   GET /question?topic=arrays,sorting&mode=all
-   ```
-
-5. **Full Text Search:**
-   ```
-   GET /question?search=binary search
-   ```
-
-6. **Combined Filters:**
-   ```
-   GET /question?difficulty=medium&platform=LeetCode&topic=arrays&page=1&limit=10
-   ```
-
-**Error Responses:**
-| Status | Message | Reason |
-|--------|---------|--------|
-| 400 | Validation error | Invalid query parameters |
-| 401 | Unauthorized | Missing/invalid access token |
-
-**Notes:**
-- Returns only non-deleted questions (isDeleted: false)
-- Results sorted by creation date (newest first)
-- Full text search indexes title, topics, and platform
-- Topic filter is case-insensitive
-- Pagination default: page=1, limit=20; max limit=50
-
 ---
 
-### 13. Get Question by ID
+### 18. Get Question by ID
 
 **Endpoint:** `GET /question/:questionId`
 
@@ -1883,14 +687,9 @@ GET /question?search=two pointer&limit=10
 
 **Description:** Retrieve a specific question by ID
 
-**Request Headers:**
-```
-Cookie: accessToken=<token>
-```
-
 **URL Parameters:**
 ```
-questionId: string (MongoDB ObjectId, required)
+questionId: string (MongoDB ObjectId)
 ```
 
 **Response (200 OK):**
@@ -1900,68 +699,35 @@ questionId: string (MongoDB ObjectId, required)
   "message": "Question fetched",
   "data": {
     "_id": "ObjectId",
-    "ownerId": "ObjectId",
-    "title": "string",
-    "platform": "LeetCode | GFG | Codeforces | Other",
-    "problemUrlOriginal": "string",
-    "problemUrlNormalized": "string",
-    "difficulty": "easy | medium | hard",
-    "topics": ["string"],
-    "isDeleted": false,
-    "createdAt": "ISO 8601 timestamp",
-    "updatedAt": "ISO 8601 timestamp"
+    "title": "Two Sum",
+    "platform": "LeetCode",
+    "difficulty": "easy",
+    "topics": ["array"],
+    "problemUrlOriginal": "https://...",
+    "createdAt": "ISO 8601"
   },
   "success": true
 }
 ```
 
-**Error Responses:**
-| Status | Message | Reason |
-|--------|---------|--------|
-| 400 | Invalid question ID | Invalid ObjectId format |
-| 404 | Question not found | Question doesn't exist or is deleted |
-| 401 | Unauthorized | Missing/invalid access token |
-
-**Notes:**
-- User can only retrieve their own questions
-- Deleted questions return 404
-- Validates MongoDB ObjectId format
-
 ---
 
-### 14. Update Question
+### 19. Update Question
 
 **Endpoint:** `PATCH /question/:questionId`
 
 **Authentication:** Required ✅
 
-**Description:** Update question details (title, difficulty, platform)
-
-**Request Headers:**
-```
-Cookie: accessToken=<token>
-Content-Type: application/json
-```
-
-**URL Parameters:**
-```
-questionId: string (MongoDB ObjectId, required)
-```
+**Description:** Update question details
 
 **Request Body:**
 ```json
 {
-  "title": "string (optional, min 3 chars)",
-  "difficulty": "string (optional, enum)",
-  "platform": "string (optional, enum)"
+  "title": "string (min 2 chars, optional)",
+  "difficulty": "string (enum, optional)",
+  "platform": "string (enum, optional)"
 }
 ```
-
-**Validation Rules:**
-- At least one field must be provided
-- title: Minimum 3 characters if provided
-- difficulty: Must be "easy", "medium", or "hard" if provided
-- platform: Must be "LeetCode", "GFG", "Codeforces", or "Other" if provided
 
 **Response (200 OK):**
 ```json
@@ -1970,54 +736,23 @@ questionId: string (MongoDB ObjectId, required)
   "message": "Question updated",
   "data": {
     "_id": "ObjectId",
-    "ownerId": "ObjectId",
-    "title": "string",
-    "platform": "LeetCode | GFG | Codeforces | Other",
-    "problemUrlOriginal": "string",
-    "problemUrlNormalized": "string",
-    "difficulty": "easy | medium | hard",
-    "topics": ["string"],
-    "isDeleted": false,
-    "createdAt": "ISO 8601 timestamp",
-    "updatedAt": "ISO 8601 timestamp"
+    "title": "Updated Title",
+    "difficulty": "medium",
+    "platform": "LeetCode"
   },
   "success": true
 }
 ```
 
-**Error Responses:**
-| Status | Message | Reason |
-|--------|---------|--------|
-| 400 | Invalid question ID | Invalid ObjectId format |
-| 400 | At least one field is required | No fields provided |
-| 404 | Question not found | Question doesn't exist or is deleted |
-| 401 | Unauthorized | Missing/invalid access token |
-
-**Notes:**
-- User can only update their own questions
-- Only specific fields can be updated (title, difficulty, platform)
-- Problem URL cannot be updated (use delete + create instead)
-- Topics cannot be updated (use delete + create instead)
-
 ---
 
-### 15. Delete Question
+### 20. Delete Question
 
 **Endpoint:** `DELETE /question/:questionId`
 
 **Authentication:** Required ✅
 
-**Description:** Soft delete a question (marks as deleted, doesn't remove from database)
-
-**Request Headers:**
-```
-Cookie: accessToken=<token>
-```
-
-**URL Parameters:**
-```
-questionId: string (MongoDB ObjectId, required)
-```
+**Description:** Soft delete a question (marks as deleted)
 
 **Response (200 OK):**
 ```json
@@ -2029,50 +764,28 @@ questionId: string (MongoDB ObjectId, required)
 }
 ```
 
-**Error Responses:**
-| Status | Message | Reason |
-|--------|---------|--------|
-| 400 | Invalid question ID | Invalid ObjectId format |
-| 404 | Question not found | Question doesn't exist or already deleted |
-| 401 | Unauthorized | Missing/invalid access token |
-
-**Notes:**
-- Implements soft delete (sets isDeleted: true)
-- Deleted questions don't appear in getAllQuestions
-- Data is preserved in database for recovery/analytics
-- Cannot be undone via API (planned: recovery endpoint)
-
 ---
 
 ## Collection Management
 
-### 16. Create Collection
+### Base Path: `/collections`
 
-**Endpoint:** `POST /api/v1/collections`
+### 21. Create Collection
+
+**Endpoint:** `POST /collections`
 
 **Authentication:** Required ✅
 
-**Description:** Create a new question collection for organizing problems
-
-**Request Headers:**
-```
-Cookie: accessToken=<token>
-Content-Type: application/json
-```
+**Description:** Create a new question collection
 
 **Request Body:**
 ```json
 {
-  "name": "string (required, 2-100 chars)",
-  "description": "string (optional, max 300 chars)",
+  "name": "string (2-100 chars, required)",
+  "description": "string (max 300 chars, optional)",
   "isPublic": "boolean (optional, default: false)"
 }
 ```
-
-**Validation Rules:**
-- name: Required, 2-100 characters, trimmed
-- description: Optional, max 300 characters
-- isPublic: Optional, must be boolean if provided
 
 **Response (201 Created):**
 ```json
@@ -2081,41 +794,25 @@ Content-Type: application/json
   "message": "Collection created",
   "data": {
     "_id": "ObjectId",
-    "ownerId": "ObjectId",
-    "name": "string",
-    "nameLower": "string (lowercase for searching)",
-    "description": "string",
-    "isPublic": "boolean",
+    "name": "DSA Problems",
+    "description": "Data Structure and Algorithm problems",
+    "isPublic": false,
     "questionsCount": 0,
-    "createdAt": "ISO 8601 timestamp",
-    "updatedAt": "ISO 8601 timestamp"
+    "createdAt": "ISO 8601"
   },
   "success": true
 }
 ```
 
-**Error Responses:**
-| Status | Message | Reason |
-|--------|---------|--------|
-| 400 | Collection name is required | Missing name |
-| 400 | Validation error | Invalid input format |
-| 409 | You have already have this collection | Duplicate collection name |
-| 401 | Unauthorized | Missing/invalid access token |
-
 ---
 
-### 17. Get My Collections
+### 22. Get My Collections
 
-**Endpoint:** `GET /api/v1/collections`
+**Endpoint:** `GET /collections`
 
 **Authentication:** Required ✅
 
-**Description:** Retrieve all collections owned by the authenticated user
-
-**Request Headers:**
-```
-Cookie: accessToken=<token>
-```
+**Description:** Retrieve all collections owned by authenticated user
 
 **Response (200 OK):**
 ```json
@@ -2125,50 +822,26 @@ Cookie: accessToken=<token>
   "data": [
     {
       "_id": "ObjectId",
-      "ownerId": "ObjectId",
-      "name": "string",
-      "nameLower": "string",
-      "description": "string",
-      "isPublic": "boolean",
-      "questionsCount": "number",
-      "createdAt": "ISO 8601 timestamp",
-      "updatedAt": "ISO 8601 timestamp"
+      "name": "DSA Problems",
+      "description": "...",
+      "isPublic": false,
+      "questionsCount": 10,
+      "createdAt": "ISO 8601"
     }
-    // ... more collections
   ],
   "success": true
 }
 ```
 
-**Error Responses:**
-| Status | Message | Reason |
-|--------|---------|--------|
-| 401 | Unauthorized | Missing/invalid access token |
-
-**Notes:**
-- Returns empty array if no collections exist
-- Sorted by creation date (newest first)
-- Includes question count for each collection
-
 ---
 
-### 18. Get Collection by ID
+### 23. Get Collection by ID
 
-**Endpoint:** `GET /api/v1/collections/:collectionId`
+**Endpoint:** `GET /collections/:collectionId`
 
 **Authentication:** Required ✅
 
 **Description:** Retrieve a specific collection's details
-
-**Request Headers:**
-```
-Cookie: accessToken=<token>
-```
-
-**URL Parameters:**
-```
-collectionId: string (MongoDB ObjectId, required)
-```
 
 **Response (200 OK):**
 ```json
@@ -2177,65 +850,31 @@ collectionId: string (MongoDB ObjectId, required)
   "message": "Collection fetched",
   "data": {
     "_id": "ObjectId",
-    "ownerId": "ObjectId",
-    "name": "string",
-    "nameLower": "string",
-    "description": "string",
-    "isPublic": "boolean",
-    "questionsCount": "number",
-    "createdAt": "ISO 8601 timestamp",
-    "updatedAt": "ISO 8601 timestamp"
+    "name": "DSA Problems",
+    "questionsCount": 10
   },
   "success": true
 }
 ```
 
-**Error Responses:**
-| Status | Message | Reason |
-|--------|---------|--------|
-| 400 | Invalid collection ID | Invalid ObjectId format |
-| 404 | Collection not found | Collection doesn't exist or not owned by user |
-| 401 | Unauthorized | Missing/invalid access token |
-
-**Notes:**
-- User can only retrieve their own collections
-- Returns full collection metadata
-
 ---
 
-### 19. Update Collection
+### 24. Update Collection
 
-**Endpoint:** `PATCH /api/v1/collections/:collectionId`
+**Endpoint:** `PATCH /collections/:collectionId`
 
 **Authentication:** Required ✅
 
-**Description:** Update collection details (name, description, visibility)
-
-**Request Headers:**
-```
-Cookie: accessToken=<token>
-Content-Type: application/json
-```
-
-**URL Parameters:**
-```
-collectionId: string (MongoDB ObjectId, required)
-```
+**Description:** Update collection details
 
 **Request Body:**
 ```json
 {
-  "name": "string (optional, 2-100 chars)",
-  "description": "string (optional, max 300 chars)",
+  "name": "string (2-100 chars, optional)",
+  "description": "string (max 300 chars, optional)",
   "isPublic": "boolean (optional)"
 }
 ```
-
-**Validation Rules:**
-- At least one field must be provided
-- name: 2-100 characters if provided, trimmed
-- description: Max 300 characters if provided, trimmed
-- isPublic: Must be boolean if provided
 
 **Response (200 OK):**
 ```json
@@ -2244,52 +883,22 @@ collectionId: string (MongoDB ObjectId, required)
   "message": "Collection updated",
   "data": {
     "_id": "ObjectId",
-    "ownerId": "ObjectId",
-    "name": "string",
-    "nameLower": "string",
-    "description": "string",
-    "isPublic": "boolean",
-    "questionsCount": "number",
-    "createdAt": "ISO 8601 timestamp",
-    "updatedAt": "ISO 8601 timestamp"
+    "name": "Updated Name",
+    "isPublic": true
   },
   "success": true
 }
 ```
 
-**Error Responses:**
-| Status | Message | Reason |
-|--------|---------|--------|
-| 400 | Invalid collection ID | Invalid ObjectId format |
-| 400 | At least one field is required | No fields provided |
-| 400 | Collection name cannot be empty | Empty name provided |
-| 404 | Collection not found | Collection doesn't exist or not owned by user |
-| 401 | Unauthorized | Missing/invalid access token |
-
-**Notes:**
-- User can only update their own collections
-- Updating name updates nameLower field automatically
-- questionsCount cannot be directly updated (changes via add/remove operations)
-
 ---
 
-### 20. Delete Collection
+### 25. Delete Collection
 
-**Endpoint:** `DELETE /api/v1/collections/:collectionId`
+**Endpoint:** `DELETE /collections/:collectionId`
 
 **Authentication:** Required ✅
 
 **Description:** Delete a collection and all its question associations
-
-**Request Headers:**
-```
-Cookie: accessToken=<token>
-```
-
-**URL Parameters:**
-```
-collectionId: string (MongoDB ObjectId, required)
-```
 
 **Response (200 OK):**
 ```json
@@ -2301,37 +910,15 @@ collectionId: string (MongoDB ObjectId, required)
 }
 ```
 
-**Error Responses:**
-| Status | Message | Reason |
-|--------|---------|--------|
-| 400 | Invalid collection ID | Invalid ObjectId format |
-| 404 | Collection not found | Collection doesn't exist or not owned by user |
-| 401 | Unauthorized | Missing/invalid access token |
-
-**Notes:**
-- Performs hard delete (removes collection and all associations)
-- Also removes all CollectionQuestion records for this collection
-- Questions themselves are NOT deleted, only the collection
-
 ---
 
-### 21. Get Collection Questions
+### 26. Get Collection Questions
 
-**Endpoint:** `GET /api/v1/collections/:collectionId/questions`
+**Endpoint:** `GET /collections/:collectionId/questions`
 
 **Authentication:** Required ✅
 
-**Description:** Retrieve all questions in a collection with order and metadata
-
-**Request Headers:**
-```
-Cookie: accessToken=<token>
-```
-
-**URL Parameters:**
-```
-collectionId: string (MongoDB ObjectId, required)
-```
+**Description:** Retrieve all questions in a collection with order
 
 **Response (200 OK):**
 ```json
@@ -2341,76 +928,58 @@ collectionId: string (MongoDB ObjectId, required)
   "data": {
     "collection": {
       "_id": "ObjectId",
-      "name": "string",
-      "questionsCount": "number"
+      "name": "DSA Problems",
+      "questionsCount": 5
     },
     "questions": [
       {
-        "order": "number",
-        "addedAt": "ISO 8601 timestamp",
+        "order": 0,
+        "addedAt": "ISO 8601",
         "question": {
           "_id": "ObjectId",
-          "title": "string",
-          "platform": "string",
-          "difficulty": "string",
-          "topics": ["string"],
-          "problemUrlOriginal": "string",
-          // ... other question fields
+          "title": "Two Sum",
+          "platform": "LeetCode",
+          "difficulty": "easy"
         }
       }
-      // ... more questions
     ]
   },
   "success": true
 }
 ```
 
-**Error Responses:**
-| Status | Message | Reason |
-|--------|---------|--------|
-| 400 | Invalid collection ID | Invalid ObjectId format |
-| 404 | Collection not found | Collection doesn't exist or not owned by user |
-| 401 | Unauthorized | Missing/invalid access token |
+---
 
-**Notes:**
-- Questions are sorted by order, then by addedAt (descending)
-- Automatically filters out deleted questions
-- Includes ordering information for each question
-- Includes full question metadata
+### 27. Get Public Collection Questions
+
+**Endpoint:** `GET /collections/:collectionId/questions/public`
+
+**Authentication:** Not Required
+
+**Description:** Retrieve questions from a public collection
+
+**Response:** Same as above
 
 ---
 
 ## Collection Questions Management
 
-### 22. Add Question to Collection
+### Base Path: `/collectionQuestions`
 
-**Endpoint:** `POST /api/v1/collectionQuestions/:collectionId/questions`
+### 28. Add Question to Collection
+
+**Endpoint:** `POST /collectionQuestions/:collectionId/questions`
 
 **Authentication:** Required ✅
 
 **Description:** Add a single question to a collection
 
-**Request Headers:**
-```
-Cookie: accessToken=<token>
-Content-Type: application/json
-```
-
-**URL Parameters:**
-```
-collectionId: string (MongoDB ObjectId, required)
-```
-
 **Request Body:**
 ```json
 {
-  "questionId": "string (ObjectId, required)"
+  "questionId": "string (ObjectId)"
 }
 ```
-
-**Validation Rules:**
-- collectionId: Must be valid MongoDB ObjectId
-- questionId: Must be valid MongoDB ObjectId
 
 **Response (201 Created):**
 ```json
@@ -2422,42 +991,74 @@ collectionId: string (MongoDB ObjectId, required)
 }
 ```
 
-**Error Responses:**
-| Status | Message | Reason |
-|--------|---------|--------|
-| 400 | Invalid collection ID | Invalid ObjectId format |
-| 400 | Invalid question ID | Invalid ObjectId format |
-| 404 | Collection not found | Collection doesn't exist or not owned by user |
-| 404 | Question not found | Question doesn't exist or is deleted |
-| 409 | Question already in this collection | Question already exists in collection |
-| 401 | Unauthorized | Missing/invalid access token |
-
-**Notes:**
-- User must own both collection and question
-- questionsCount is incremented automatically
-- Prevents duplicate entries (unique constraint)
-- Default order: 0, can be changed with reorder endpoint
-
 ---
 
-### 23. Remove Question from Collection
+### 29. Bulk Add Questions to Collection
 
-**Endpoint:** `DELETE /api/v1/collectionQuestions/:collectionId/questions/:questionId`
+**Endpoint:** `POST /collectionQuestions/:collectionId/questions/bulk`
 
 **Authentication:** Required ✅
 
-**Description:** Remove a single question from a collection
+**Description:** Add multiple questions in one request
 
-**Request Headers:**
-```
-Cookie: accessToken=<token>
+**Request Body:**
+```json
+{
+  "questionIds": ["ObjectId1", "ObjectId2", ...]
+}
 ```
 
-**URL Parameters:**
+**Response (200 OK):**
+```json
+{
+  "errorCode": 200,
+  "message": "Bulk add completed",
+  "data": {
+    "added": 3,
+    "attempted": 5
+  },
+  "success": true
+}
 ```
-collectionId: string (MongoDB ObjectId, required)
-questionId: string (MongoDB ObjectId, required)
+
+---
+
+### 30. Reorder Question in Collection
+
+**Endpoint:** `PATCH /collectionQuestions/:collectionId/questions/:questionId/order`
+
+**Authentication:** Required ✅
+
+**Description:** Change question's position in collection
+
+**Request Body:**
+```json
+{
+  "order": "number (non-negative integer)"
+}
 ```
+
+**Response (200 OK):**
+```json
+{
+  "errorCode": 200,
+  "message": "Order updated",
+  "data": {
+    "order": 2
+  },
+  "success": true
+}
+```
+
+---
+
+### 31. Remove Question from Collection
+
+**Endpoint:** `DELETE /collectionQuestions/:collectionId/questions/:questionId`
+
+**Authentication:** Required ✅
+
+**Description:** Remove a question from collection
 
 **Response (200 OK):**
 ```json
@@ -2469,175 +1070,22 @@ questionId: string (MongoDB ObjectId, required)
 }
 ```
 
-**Error Responses:**
-| Status | Message | Reason |
-|--------|---------|--------|
-| 400 | Invalid collection ID | Invalid ObjectId format |
-| 400 | Invalid question ID | Invalid ObjectId format |
-| 404 | Collection not found | Collection doesn't exist or not owned by user |
-| 404 | Question not found in this collection | Question not in collection |
-| 401 | Unauthorized | Missing/invalid access token |
-
-**Notes:**
-- questionsCount is decremented automatically
-- Only removes the association, question remains in database
-
 ---
 
-### 24. Reorder Question in Collection
+### 32. Bulk Remove Questions from Collection
 
-**Endpoint:** `PATCH /api/v1/collectionQuestions/:collectionId/questions/:questionId/order`
+**Endpoint:** `DELETE /collectionQuestions/:collectionId/questions/bulk`
 
 **Authentication:** Required ✅
 
-**Description:** Change the order/position of a question within the collection
-
-**Request Headers:**
-```
-Cookie: accessToken=<token>
-Content-Type: application/json
-```
-
-**URL Parameters:**
-```
-collectionId: string (MongoDB ObjectId, required)
-questionId: string (MongoDB ObjectId, required)
-```
+**Description:** Remove multiple questions from collection
 
 **Request Body:**
 ```json
 {
-  "order": "number (non-negative integer, required)"
+  "questionIds": ["ObjectId1", "ObjectId2", ...]
 }
 ```
-
-**Validation Rules:**
-- order: Must be non-negative integer (0, 1, 2, etc.)
-
-**Response (200 OK):**
-```json
-{
-  "errorCode": 200,
-  "message": "Order updated",
-  "data": {
-    "_id": "ObjectId",
-    "collectionId": "ObjectId",
-    "questionId": "ObjectId",
-    "order": "number",
-    "addedAt": "ISO 8601 timestamp"
-  },
-  "success": true
-}
-```
-
-**Error Responses:**
-| Status | Message | Reason |
-|--------|---------|--------|
-| 400 | Invalid collection ID | Invalid ObjectId format |
-| 400 | Invalid question ID | Invalid ObjectId format |
-| 400 | Order must be a non-negative integer | Invalid order value |
-| 404 | Collection not found | Collection doesn't exist or not owned by user |
-| 404 | Question not found in collection | Question not in collection |
-| 401 | Unauthorized | Missing/invalid access token |
-
-**Notes:**
-- Order is used for sorting (ascending by order, then by addedAt)
-- Multiple questions can have same order (they'll be sorted by addedAt)
-- Allows flexible ordering without gaps
-
----
-
-### 25. Bulk Add Questions to Collection
-
-**Endpoint:** `POST /api/v1/collectionQuestions/:collectionId/questions/bulk`
-
-**Authentication:** Required ✅
-
-**Description:** Add multiple questions to collection in one request
-
-**Request Headers:**
-```
-Cookie: accessToken=<token>
-Content-Type: application/json
-```
-
-**URL Parameters:**
-```
-collectionId: string (MongoDB ObjectId, required)
-```
-
-**Request Body:**
-```json
-{
-  "questionIds": ["ObjectId1", "ObjectId2", "ObjectId3", ...]
-}
-```
-
-**Validation Rules:**
-- questionIds: Required, non-empty array
-- Each item must be valid MongoDB ObjectId
-
-**Response (200 OK):**
-```json
-{
-  "errorCode": 200,
-  "message": "Bulk add completed",
-  "data": {
-    "added": "number (count of successfully added)",
-    "attempted": "number (count of requested)"
-  },
-  "success": true
-}
-```
-
-**Error Responses:**
-| Status | Message | Reason |
-|--------|---------|--------|
-| 400 | Invalid collection ID | Invalid ObjectId format |
-| 400 | questionIds must be a non-empty array | Missing or empty array |
-| 400 | Each questionId must be a valid Mongo ID | Invalid ObjectId in array |
-| 400 | No valid question IDs provided | All IDs invalid |
-| 404 | Collection not found | Collection doesn't exist or not owned by user |
-| 401 | Unauthorized | Missing/invalid access token |
-
-**Notes:**
-- Uses `ordered: false` to skip duplicates and continue processing
-- Returns count of added and attempted
-- Increments questionsCount with successfully added count
-- Silently skips already-existing questions (409 errors not thrown)
-- User must own all questions
-
----
-
-### 26. Bulk Remove Questions from Collection
-
-**Endpoint:** `DELETE /api/v1/collectionQuestions/:collectionId/questions/bulk`
-
-**Authentication:** Required ✅
-
-**Description:** Remove multiple questions from collection in one request
-
-**Request Headers:**
-```
-Cookie: accessToken=<token>
-Content-Type: application/json
-```
-
-**URL Parameters:**
-```
-collectionId: string (MongoDB ObjectId, required)
-```
-
-**Request Body:**
-```json
-{
-  "questionIds": ["ObjectId1", "ObjectId2", "ObjectId3", ...]
-}
-```
-
-**Validation Rules:**
-- questionIds: Required, non-empty array
-- Each item must be valid MongoDB ObjectId
 
 **Response (200 OK):**
 ```json
@@ -2645,48 +1093,22 @@ collectionId: string (MongoDB ObjectId, required)
   "errorCode": 200,
   "message": "Questions removed from collection",
   "data": {
-    "removed": "number (count of successfully removed)",
-    "attempted": "number (count of valid IDs)"
+    "removed": 3,
+    "attempted": 5
   },
   "success": true
 }
 ```
 
-**Error Responses:**
-| Status | Message | Reason |
-|--------|---------|--------|
-| 400 | Invalid collection ID | Invalid ObjectId format |
-| 400 | questionIds must be a non-empty array | Missing or empty array |
-| 400 | Each questionId must be a valid Mongo ID | Invalid ObjectId in array |
-| 400 | No valid question IDs provided | All IDs invalid |
-| 404 | Collection not found | Collection doesn't exist or not owned by user |
-| 401 | Unauthorized | Missing/invalid access token |
-
-**Notes:**
-- Filters invalid ObjectIds before processing
-- Returns count of removed and attempted (valid) IDs
-- Decrements questionsCount with successfully removed count
-- Silently skips non-existent associations
-
 ---
 
-### 27. Remove All Questions from Collection
+### 33. Remove All Questions from Collection
 
-**Endpoint:** `DELETE /api/v1/collectionQuestions/:collectionId/questions`
+**Endpoint:** `DELETE /collectionQuestions/:collectionId/questions`
 
 **Authentication:** Required ✅
 
 **Description:** Clear all questions from a collection
-
-**Request Headers:**
-```
-Cookie: accessToken=<token>
-```
-
-**URL Parameters:**
-```
-collectionId: string (MongoDB ObjectId, required)
-```
 
 **Response (200 OK):**
 ```json
@@ -2694,7 +1116,315 @@ collectionId: string (MongoDB ObjectId, required)
   "errorCode": 200,
   "message": "All questions removed",
   "data": {
-    "removed": "number (count of questions removed)"
+    "removed": 10
+  },
+  "success": true
+}
+```
+
+---
+
+## Contest Management
+
+### Base Path: `/contests`
+
+### 34. Create Contest
+
+**Endpoint:** `POST /contests`
+
+**Authentication:** Required ✅
+
+**Description:** Create a new programming contest
+
+**Request Body:**
+```json
+{
+  "collectionId": "string (ObjectId, required)",
+  "title": "string (3-100 chars, required)",
+  "durationInMin": "number (1-720, required)",
+  "questionCount": "number (1-10, required)",
+  "visibility": "string (optional, enum: private|shared|public)"
+}
+```
+
+**Response (201 Created):**
+```json
+{
+  "errorCode": 201,
+  "message": "Contest created successfully",
+  "data": {
+    "_id": "ObjectId",
+    "title": "DSA Contest",
+    "contestCode": "ABC123",
+    "durationInMin": 60,
+    "visibility": "private",
+    "status": "upcoming",
+    "owner": "ObjectId",
+    "createdAt": "ISO 8601"
+  },
+  "success": true
+}
+```
+
+---
+
+### 35. Start Contest
+
+**Endpoint:** `POST /contests/:contestId/start`
+
+**Authentication:** Required ✅
+
+**Description:** Start/activate a contest
+
+**URL Parameters:**
+```
+contestId: string (MongoDB ObjectId)
+```
+
+**Response (200 OK):**
+```json
+{
+  "errorCode": 200,
+  "message": "Contest started successfully",
+  "data": {
+    "status": "active",
+    "startTime": "ISO 8601",
+    "endTime": "ISO 8601"
+  },
+  "success": true
+}
+```
+
+---
+
+### 36. Get Active Contests
+
+**Endpoint:** `GET /contests/active`
+
+**Authentication:** Required ✅
+
+**Description:** Retrieve currently active contests
+
+**Response (200 OK):**
+```json
+{
+  "errorCode": 200,
+  "message": "Active contests fetched",
+  "data": [
+    {
+      "_id": "ObjectId",
+      "title": "DSA Contest",
+      "durationInMin": 60,
+      "status": "active",
+      "startTime": "ISO 8601",
+      "endTime": "ISO 8601"
+    }
+  ],
+  "success": true
+}
+```
+
+---
+
+### 37. Get Created Contests
+
+**Endpoint:** `GET /contests/created`
+
+**Authentication:** Required ✅
+
+**Description:** Retrieve contests created by authenticated user
+
+**Query Parameters:**
+```
+page: number (optional, default: 1)
+limit: number (optional, default: 20, max: 100)
+```
+
+**Response (200 OK):**
+```json
+{
+  "errorCode": 200,
+  "message": "Created contests fetched",
+  "data": {
+    "page": 1,
+    "total": 5,
+    "contests": [...]
+  },
+  "success": true
+}
+```
+
+---
+
+### 38. Get Joined Contests
+
+**Endpoint:** `GET /contests/joined`
+
+**Authentication:** Required ✅
+
+**Description:** Retrieve contests joined by authenticated user
+
+**Query Parameters:**
+```
+page: number (optional)
+limit: number (optional)
+```
+
+**Response (200 OK):**
+```json
+{
+  "errorCode": 200,
+  "message": "Joined contests fetched",
+  "data": {
+    "page": 1,
+    "total": 10,
+    "contests": [...]
+  },
+  "success": true
+}
+```
+
+---
+
+### 39. Get All Public/Shared Contests
+
+**Endpoint:** `GET /contests/all`
+
+**Authentication:** Required ✅
+
+**Description:** Get all public and shared contests
+
+**Query Parameters:**
+```
+page: number (optional)
+limit: number (optional)
+visibility: string (optional, enum: public|shared)
+```
+
+**Response (200 OK):**
+```json
+{
+  "errorCode": 200,
+  "message": "All contests fetched",
+  "data": {
+    "page": 1,
+    "total": 50,
+    "contests": [...]
+  },
+  "success": true
+}
+```
+
+---
+
+### 40. Get Contest by ID/Code
+
+**Endpoint:** `GET /contests/:contestId`
+
+**Authentication:** Required ✅
+
+**Description:** Retrieve specific contest details
+
+**URL Parameters:**
+```
+contestId: string (MongoDB ObjectId or contest code)
+```
+
+**Response (200 OK):**
+```json
+{
+  "errorCode": 200,
+  "message": "Contest fetched successfully",
+  "data": {
+    "_id": "ObjectId",
+    "title": "DSA Contest",
+    "description": "...",
+    "durationInMin": 60,
+    "questionCount": 5,
+    "visibility": "private",
+    "status": "active",
+    "contestCode": "ABC123",
+    "owner": {
+      "_id": "ObjectId",
+      "username": "john_doe"
+    },
+    "participants": 5,
+    "createdAt": "ISO 8601"
+  },
+  "success": true
+}
+```
+
+---
+
+### 41. Get Contest Leaderboard
+
+**Endpoint:** `GET /contests/:contestId/leaderboard`
+
+**Authentication:** Required ✅
+
+**Description:** Retrieve contest leaderboard with rankings and scores
+
+**URL Parameters:**
+```
+contestId: string (MongoDB ObjectId)
+```
+
+**Response (200 OK):**
+```json
+{
+  "errorCode": 200,
+  "message": "Leaderboard fetched successfully",
+  "data": [
+    {
+      "rank": 1,
+      "userId": "ObjectId",
+      "username": "user1",
+      "score": 100,
+      "timeSpent": 1200,
+      "solved": 5
+    },
+    {
+      "rank": 2,
+      "userId": "ObjectId",
+      "username": "user2",
+      "score": 80,
+      "timeSpent": 1800,
+      "solved": 4
+    }
+  ],
+  "success": true
+}
+```
+
+---
+
+## Contest Participants
+
+### Base Path: `/contestParticipants`
+
+### 42. Join Contest
+
+**Endpoint:** `POST /contestParticipants/:identifier/join`
+
+**Authentication:** Required ✅
+
+**Description:** Join a contest using ObjectId or contest code
+
+**URL Parameters:**
+```
+identifier: string (MongoDB ObjectId or contest code)
+```
+
+**Response (200 OK):**
+```json
+{
+  "errorCode": 200,
+  "message": "Contest joined successfully",
+  "data": {
+    "contestId": "ObjectId",
+    "participantId": "ObjectId",
+    "joinedAt": "ISO 8601"
   },
   "success": true
 }
@@ -2703,69 +1433,931 @@ collectionId: string (MongoDB ObjectId, required)
 **Error Responses:**
 | Status | Message | Reason |
 |--------|---------|--------|
-| 400 | Invalid collection ID | Invalid ObjectId format |
-| 404 | Collection not found | Collection doesn't exist or not owned by user |
-| 401 | Unauthorized | Missing/invalid access token |
-
-**Notes:**
-- Removes all CollectionQuestion records for this collection
-- Sets questionsCount to 0
-- Collection itself is NOT deleted
-- Questions are NOT deleted, only associations
+| 404 | Contest not found | Invalid contest ID/code |
+| 409 | User already joined this contest | Already a participant |
 
 ---
 
-## Future Endpoints (TODO)
+### 43. Leave Contest
 
-The following endpoints are planned but not yet implemented:
+**Endpoint:** `DELETE /contestParticipants/:contestId/leave`
 
-### User Endpoints
-- `POST /users/verify-email` - Send verification email
-- `POST /users/resend-verification-email` - Resend verification
-- `POST /users/forgot-password` - Initiate password reset
-- `POST /users/reset-password/:token` - Complete password reset
+**Authentication:** Required ✅
 
-### Question Endpoints
-- `GET /question/recently-deleted` - View soft-deleted questions
-- `POST /question/:questionId/restore` - Restore deleted question
-- `GET /question/stats` - Get question statistics
-- `POST /question/:questionId/bookmark` - Bookmark a question
-- `GET /question/bookmarked` - Get bookmarked questions
+**Description:** Leave/quit a contest
+
+**URL Parameters:**
+```
+contestId: string (MongoDB ObjectId)
+```
+
+**Response (200 OK):**
+```json
+{
+  "errorCode": 200,
+  "message": "Left contest successfully",
+  "data": {},
+  "success": true
+}
+```
+
+---
+
+### 44. Enter Live Contest
+
+**Endpoint:** `POST /contestParticipants/:contestId/start`
+
+**Authentication:** Required ✅
+
+**Description:** Start the contest timer for a participant
+
+**URL Parameters:**
+```
+contestId: string (MongoDB ObjectId)
+```
+
+**Response (200 OK):**
+```json
+{
+  "errorCode": 200,
+  "message": "Contest started successfully",
+  "data": {
+    "startTime": "ISO 8601",
+    "endTime": "ISO 8601",
+    "durationInSeconds": 3600
+  },
+  "success": true
+}
+```
+
+---
+
+### 45. Get Live Timer
+
+**Endpoint:** `GET /contestParticipants/:contestId/time`
+
+**Authentication:** Required ✅
+
+**Description:** Get remaining time for ongoing contest
+
+**URL Parameters:**
+```
+contestId: string (MongoDB ObjectId)
+```
+
+**Response (200 OK):**
+```json
+{
+  "errorCode": 200,
+  "message": "Timer fetched successfully",
+  "data": {
+    "remainingTime": 1800,
+    "totalTime": 3600,
+    "startTime": "ISO 8601",
+    "endTime": "ISO 8601"
+  },
+  "success": true
+}
+```
+
+---
+
+### 46. Submit Contest
+
+**Endpoint:** `POST /contestParticipants/:contestId/submit`
+
+**Authentication:** Required ✅
+
+**Description:** Submit contest answers and get final score
+
+**Request Body:**
+```json
+{
+  "attempts": [
+    {
+      "questionId": "ObjectId",
+      "status": "solved|unsolved",
+      "timeSpent": 120
+    }
+  ]
+}
+```
+
+**Response (200 OK):**
+```json
+{
+  "errorCode": 200,
+  "message": "Contest submitted successfully",
+  "data": {
+    "score": 80,
+    "totalQuestions": 5,
+    "solved": 4,
+    "unsolved": 1,
+    "timeSpent": 3400,
+    "rank": 5
+  },
+  "success": true
+}
+```
+
+---
+
+### 47. Get My Contest Rank
+
+**Endpoint:** `GET /contestParticipants/:contestId/rank`
+
+**Authentication:** Required ✅
+
+**Description:** Get user's ranking in a contest
+
+**Response (200 OK):**
+```json
+{
+  "errorCode": 200,
+  "message": "Rank fetched successfully",
+  "data": {
+    "rank": 5,
+    "score": 80,
+    "totalParticipants": 50,
+    "percentile": 90
+  },
+  "success": true
+}
+```
+
+---
+
+### 48. Get Participant State
+
+**Endpoint:** `GET /contestParticipants/:contestId/state`
+
+**Authentication:** Required ✅
+
+**Description:** Get current participant state in a contest
+
+**Response (200 OK):**
+```json
+{
+  "errorCode": 200,
+  "message": "Participant state fetched",
+  "data": {
+    "status": "joined|completed",
+    "joinedAt": "ISO 8601",
+    "completedAt": null,
+    "score": 0,
+    "attemptedQuestions": 0
+  },
+  "success": true
+}
+```
+
+---
+
+### 49. Get Contest Participants
+
+**Endpoint:** `GET /contestParticipants/:contestId/participants`
+
+**Authentication:** Required ✅
+
+**Description:** Get all participants in a contest
+
+**Response (200 OK):**
+```json
+{
+  "errorCode": 200,
+  "message": "Participants fetched",
+  "data": [
+    {
+      "userId": "ObjectId",
+      "username": "user1",
+      "score": 100,
+      "status": "completed",
+      "joinedAt": "ISO 8601"
+    }
+  ],
+  "success": true
+}
+```
+
+---
+
+## Contest Messages
+
+### Base Path: `/contestMessages`
+
+### 50. Get Contest Chat Messages
+
+**Endpoint:** `GET /contestMessages/:contestId`
+
+**Authentication:** Required ✅
+
+**Description:** Retrieve chat messages from a contest
+
+**URL Parameters:**
+```
+contestId: string (MongoDB ObjectId)
+```
+
+**Response (200 OK):**
+```json
+{
+  "errorCode": 200,
+  "message": "Messages fetched successfully",
+  "data": [
+    {
+      "_id": "ObjectId",
+      "sender": {
+        "_id": "ObjectId",
+        "username": "user1",
+        "avatar": "..."
+      },
+      "message": "How to solve question 2?",
+      "createdAt": "ISO 8601"
+    }
+  ],
+  "success": true
+}
+```
+
+---
+
+## Private Messages
+
+### Base Path: `/privateMessages`
+
+### 51. Get Inbox
+
+**Endpoint:** `GET /privateMessages/inbox`
+
+**Authentication:** Required ✅
+
+**Description:** Retrieve all private message conversations (inbox)
+
+**Response (200 OK):**
+```json
+{
+  "errorCode": 200,
+  "message": "Inbox fetched successfully",
+  "data": [
+    {
+      "_id": "ObjectId",
+      "user": {
+        "_id": "ObjectId",
+        "username": "john_doe",
+        "fullName": "John Doe",
+        "avatar": "..."
+      },
+      "lastMessage": "Hey, how are you?",
+      "unreadCount": 2,
+      "lastMessageTime": "ISO 8601"
+    }
+  ],
+  "success": true
+}
+```
+
+---
+
+### 52. Get Private Messages
+
+**Endpoint:** `GET /privateMessages/inbox/:otherUserId`
+
+**Authentication:** Required ✅
+
+**Description:** Get chat messages with a specific user
+
+**URL Parameters:**
+```
+otherUserId: string (MongoDB ObjectId)
+```
+
+**Query Parameters:**
+```
+page: number (optional, default: 1, for pagination)
+```
+
+**Response (200 OK):**
+```json
+{
+  "errorCode": 200,
+  "message": "Messages fetched successfully",
+  "data": [
+    {
+      "_id": "ObjectId",
+      "senderId": {
+        "_id": "ObjectId",
+        "fullName": "John Doe"
+      },
+      "message": "Hey there!",
+      "status": "read|unread",
+      "createdAt": "ISO 8601"
+    }
+  ],
+  "success": true
+}
+```
+
+---
+
+## Follow System
+
+### Base Path: `/follow`
+
+### 53. Follow User
+
+**Endpoint:** `POST /follow/:targetUserId`
+
+**Authentication:** Required ✅
+
+**Description:** Follow another user
+
+**URL Parameters:**
+```
+targetUserId: string (MongoDB ObjectId)
+```
+
+**Response (201 Created):**
+```json
+{
+  "errorCode": 201,
+  "message": "User followed successfully",
+  "data": null,
+  "success": true
+}
+```
+
+---
+
+### 54. Unfollow User
+
+**Endpoint:** `DELETE /follow/:targetUserId`
+
+**Authentication:** Required ✅
+
+**Description:** Unfollow another user
+
+**Response (200 OK):**
+```json
+{
+  "errorCode": 200,
+  "message": "User unfollowed successfully",
+  "data": null,
+  "success": true
+}
+```
+
+---
+
+### 55. Get Followers
+
+**Endpoint:** `GET /follow/followers/:userId`
+
+**Authentication:** Required ✅
+
+**Description:** Get list of user's followers
+
+**URL Parameters:**
+```
+userId: string (MongoDB ObjectId)
+```
+
+**Query Parameters:**
+```
+page: number (optional)
+limit: number (optional, max: 50)
+```
+
+**Response (200 OK):**
+```json
+{
+  "errorCode": 200,
+  "message": "Followers fetched successfully",
+  "data": [
+    {
+      "_id": "ObjectId",
+      "username": "follower1",
+      "fullName": "Follower One",
+      "avatar": "..."
+    }
+  ],
+  "success": true
+}
+```
+
+---
+
+### 56. Get Following
+
+**Endpoint:** `GET /follow/following/:userId`
+
+**Authentication:** Required ✅
+
+**Description:** Get list of users that user is following
+
+**URL Parameters:**
+```
+userId: string (MongoDB ObjectId)
+```
+
+**Query Parameters:**
+```
+page: number (optional)
+limit: number (optional, max: 50)
+```
+
+**Response (200 OK):**
+```json
+{
+  "errorCode": 200,
+  "message": "Following fetched successfully",
+  "data": [
+    {
+      "_id": "ObjectId",
+      "username": "following1",
+      "fullName": "Following One",
+      "avatar": "..."
+    }
+  ],
+  "success": true
+}
+```
+
+---
+
+### 57. Get Follow Status
+
+**Endpoint:** `GET /follow/status/:targetUserId`
+
+**Authentication:** Required ✅
+
+**Description:** Check if authenticated user follows target user
+
+**URL Parameters:**
+```
+targetUserId: string (MongoDB ObjectId)
+```
+
+**Response (200 OK):**
+```json
+{
+  "errorCode": 200,
+  "message": "Follow status fetched",
+  "data": {
+    "isFollowing": true,
+    "isFollowedBy": false
+  },
+  "success": true
+}
+```
+
+---
+
+## User Statistics
+
+### Base Path: `/userStats`
+
+### 58. Get User Stats
+
+**Endpoint:** `GET /userStats/:userId`
+
+**Authentication:** Required ✅
+
+**Description:** Get user's statistics (solved problems, contests participated, etc.)
+
+**URL Parameters:**
+```
+userId: string (MongoDB ObjectId)
+```
+
+**Response (200 OK):**
+```json
+{
+  "errorCode": 200,
+  "message": "User stats fetched successfully",
+  "data": {
+    "userId": "ObjectId",
+    "totalQuestionsAdded": 50,
+    "totalContestsParticipated": 10,
+    "totalContestsWon": 2,
+    "averageScore": 75.5,
+    "easyCount": 20,
+    "mediumCount": 20,
+    "hardCount": 10,
+    "leetcodeCount": 35,
+    "gfgCount": 10,
+    "codeforcesCount": 5
+  },
+  "success": true
+}
+```
+
+---
+
+### 59. Get User Topic Stats
+
+**Endpoint:** `GET /userStats/:userId/topics`
+
+**Authentication:** Required ✅
+
+**Description:** Get topic-wise statistics for a user
+
+**URL Parameters:**
+```
+userId: string (MongoDB ObjectId)
+```
+
+**Response (200 OK):**
+```json
+{
+  "errorCode": 200,
+  "message": "User topic stats fetched",
+  "data": {
+    "topicStats": [
+      {
+        "topic": "array",
+        "count": 10,
+        "percentage": 20
+      },
+      {
+        "topic": "string",
+        "count": 8,
+        "percentage": 16
+      }
+    ]
+  },
+  "success": true
+}
+```
+
+---
+
+### 60. Get User Contest History
+
+**Endpoint:** `GET /userStats/:userId/history`
+
+**Authentication:** Required ✅
+
+**Description:** Get user's past contest participations
+
+**URL Parameters:**
+```
+userId: string (MongoDB ObjectId)
+```
+
+**Query Parameters:**
+```
+page: number (optional)
+limit: number (optional, max: 50)
+```
+
+**Response (200 OK):**
+```json
+{
+  "errorCode": 200,
+  "message": "Contest history fetched",
+  "data": {
+    "page": 1,
+    "total": 10,
+    "history": [
+      {
+        "contestId": "ObjectId",
+        "title": "DSA Contest",
+        "score": 80,
+        "rank": 5,
+        "participationDate": "ISO 8601"
+      }
+    ]
+  },
+  "success": true
+}
+```
+
+---
+
+### 61. Get Leaderboard
+
+**Endpoint:** `GET /userStats/leaderboard`
+
+**Authentication:** Required ✅
+
+**Description:** Get global leaderboard of all users
+
+**Query Parameters:**
+```
+page: number (optional, default: 1)
+limit: number (optional, default: 50, max: 50)
+```
+
+**Response (200 OK):**
+```json
+{
+  "errorCode": 200,
+  "message": "Leaderboard fetched successfully",
+  "data": {
+    "page": 1,
+    "total": 500,
+    "leaderboard": [
+      {
+        "rank": 1,
+        "userId": "ObjectId",
+        "username": "top_user",
+        "fullName": "Top User",
+        "score": 1000,
+        "contestsWon": 5
+      }
+    ]
+  },
+  "success": true
+}
+```
+
+---
+
+## Health Check
+
+### Base Path: `/health`
+
+### 62. Health Check
+
+**Endpoint:** `GET /health`
+
+**Authentication:** Not Required
+
+**Description:** Check if server is running and healthy
+
+**Response (200 OK):**
+```json
+{
+  "ok": true,
+  "timestamp": "ISO 8601",
+  "message": "Server is running"
+}
+```
+
+---
+
+## Error Responses
+
+### Standard Error Response Format
+
+```json
+{
+  "errorCode": "number",
+  "message": "string",
+  "data": null,
+  "success": false
+}
+```
+
+### Common HTTP Status Codes
+
+| Status | Meaning | Example |
+|--------|---------|---------|
+| 200 | OK | Successful GET, PATCH, DELETE |
+| 201 | Created | Successful POST (resource created) |
+| 400 | Bad Request | Validation error, missing fields |
+| 401 | Unauthorized | Missing/invalid token, not authenticated |
+| 403 | Forbidden | Authenticated but not authorized |
+| 404 | Not Found | Resource doesn't exist |
+| 409 | Conflict | Duplicate entry, already exists |
+| 500 | Server Error | Unexpected server error |
+
+---
+
+## Response Format
+
+### Success Response Format
+
+```json
+{
+  "errorCode": 200,
+  "message": "Success message",
+  "data": {
+    // Response data object or array
+  },
+  "success": true
+}
+```
+
+### Pagination Format
+
+When pagination is included:
+```json
+{
+  "page": 1,
+  "total": 100,
+  "limit": 20,
+  "pages": 5,
+  "data": [...]
+}
+```
+
+---
+
+## Database Models
+
+### User Model
+
+```javascript
+{
+  username: String (3-30 chars, unique, lowercase),
+  fullName: String (3+ chars),
+  email: String (unique, lowercase),
+  password: String (hashed with bcrypt),
+  role: String (enum: student|admin, default: student),
+  avatar: { public_id, url },
+  coverImage: { public_id, url },
+  bio: String (max 300 chars),
+  followersCount: Number (default: 0),
+  followingCount: Number (default: 0),
+  isVerified: Boolean (default: false),
+  emailVerified: Boolean (default: false),
+  emailVerificationToken: String (hashed, select: false),
+  emailVerificationExpiry: Date,
+  passwordResetToken: String (hashed, select: false),
+  passwordResetExpiry: Date,
+  isActive: Boolean (default: true),
+  refreshToken: String (hashed, select: false),
+  createdAt: Date,
+  updatedAt: Date
+}
+```
+
+### Question Model
+
+```javascript
+{
+  ownerId: ObjectId (ref: User),
+  title: String (required),
+  platform: String (enum: LeetCode|GFG|Codeforces|Other),
+  problemUrlOriginal: String (required),
+  problemUrlNormalized: String (required, unique per user),
+  difficulty: String (enum: easy|medium|hard),
+  topics: [String],
+  isDeleted: Boolean (default: false),
+  createdAt: Date,
+  updatedAt: Date
+}
+```
+
+### Collection Model
+
+```javascript
+{
+  ownerId: ObjectId (ref: User),
+  name: String (2-100 chars),
+  nameLower: String (indexed for uniqueness),
+  description: String (max 300 chars),
+  isPublic: Boolean (default: false),
+  questionsCount: Number (default: 0),
+  createdAt: Date,
+  updatedAt: Date
+}
+```
+
+### Contest Model
+
+```javascript
+{
+  title: String (3-100 chars),
+  owner: ObjectId (ref: User),
+  collectionId: ObjectId (ref: Collection),
+  questionIds: [ObjectId] (ref: Question),
+  durationInMin: Number (1-720),
+  visibility: String (enum: private|shared|public, default: private),
+  contestCode: String (unique),
+  status: String (enum: upcoming|active|completed),
+  startTime: Date,
+  endTime: Date,
+  createdAt: Date,
+  updatedAt: Date
+}
+```
+
+### ContestParticipant Model
+
+```javascript
+{
+  contestId: ObjectId (ref: Contest),
+  userId: ObjectId (ref: User),
+  status: String (enum: joined|completed),
+  joinedAt: Date,
+  completedAt: Date,
+  score: Number (default: 0),
+  timeSpent: Number (seconds, default: 0),
+  rank: Number,
+  createdAt: Date,
+  updatedAt: Date
+}
+```
+
+### Follow Model
+
+```javascript
+{
+  followerId: ObjectId (ref: User),
+  followingId: ObjectId (ref: User),
+  followedAt: Date,
+  createdAt: Date,
+  updatedAt: Date
+}
+```
+
+### PrivateMessage Model
+
+```javascript
+{
+  senderId: ObjectId (ref: User),
+  receiverId: ObjectId (ref: User),
+  message: String,
+  status: String (enum: sent|read),
+  conversationId: String,
+  createdAt: Date,
+  updatedAt: Date
+}
+```
+
+### Collection Question Model
+
+```javascript
+{
+  collectionId: ObjectId (ref: Collection),
+  questionId: ObjectId (ref: Question),
+  order: Number (default: 0),
+  addedAt: Date
+}
+```
+
+### ContestMessage Model
+
+```javascript
+{
+  contestId: ObjectId (ref: Contest),
+  senderId: ObjectId (ref: User),
+  message: String,
+  createdAt: Date,
+  updatedAt: Date
+}
+```
+
+### UserStats Model
+
+```javascript
+{
+  userId: ObjectId (ref: User, unique),
+  totalQuestionsAdded: Number (default: 0),
+  totalContestsParticipated: Number (default: 0),
+  totalContestsWon: Number (default: 0),
+  averageScore: Number (default: 0),
+  topicsCount: Map<String, Number>,
+  createdAt: Date,
+  updatedAt: Date
+}
+```
 
 ---
 
 ## Implementation Notes
 
-1. **Security:**
-   - Passwords are hashed with bcrypt (salt rounds: 10)
-   - Tokens are JWT-based with expiration
-   - Refresh tokens are hashed before storage
-   - httpOnly and secure flags on cookies
-   - CORS enabled with credentials
+### Security
+- Passwords hashed with bcrypt (10 salt rounds)
+- JWT tokens with 15-minute expiry
+- Refresh tokens hashed in database
+- httpOnly, secure cookies
+- CORS enabled with credentials
+- Input validation on all endpoints
+- Rate limiting recommended
 
-2. **File Uploads:**
-   - Images uploaded to Cloudinary
-   - Temporary files cleaned up after upload
-   - Old files deleted when replaced
-   - Rollback on database failure
+### Authentication Flow
+1. User registers or logs in
+2. Server generates access + refresh tokens
+3. Access token sent in response, refresh token in httpOnly cookie
+4. Client includes access token in Authorization header or uses cookie
+5. On token expiry, use refresh endpoint to get new access token
 
-3. **Validation:**
-   - Express-validator for input validation
-   - Mongoose schema validation
-   - Password confirmation validation
-   - Image type validation
+### File Upload
+- Images uploaded to Cloudinary
+- Temp files cleaned up after upload
+- Old files deleted when replaced
+- Supported formats: JPG, PNG, GIF, WebP
 
-4. **Error Handling:**
-   - Centralized error handling with ApiError class
-   - Async wrapper for try-catch blocks
-   - Descriptive error messages
-   - Proper HTTP status codes
+### Pagination
+- Default page: 1, limit: 20
+- Max limit: 50 (varies by endpoint)
+- Returns total count and page info
+- Sort: creation date (newest first)
+
+### Validation
+- All inputs validated with express-validator
+- Mongoose schema validation
+- Custom validation for URLs, emails, etc.
+- Consistent error messages
 
 ---
 
-## Example cURL Commands
+## Example Requests
 
-### Register
+### Register New User
 ```bash
 curl -X POST http://localhost:5000/api/v1/users/register \
   -H "Content-Type: application/json" \
@@ -2787,476 +2379,331 @@ curl -X POST http://localhost:5000/api/v1/users/login \
   }'
 ```
 
-### Get Current User
+### Create Collection
 ```bash
-curl -X GET http://localhost:5000/api/v1/users/current-user \
-  -H "Cookie: accessToken=<token>"
-```
-
-### Update Avatar
-```bash
-curl -X PATCH http://localhost:5000/api/v1/users/update-avatar \
-  -H "Cookie: accessToken=<token>" \
-  -F "avatar=@/path/to/image.jpg"
-```
-
-### Get User Profile
-```bash
-curl -X GET http://localhost:5000/api/v1/users/c/john_doe
-```
-
-### Upload Question
-```bash
-curl -X POST http://localhost:5000/api/v1/question \
+curl -X POST http://localhost:5000/api/v1/collections \
   -H "Cookie: accessToken=<token>" \
   -H "Content-Type: application/json" \
   -d '{
-    "title": "Two Sum",
-    "platform": "LeetCode",
-    "problemUrl": "https://leetcode.com/problems/two-sum/",
-    "difficulty": "easy",
-    "topics": ["array", "hash-table"]
+    "name": "DSA Problems",
+    "description": "Data Structures and Algorithms",
+    "isPublic": false
   }'
 ```
 
-### Get All Questions
+### Add Question to Collection
 ```bash
-curl -X GET "http://localhost:5000/api/v1/question?difficulty=medium&platform=LeetCode&page=1&limit=20" \
-  -H "Cookie: accessToken=<token>"
-```
-
-### Get Question by ID
-```bash
-curl -X GET http://localhost:5000/api/v1/question/507f1f77bcf86cd799439011 \
-  -H "Cookie: accessToken=<token>"
-```
-
-### Update Question
-```bash
-curl -X PATCH http://localhost:5000/api/v1/question/507f1f77bcf86cd799439011 \
+curl -X POST http://localhost:5000/api/v1/collectionQuestions/<collectionId>/questions \
   -H "Cookie: accessToken=<token>" \
   -H "Content-Type: application/json" \
   -d '{
-    "difficulty": "medium",
-    "platform": "LeetCode"
+    "questionId": "<questionId>"
   }'
 ```
 
-### Delete Question
+### Create Contest
 ```bash
-curl -X DELETE http://localhost:5000/api/v1/question/507f1f77bcf86cd799439011 \
+curl -X POST http://localhost:5000/api/v1/contests \
+  -H "Cookie: accessToken=<token>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "collectionId": "<collectionId>",
+    "title": "DSA Contest",
+    "durationInMin": 60,
+    "questionCount": 5,
+    "visibility": "public"
+  }'
+```
+
+### Join Contest
+```bash
+curl -X POST http://localhost:5000/api/v1/contestParticipants/<contestCode>/join \
+  -H "Cookie: accessToken=<token>"
+```
+
+### Get Contest Leaderboard
+```bash
+curl -X GET http://localhost:5000/api/v1/contests/<contestId>/leaderboard \
+  -H "Cookie: accessToken=<token>"
+```
+
+### Get User Stats
+```bash
+curl -X GET http://localhost:5000/api/v1/userStats/<userId> \
+  -H "Cookie: accessToken=<token>"
+```
+
+### Get Global Leaderboard
+```bash
+curl -X GET "http://localhost:5000/api/v1/userStats/leaderboard?page=1&limit=50" \
   -H "Cookie: accessToken=<token>"
 ```
 
 ---
 
-## Question Model Schema
+## WebSocket Events (Socket.io)
+
+### Connection & Authentication
+
+When connecting to the Socket.io server, the client must provide a JWT token via handshake:
 
 ```javascript
-{
-  ownerId: {
-    type: ObjectId,
-    ref: "User",
-    required: true,
-    indexed: true
-  },
-  
-  title: {
-    type: String,
-    required: true,
-    trim: true,
-    indexed: true
-  },
-  
-  platform: {
-    type: String,
-    enum: ["LeetCode", "GFG", "Codeforces", "Other"],
-    required: true
-  },
-  
-  problemUrlOriginal: {
-    type: String,
-    required: true
-  },
-  
-  problemUrlNormalized: {
-    type: String,
-    required: true,
-    indexed: true,
-    unique: true (per user)
-  },
-  
-  difficulty: {
-    type: String,
-    enum: ["easy", "medium", "hard"],
-    required: true
-  },
-  
-  topics: {
-    type: [String],
-    indexed: true
-  },
-  
-  isDeleted: {
-    type: Boolean,
-    default: false,
-    indexed: true
-  },
-  
-  timestamps: {
-    createdAt: ISO 8601,
-    updatedAt: ISO 8601
+const socket = io('http://localhost:5000', {
+  auth: {
+    token: accessToken
   }
-}
-```
-
-### Indexes:
-1. **Compound Index:** `{ ownerId: 1, problemUrlNormalized: 1, isDeleted: 1 }` (unique)
-   - Ensures each user can't add same problem twice
-   - Filters deleted questions efficiently
-
-2. **Compound Index:** `{ ownerId: 1, topics: 1 }`
-   - Optimizes filtering by topics
-
-3. **Text Index:** `{ title: "text", topics: "text", platform: "text" }`
-   - Enables full-text search across fields
-
----
-
-## Collection Model Schema
-
-```javascript
-{
-  ownerId: {
-    type: ObjectId,
-    ref: "User",
-    required: true,
-    indexed: true
-  },
-  
-  name: {
-    type: String,
-    required: true,
-    trim: true,
-    maxlength: 100
-  },
-  
-  nameLower: {
-    type: String,
-    required: true,
-    indexed: true
-  },
-  
-  description: {
-    type: String,
-    maxlength: 300
-  },
-  
-  isPublic: {
-    type: Boolean,
-    default: false
-  },
-  
-  questionsCount: {
-    type: Number,
-    default: 0
-  },
-  
-  timestamps: {
-    createdAt: ISO 8601,
-    updatedAt: ISO 8601
-  }
-}
-```
-
-### Indexes:
-1. **Compound Index:** `{ ownerId: 1, name: 1 }`
-   - Optimizes collection lookup by owner and name
-
-2. **Compound Index (unique):** `{ ownerId: 1, nameLower: 1 }`
-   - Ensures unique collection names per user (case-insensitive)
-
----
-
-## CollectionQuestion Model Schema
-
-```javascript
-{
-  collectionId: {
-    type: ObjectId,
-    ref: "Collection",
-    required: true,
-    indexed: true
-  },
-  
-  questionId: {
-    type: ObjectId,
-    ref: "Question",
-    required: true,
-    indexed: true
-  },
-  
-  order: {
-    type: Number,
-    default: 0
-  },
-  
-  addedAt: {
-    type: Date,
-    default: Date.now
-  },
-  
-  timestamps: {
-    updatedAt: ISO 8601 (if needed, though timestamps: false used)
-  }
-}
-```
-
-### Indexes:
-1. **Compound Index (unique):** `{ collectionId: 1, questionId: 1 }`
-   - Prevents duplicate question entries in same collection
-   - Enables efficient lookups of specific questions in collection
-
----
-
-**For Frontend Integration:** Import this documentation for Postman, Swagger, or API client generation tools.
-
----
-
-## Contest Model Schema
-
-```javascript
-const contestSchema = new mongoose.Schema({
-  title: {
-    type: String,
-    required: true,
-    trim: true,
-    minlength: 3,
-    maxlength: 100
-  },
-  
-  owner: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'User',
-    required: true
-  },
-  
-  questionIds: [{
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Question',
-    required: true
-  }],
-  
-  durationInMin: {
-    type: Number,
-    required: true,
-    min: 1,
-    max: 720
-  },
-  
-  visibility: {
-    type: String,
-    enum: ['private', 'shared', 'public'],
-    default: 'private'
-  },
-  
-  contestCode: {
-    type: String,
-    required: true,
-    unique: true,
-    minlength: 3,
-    maxlength: 10
-  },
-  
-  status: {
-    type: String,
-    enum: ['upcoming', 'active', 'completed'],
-    default: 'upcoming'
-  },
-  
-  startTime: {
-    type: Date
-  },
-  
-  endTime: {
-    type: Date
-  }
-}, {
-  timestamps: true
 });
 ```
 
-### Fields:
-- **title:** Contest name (3-100 chars)
-- **owner:** Reference to User who created contest
-- **questionIds:** Array of Question ObjectIds (randomly selected from collection)
-- **durationInMin:** Contest duration in minutes (1-720)
-- **visibility:** Access level ('private', 'shared', 'public')
-- **contestCode:** Unique code for joining contest
-- **status:** Current contest state
-- **startTime/endTime:** Contest timing (set when contest becomes active)
+Upon successful connection:
+- User is automatically added to personal room: `socket.userId` (for inbox updates)
+- Socket context has access to `socket.userId` from JWT verification
 
-### Indexes:
-1. **Index:** `{ owner: 1 }` - Find contests by owner
-2. **Unique Index:** `{ contestCode: 1 }` - Ensure unique contest codes
-3. **Index:** `{ status: 1 }` - Filter by contest status
+### Contest Events (Multi-room Architecture)
+
+#### Lobby Room (Pre-contest Presence)
+Used to track participants before contest starts and display lobby status.
+
+**Events:**
+- `contest:lobby:join` - Join contest lobby
+  - Emitted by: Client
+  - Payload: `{ contestId }`
+  - Effect: User joins `contest:{contestId}:lobby` room
+  - Receives: Participant list updates for lobby
+
+- `contest:lobby:leave` - Leave contest lobby
+  - Emitted by: Client
+  - Payload: `{ contestId }`
+  - Effect: User leaves `contest:{contestId}:lobby` room
+
+#### Live Contest Room (During Contest)
+Tracks active participants during contest and sends timer updates.
+
+**Events:**
+- `contest:live:join` - Enter live contest
+  - Emitted by: Client
+  - Payload: `{ contestId }`
+  - Effect: User joins `contest:{contestId}:live` room
+  - Timer starts being broadcasted to this room
+
+- `contest:live:leave` - Exit live contest
+  - Emitted by: Client
+  - Payload: `{ contestId }`
+  - Effect: User leaves `contest:{contestId}:live` room
+
+#### Shared Chat Room (Messages during Contest)
+All contest chat messages shared with all participants.
+
+**Events:**
+- `contest:chat:join` - Join contest chat
+  - Emitted by: Client
+  - Payload: `{ contestId }`
+  - Effect: User joins `contest:{contestId}:chat` room
+
+- `contest:chat:leave` - Leave contest chat
+  - Emitted by: Client
+  - Payload: `{ contestId }`
+  - Effect: User leaves `contest:{contestId}:chat` room
+
+- `contest:message` - Send contest chat message
+  - Emitted by: Client
+  - Payload: `{ contestId, message, phase }`
+  - phase: "lobby" or "live" (for filtering later)
+  - Effect: Message saved to database with phase tag
+  - Broadcast: Emits `contest:receive` to all in `contest:{contestId}:chat`
+
+- `contest:receive` - Receive contest chat message
+  - Emitted by: Server
+  - Payload: Message object with senderId, message, createdAt, phase
+  - Recipients: All users in `contest:{contestId}:chat` room
+  - Contains: User info, message content, timestamp, phase
+
+- `contest:system` - Send system message (host only)
+  - Emitted by: Client
+  - Payload: `{ contestId, message, phase }`
+  - Effect: System message saved to database
+  - Broadcast: Emits `contest:receive` with system message to all
+
+### Private Messaging Events (User-specific Rooms)
+
+#### Connection & Personal Room
+Upon connection, user automatically joins personal room for inbox notifications:
+```
+User joins: {socket.userId}
+Purpose: Real-time inbox updates without opening chat
+```
+
+#### Chat Room Management
+- `private:join` - Join 1-on-1 chat room
+  - Emitted by: Client
+  - Payload: `{ otherUserId }`
+  - Effect: User joins conversation room `conv_{user1}_{user2}`
+  - Room format: Computed using `getPrivateRoom(userId1, userId2)` utility
+
+- `private:leave` - Leave 1-on-1 chat room
+  - Emitted by: Client
+  - Payload: `{ otherUserId }`
+  - Effect: User leaves conversation room
+
+#### Message Events
+- `private:send` - Send private message
+  - Emitted by: Client
+  - Payload: `{ to, message }`
+  - to: Recipient's user ID
+  - message: Message text (trimmed)
+  - Effects:
+    1. Message saved to database
+    2. Emits `private:delivered` to sender (delivery confirmation)
+    3. Emits `private:receive` to conversation room (appears in chat window)
+    4. Emits `inbox:update` to both users' personal rooms (sidebar updates)
+
+- `private:receive` - Receive private message
+  - Emitted by: Server
+  - Payload: Message object with senderId, receiverId, message, status, createdAt
+  - Recipients: Users in the conversation room
+  - Used for: Displaying message in active chat window
+
+- `private:delivered` - Message delivery confirmation
+  - Emitted by: Server
+  - Payload: `messageId`
+  - Recipients: Sender (socket.emit)
+  - Used for: Confirming message was saved before broadcast
+
+- `private:typing` - User is typing
+  - Emitted by: Client
+  - Payload: `{ to }`
+  - Effect: Broadcasts typing indicator to other user in conversation room
+  - Recipients: Other user in `conv_{user1}_{user2}` room
+  - Emitted by server: `private:typing` with `{ userId }`
+
+- `private:seen` - Message marked as read
+  - Emitted by: Client
+  - Payload: `{ messageIds, otherUserId }`
+  - messageIds: Array of message IDs to mark as read
+  - Effect: Updates message status in database to "read"
+  - Broadcast: Emits `private:seen` to other user with messageIds
+
+#### Real-time Inbox Updates (Key Feature)
+**Event:** `inbox:update`
+- Emitted by: Server (when message is sent)
+- Payload:
+  ```json
+  {
+    "senderId": "user123",
+    "receiverId": "user456",
+    "message": "Latest message text",
+    "createdAt": "2026-02-04T10:30:00Z",
+    "sender": { /* User object */ }
+  }
+  ```
+- Recipients: Both users' personal rooms (`senderId` room and `receiverId` room)
+- Effect: Updates inbox/sidebar in real-time for both participants without opening chat
+- Use case: Sidebar shows unread count and preview of last message immediately
+
+### Socket Room Architecture
+
+#### Contest Room Pattern
+```
+Contest ID: "507f1f77bcf86cd799439013"
+├── contest:507f1f77bcf86cd799439013:lobby    (Pre-contest, participants list)
+├── contest:507f1f77bcf86cd799439013:live     (Active, timer updates)
+└── contest:507f1f77bcf86cd799439013:chat     (Chat messages for all)
+```
+
+#### Private Message Room Pattern
+```
+User ID: "507f1f77bcf86cd799439011"
+├── 507f1f77bcf86cd799439011                  (Personal room, inbox updates)
+└── conv_507f1f77bcf86cd799439011_507f1f77bcf86cd799439012 
+                                              (Conversation room, 1-on-1 chat)
+```
+
+### Message Flow Example: Contest Chat
+
+```
+1. Users join contest lobby
+   - Emit: contest:lobby:join with contestId
+   - Result: Join contest:contestId:lobby room
+
+2. Contest starts
+   - Emit: contest:live:join with contestId
+   - Result: Join contest:contestId:live room
+   - Server broadcasts timer to live room
+
+3. Users join chat
+   - Emit: contest:chat:join with contestId
+   - Result: Join contest:contestId:chat room
+
+4. User sends message
+   - Emit: contest:message with { contestId, message, phase: "live" }
+   - Server:
+     - Saves to ContestMessage collection with phase
+     - Emits contest:receive to contest:contestId:chat room
+   - Result: All chat participants see message immediately
+
+5. Contest ends
+   - Server emits system message via contest:system
+   - Results in contest:receive to all in chat room
+```
+
+### Message Flow Example: Private Chat
+
+```
+1. User A opens sidebar
+   - Automatically in room: A (personal room)
+   - Receives inbox:update events for all conversations
+   - Sidebar shows all conversations with latest message
+
+2. User A opens chat with User B
+   - Emit: private:join with { otherUserId: B }
+   - Result: Join conv_A_B room
+
+3. User A sends message
+   - Emit: private:send with { to: B, message: "Hello" }
+   - Server:
+     - Saves to PrivateMessage collection
+     - Emits private:delivered to User A (confirmation)
+     - Emits private:receive to conv_A_B room (appears in chat)
+     - Emits inbox:update to room A and room B (sidebar updates)
+   - Result: 
+     - User A: Message appears in chat, sidebar updates
+     - User B: Sidebar updates with new message, if chat open → message appears
+
+4. User B reads message
+   - Emit: private:seen with { messageIds: [...], otherUserId: A }
+   - Server:
+     - Updates message status to "read" in database
+     - Emits private:seen to User A with messageIds
+   - Result: User A sees read status indicator
+
+5. User B types
+   - Emit: private:typing with { to: A }
+   - Server: Emits private:typing to User A in conv_A_B room
+   - Result: User A sees "typing..." indicator
+```
+
+### Socket Error Handling
+
+If authentication fails during connection:
+- Connection is rejected
+- Client receives error: "Unauthorized"
+- Frontend should redirect to login
+
+If socket receives invalid data:
+- Event is silently ignored (validated on server)
+- Client should validate data before emitting
+
+### Real-time Features Benefits
+
+1. **Inbox Synchronization:** Both users see updated sidebar immediately when message arrives
+2. **Presence Awareness:** Know who's in lobby, live, or chat room
+3. **Phase-aware Messaging:** Can filter messages by contest phase (lobby vs live)
+4. **Delivery Confirmation:** Know when message reached server
+5. **Typing Indicators:** See when other user is typing
+6. **Read Receipts:** Know when message is read
 
 ---
 
-## ContestParticipant Model Schema
-
-```javascript
-const contestParticipantSchema = new mongoose.Schema({
-  contestId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Contest',
-    required: true
-  },
-  
-  userId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'User',
-    required: true
-  },
-  
-  status: {
-    type: String,
-    enum: ['joined', 'completed'],
-    default: 'joined'
-  },
-  
-  joinedAt: {
-    type: Date,
-    default: Date.now
-  },
-  
-  completedAt: {
-    type: Date
-  },
-  
-  score: {
-    type: Number,
-    default: 0
-  },
-  
-  timeSpent: {
-    type: Number,
-    default: 0
-  },
-  
-  rank: {
-    type: Number
-  }
-}, {
-  timestamps: true
-});
-```
-
-### Fields:
-- **contestId:** Reference to Contest
-- **userId:** Reference to User participant
-- **status:** Participation status
-- **joinedAt:** When user joined contest
-- **completedAt:** When user finished contest
-- **score:** Total points earned
-- **timeSpent:** Total time spent (seconds)
-- **rank:** Final ranking in contest
-
-### Indexes:
-1. **Compound Index (unique):** `{ contestId: 1, userId: 1 }` - One participation per user per contest
-2. **Index:** `{ contestId: 1, score: -1 }` - Rank participants by score
-3. **Index:** `{ userId: 1 }` - Find all contests for a user
-
----
-
-## Follow Model Schema
-
-```javascript
-const followSchema = new mongoose.Schema({
-  followerId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'User',
-    required: true
-  },
-  
-  followingId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'User',
-    required: true
-  },
-  
-  followedAt: {
-    type: Date,
-    default: Date.now
-  }
-}, {
-  timestamps: true
-});
-```
-
-### Fields:
-- **followerId:** User who is following
-- **followingId:** User being followed
-- **followedAt:** When follow relationship was created
-
-### Indexes:
-1. **Compound Index (unique):** `{ followerId: 1, followingId: 1 }` - Prevent duplicate follows
-2. **Index:** `{ followerId: 1 }` - Find who user is following
-3. **Index:** `{ followingId: 1 }` - Find user's followers
-
----
-
-## QuestionAttempt Model Schema
-
-```javascript
-const questionAttemptSchema = new mongoose.Schema({
-  contestId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Contest',
-    required: true
-  },
-  
-  participantId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'ContestParticipant',
-    required: true
-  },
-  
-  questionId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Question',
-    required: true
-  },
-  
-  status: {
-    type: String,
-    enum: ['solved', 'unsolved'],
-    required: true
-  },
-  
-  timeSpent: {
-    type: Number,
-    required: true,
-    min: 0
-  },
-  
-  attemptedAt: {
-    type: Date,
-    default: Date.now
-  }
-}, {
-  timestamps: true
-});
-```
-
-### Fields:
-- **contestId:** Reference to Contest
-- **participantId:** Reference to ContestParticipant
-- **questionId:** Reference to Question
-- **status:** Whether question was solved
-- **timeSpent:** Time spent on question (seconds)
-- **attemptedAt:** When attempt was recorded
-
-### Indexes:
-1. **Compound Index:** `{ contestId: 1, participantId: 1 }` - Group attempts by contest and participant
-2. **Index:** `{ questionId: 1 }` - Find attempts for specific question
+**Last Updated:** February 4, 2026  
+**API Version:** v1  
+**Maintained By:** Sahil Singh
