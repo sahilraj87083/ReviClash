@@ -11,10 +11,16 @@ let io;
 const initializeSocket = (server) => {
     io = new Server(server, {
         cors: {
-            origin: process.env.FRONTEND_URL,
-            // methods: ["GET", "POST"],
+            origin: [
+                "http://localhost:5173",           // Local Dev
+                "https://revi-clash.vercel.app",   // Production Vercel
+                process.env.FRONTEND_URL           // Fallback from Env Var
+            ],
             credentials: true,
+            methods: ["GET", "POST"]
         },
+        // Force Websockets to avoid Render "Sticky Session" issues
+        transports: ['websocket', 'polling']
     });
     io.use(socketAuthMiddleware); 
 
