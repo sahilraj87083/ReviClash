@@ -17,7 +17,8 @@ const initializeSocket = (server) => {
                 process.env.FRONTEND_URL           // Fallback from Env Var
             ],
             credentials: true,
-            methods: ["GET", "POST"]
+            methods: ["GET", "POST"],
+            allowedHeaders: ["Cookie", "Authorization"],
         },
         // Force Websockets to avoid Render "Sticky Session" issues
         transports: ['websocket', 'polling']
