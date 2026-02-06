@@ -11,6 +11,7 @@ function Layout() {
            <Outlet/>
         </main>
         <Footer/>
+        <div className="h-16 md:hidden"></div>
     </>
   )
 }
