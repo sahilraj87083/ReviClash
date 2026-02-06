@@ -2,32 +2,23 @@ import { useRef, useLayoutEffect } from "react";
 
 function MessagesArea({ messages, currentUserId, chatType = "public" }) {
   const containerRef = useRef(null);
-  
-  // This ref tracks if we should force-scroll to bottom next time we get messages.
-  // We initialize it as true so the very first load works.
   const shouldForceScroll = useRef(true);
 
   useLayoutEffect(() => {
     const container = containerRef.current;
     if (!container) return;
 
-    // 1. DETECT CHAT SWITCH (Reset)
-    // If messages are cleared (length 0), it means we changed chats.
-    // We arm the trigger to force-scroll when data arrives.
     if (messages.length === 0) {
       shouldForceScroll.current = true;
       return;
     }
 
-    // 2. FORCE SCROLL (Initial Load of new chat)
     if (shouldForceScroll.current) {
       container.scrollTop = container.scrollHeight;
       shouldForceScroll.current = false;
       return;
     }
 
-    // 3. SMART SCROLL (New Message)
-    // For subsequent updates, only scroll if user is near bottom or sent the message.
     const threshold = 150;
     const isNearBottom =
       container.scrollHeight - container.scrollTop - container.clientHeight < threshold;
@@ -46,15 +37,13 @@ function MessagesArea({ messages, currentUserId, chatType = "public" }) {
   return (
     <div
       ref={containerRef}
-      className="flex-1 overflow-y-auto px-4 py-4 space-y-4"
+      // Added 'min-h-0' to prevents flexbox overflow issues
+      className="flex-1 min-h-0 overflow-y-auto px-4 py-4 space-y-4"
     >
       {messages.map((msg, i) => {
         if (msg.type === "system") {
           return (
-            <div
-              key={msg.id || i}
-              className="text-center text-xs text-slate-400"
-            >
+            <div key={msg.id || i} className="text-center text-xs text-slate-400">
               {msg.text}
             </div>
           );
@@ -67,9 +56,7 @@ function MessagesArea({ messages, currentUserId, chatType = "public" }) {
         return (
           <div
             key={msg.id || i}
-            className={`flex items-end gap-2 ${
-              isMe ? "justify-end" : "justify-start"
-            }`}
+            className={`flex items-end gap-2 ${isMe ? "justify-end" : "justify-start"}`}
           >
             {!isMe && (
               <div className="w-8 h-8 rounded-full overflow-hidden bg-slate-700 flex items-center justify-center text-xs text-white">
@@ -82,7 +69,7 @@ function MessagesArea({ messages, currentUserId, chatType = "public" }) {
             )}
 
             <div
-              className={`max-w-[70%] px-4 py-2 rounded-2xl text-sm break-words ${
+              className={`max-w-[75%] px-4 py-2 rounded-2xl text-sm break-words ${
                 isMe
                   ? "bg-red-600 text-white rounded-br-none"
                   : "bg-slate-800 text-slate-200 rounded-bl-none"
