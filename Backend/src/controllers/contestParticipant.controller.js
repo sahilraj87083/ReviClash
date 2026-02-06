@@ -184,19 +184,16 @@ const submitContest = asyncHandler(async (req, res) => {
         throw new ApiError(400, "Invalid contest ID");
     }
 
-    const contest = await Contest.findById(contestId);
+    // 1. Parallel Fetching: Get Contest and Participant info together
+    const [contest, participant] = await Promise.all([
+        Contest.findById(contestId),
+        ContestParticipant.findOne({
+            contestId: contestId,
+            userId: req.user._id
+        })
+    ]);
 
-    if(!contest){
-        throw new ApiError(404, "Contest not found");
-    }
-
-    const participant = await ContestParticipant.findOne(
-        {
-            contestId : contestId,
-            userId : req.user._id
-        }
-    )
-
+    if (!contest) throw new ApiError(404, "Contest not found");
     if (!participant) throw new ApiError(403, "You are not part of this contest");
 
     if (participant.submissionStatus === "submitted") {
@@ -209,7 +206,8 @@ const submitContest = asyncHandler(async (req, res) => {
         participant.startedAt.getTime() + contest.durationInMin * 60 * 1000
     );
 
-    if (now > allowedUntil) {
+    // Allow a small buffer (e.g., 5 seconds) for network latency
+    if (now > allowedUntil + 5000){
         throw new ApiError(403, "Contest time has expired");
     }
 

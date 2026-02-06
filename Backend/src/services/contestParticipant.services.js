@@ -1,5 +1,6 @@
 import {ApiError} from '../utils/ApiError.utils.js'
 import { ContestParticipant } from "../models/contestParticipant.model.js";
+import { ContestMessage } from '../models/contestMessage.model.js'
 import { QuestionAttempt } from "../models/questionAttempt.model.js";
 import { Userstat } from "../models/userStats.model.js";
 import { Contest } from '../models/contest.model.js';
@@ -43,32 +44,32 @@ const finalizeContestSubmissionService = async ({
     let solved = 0;
     let totalTime = 0;
 
+    // --- STEP 1: Process Question Attempts (Parallel I/O) ---
     if (attempts) {
         // Manual submit → update attempts from frontend
-        for (const a of attempts) {
+        // Create an array of update promises
+
+        const updatePromises = attempts.map(async (a) => {
             const safeTime = Math.max(0, Number(a.timeSpent) || 0);
-
-            const updated = await QuestionAttempt.updateOne(
-                {
-                    contestId: contest._id,
-                    userId,
-                    questionId: a.questionId
-                },
-                {
-                    $set: {
-                        status: a.status,
-                        timeSpent: safeTime
-                    }
-                }
-            );
-
-            if (!updated.matchedCount) {
-                throw new ApiError(400, "Invalid question attempt");
-            }
-
+            
+            // Side effect: Calculate stats while iterating (CPU bound, fast)
             if (a.status === "solved") solved++;
             totalTime += safeTime;
-        }
+
+            const result = await QuestionAttempt.updateOne(
+                { contestId: contest._id, userId, questionId: a.questionId },
+                { $set: { status: a.status, timeSpent: safeTime } }
+            );
+
+            if (!result.matchedCount) {
+                 // Note: throwing inside Promise.all rejects the whole transaction
+                throw new ApiError(400, `Invalid attempt for question ${a.questionId}`);
+            }
+        });
+
+        // Execute all DB updates concurrently
+        await Promise.all(updatePromises);
+
     } else {
         // Auto submit → read attempts from DB
         const dbAttempts = await QuestionAttempt.find({
@@ -82,11 +83,15 @@ const finalizeContestSubmissionService = async ({
         }
     }
 
+    // --- STEP 2: Calculate Stats ---
     const totalQuestions = contest.questionIds.length;
     const unsolved = totalQuestions - solved;
-    const score = solved * 100 - totalTime * 0.1;
+    const score = solved * 100 - totalTime * 0.01;
 
-    await ContestParticipant.updateOne(
+    // --- STEP 3: Update Participant & UserStats (Parallel I/O) ---
+
+    // Promise 1: Update the specific contest participation record
+    const participantUpdatePromise = ContestParticipant.updateOne(
         { _id: participant._id },
         {
             solvedCount: solved,
@@ -100,10 +105,9 @@ const finalizeContestSubmissionService = async ({
 
     // Update user stats
     const attempted = solved + unsolved;
-    // const accuracy = attempted === 0 ? 0 : (solved / attempted) * 100;
-    // const avgTime = attempted === 0 ? 0 : totalTime / attempted;
 
-    await Userstat.updateOne(
+    // Promise 2: Update global user statistics
+    const userStatUpdatePromise = Userstat.updateOne(
         { userId },
         [
             {
@@ -200,20 +204,38 @@ const finalizeContestSubmissionService = async ({
         { upsert: true, updatePipeline: true }
     );
 
+    // Await both updates
+    await Promise.all([participantUpdatePromise, userStatUpdatePromise]);
 
+
+    // --- STEP 4: Check Contest Completion & Cleanup ---
+    // Check how many people are still pending
     const pending = await ContestParticipant.countDocuments({
         contestId: contest._id,
         submissionStatus: "not_submitted"
     });
 
+    // If everyone is done, close the contest and clean up chat
     if (pending === 0) {
-        await Contest.updateOne(
-            { _id: contest._id },
-            {
-            status: "ended",
-            endedAt: new Date()
-            }
+        const completionTasks = [];
+
+        // 1. Mark contest as ended
+        completionTasks.push(
+            Contest.updateOne(
+                { _id: contest._id },
+                { status: "ended", endedAt: new Date() }
+            )
         );
+
+        // 2. Delete Group Chat if it's a shared/group contest
+        if (contest.visibility === 'shared') {
+            completionTasks.push(
+                ContestMessage.deleteMany({ contestId: contest._id })
+            );
+        }
+
+        // Execute cleanup tasks in parallel
+        await Promise.all(completionTasks);
     }
 };
 
