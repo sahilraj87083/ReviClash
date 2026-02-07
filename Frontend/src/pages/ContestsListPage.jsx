@@ -23,7 +23,7 @@ function ContestListPage({ type }) {
     };
 
     return (
-        <div className="min-h-screen bg-slate-950 text-white font-sans selection:bg-red-500/30">
+        <div className="min-h-screen bg-slate-950 px-4 pt-10 pb-20 text-white font-sans selection:bg-red-500/30">
             {/* Background pattern */}
             <div className="fixed inset-0 pointer-events-none">
                 <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px]"></div>
