@@ -3,7 +3,6 @@ import { Folder, Trophy, Trash2, ArrowRight, Lock, Globe } from "lucide-react";
 
 function CollectionCard({ collection, onCreateContest, mode = 'owner', onDelete }) {
   const navigate = useNavigate();
-  console.log(collection)
 
   return (
     <div className="group bg-slate-900 border border-slate-800 rounded-xl p-5 hover:border-slate-600 transition-all duration-300 hover:shadow-xl hover:shadow-black/20 flex flex-col h-full relative overflow-hidden">
