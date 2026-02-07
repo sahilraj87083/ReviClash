@@ -84,7 +84,8 @@ const getInbox = asyncHandler(async (req, res) => {
                 user : {
                     _id: "$user._id",
                     fullName: "$user.fullName",
-                    avatar: "$user.avatar"
+                    avatar: "$user.avatar",
+                    username : '$user.username'
                 }
             }
         },
