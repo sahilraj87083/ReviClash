@@ -39,7 +39,7 @@ function Header() {
   );
 
   // Helper for Mobile Bottom Nav Links
-  const MobileLink = ({ to, icon: Icon }) => (
+  const MobileLink = ({ to, icon: Icon, text : text }) => (
     <NavLink
       to={to}
       className={({ isActive }) =>
@@ -49,6 +49,7 @@ function Header() {
       }
     >
       <Icon size={24} strokeWidth={1.5} />
+      <p className="text-xs" >{text}</p>
     </NavLink>
   );
 
@@ -149,28 +150,32 @@ function Header() {
       <div className="md:hidden fixed bottom-0 left-0 w-full h-[60px] bg-slate-950/95 backdrop-blur-lg border-t border-white/5 z-50 flex justify-around items-center px-2 pb-safe">
         
         {/* Left Links */}
-        <MobileLink to="/" icon={Home} />
-        <MobileLink to="/community" icon={Users} />
+        <MobileLink to="/" icon={Home} text="Home" />
+        <MobileLink to="/community" icon={Users} text='Community' />
         
         {/* CENTER: EXPLORE FEED (Floating Button) */}
         <NavLink 
             to="/explore" 
             className={({ isActive }) => `
-                relative -top-5 flex items-center justify-center w-12 h-12 rounded-full shadow-lg shadow-red-900/40 border border-red-500/20
+                relative -top-4 flex items-center justify-center w-12 h-12 rounded-full shadow-lg shadow-red-900/40 border border-red-500/20
                 transition-all duration-300 ${isActive ? "bg-red-500 text-white scale-110" : "bg-slate-800 text-slate-400"}
             `}
         >
-            <Compass size={24} />
+            <div className="flex flex-col items-center">
+              <Compass size={24} />
+              <p className="text-[10px]">Explore</p>
+            </div>
+            
         </NavLink>
         
         {/* Right Links */}
         {isAuthenticated ? (
             <>
-                <MobileLink to="/user/contests" icon={Trophy} />
-                <MobileLink to="/user/messages" icon={MessageSquare} />
+                <MobileLink to="/user/contests" icon={Trophy} text= 'Contest' />
+                <MobileLink to="/user/messages" icon={MessageSquare} text= 'Message' />
             </>
         ) : (
-            <MobileLink to="/user/login" icon={Code2} />
+            <MobileLink to="/user/login" icon={Code2} text='Login'/>
         )}
       </div>
 
