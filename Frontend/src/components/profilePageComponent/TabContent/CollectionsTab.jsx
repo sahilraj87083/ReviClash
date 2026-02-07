@@ -2,6 +2,7 @@ import { CollectionCard } from '../../index'
 
 function CollectionsTab({ collections }) {
   // if(!collections) return 
+  console.log(collections)
 
   if ( !collections.length) {
     return <p className="text-slate-400">No public collections</p>;

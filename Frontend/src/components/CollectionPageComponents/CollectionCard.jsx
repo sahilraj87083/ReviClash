@@ -1,8 +1,9 @@
 import { useNavigate } from "react-router-dom";
 import { Folder, Trophy, Trash2, ArrowRight, Lock, Globe } from "lucide-react";
 
-function CollectionCard({ collection, onCreateContest, onDelete }) {
+function CollectionCard({ collection, onCreateContest, mode = 'owner', onDelete }) {
   const navigate = useNavigate();
+  console.log(collection)
 
   return (
     <div className="group bg-slate-900 border border-slate-800 rounded-xl p-5 hover:border-slate-600 transition-all duration-300 hover:shadow-xl hover:shadow-black/20 flex flex-col h-full relative overflow-hidden">
@@ -41,27 +42,34 @@ function CollectionCard({ collection, onCreateContest, onDelete }) {
       {/* Actions */}
       <div className="flex items-center gap-2 mt-auto">
         <button 
-            onClick={() => navigate(`/user/collections/${collection._id}/questions`)}
+            onClick={() =>  mode === 'owner' ?  navigate(`/user/collections/${collection._id}/questions`) : navigate(`/collections/${collection._id}`)}
             className="flex-1 flex items-center justify-center gap-2 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-sm font-medium text-white transition-colors"
         >
             View <ArrowRight size={14} />
         </button>
+        {
+          mode === 'owner' && (
+            <button 
+                onClick={() => onCreateContest(collection)}
+                className="p-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-yellow-500 hover:text-yellow-400 transition-colors"
+                title="Create Contest"
+            >
+                <Trophy size={18} />
+            </button>
+          )
+        }
+        {
+          mode === 'owner' && (
+            <button 
+                onClick={() => onDelete(collection._id)}
+                className="p-2 rounded-lg bg-slate-800 hover:bg-red-500/20 text-red-500 hover:text-red-400 transition-colors"
+                title="Delete Collection"
+            >
+                <Trash2 size={18} />
+            </button>
+          )
+        }
         
-        <button 
-            onClick={() => onCreateContest(collection)}
-            className="p-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-yellow-500 hover:text-yellow-400 transition-colors"
-            title="Create Contest"
-        >
-            <Trophy size={18} />
-        </button>
-
-        <button 
-            onClick={() => onDelete(collection._id)}
-            className="p-2 rounded-lg bg-slate-800 hover:bg-red-500/20 text-red-500 hover:text-red-400 transition-colors"
-            title="Delete Collection"
-        >
-            <Trash2 size={18} />
-        </button>
       </div>
     </div>
   );
