@@ -12,10 +12,22 @@ import { useUserContext } from "../contexts/UserContext";
 import { updateAccountDetailsService , changeCurrentPasswordService, updateUserNameService} from "../services/auth.services";
 import toast from "react-hot-toast";
 
+import { 
+    User, 
+    Settings, 
+    Shield, 
+    Mail, 
+    AlertOctagon, 
+    Menu, 
+    X,
+    ChevronRight
+} from "lucide-react";
+
 function EditProfilePage() {
     const [active, setActive] = useState("profile");
     const [openUpload, setOpenUpload] = useState(false);
     const [uploadType, setUploadType] = useState(null);
+    const [isSidebarOpen, setIsSidebarOpen] = useState(false); // Mobile sidebar state
 
     const { setUser, logout } = useUserContext();
 
@@ -29,7 +41,7 @@ function EditProfilePage() {
             const user = await updateAccountDetailsService(data)
             setUser(user);
         } catch (error) {
-            toast.error("Updation failed. Please try again")
+            toast.error("Update failed. Please try again")
             throw error;
         }
     }
@@ -48,31 +60,70 @@ function EditProfilePage() {
         try {
             const user = await updateUserNameService(data)
             setUser(user)
-            toast.success("username updated")
+            toast.success("Username updated")
         } catch (error) {
             const message = error?.message ||  error?.response?.data?.message || "Something went wrong";
             toast.error(message)
         }
     }
 
+    // Close mobile sidebar when a tab is selected
+    const handleTabChange = (id) => {
+        setActive(id);
+        setIsSidebarOpen(false);
+    };
+
     return (
-        <div className="min-h-screen bg-slate-900 text-white flex">
+        // Added pt-16 md:pt-20 to prevent header collision
+        <div className="min-h-screen bg-slate-950 text-white pt-16 md:pt-24 pb-10 selection:bg-red-500/30">
+            
+            <div className="max-w-7xl mx-auto flex flex-col md:flex-row gap-6 px-4 md:px-6">
 
-            <Sidebar active={active} setActive={setActive} />
+                {/* --- MOBILE MENU BUTTON --- */}
+                <div className="md:hidden flex items-center justify-between bg-slate-900 border border-slate-800 p-4 rounded-xl">
+                    <div className="flex items-center gap-3">
+                        <span className="p-2 bg-slate-800 rounded-lg text-slate-400">
+                           {active === 'profile' && <User size={20}/>}
+                           {active === 'account' && <Settings size={20}/>}
+                           {active === 'security' && <Shield size={20}/>}
+                           {active === 'email' && <Mail size={20}/>}
+                           {active === 'danger' && <AlertOctagon size={20}/>}
+                        </span>
+                        <span className="font-semibold capitalize">{active.replace('-', ' ')}</span>
+                    </div>
+                    <button 
+                        onClick={() => setIsSidebarOpen(true)}
+                        className="p-2 text-slate-400 hover:text-white bg-slate-800 rounded-lg"
+                    >
+                        <Menu size={20} />
+                    </button>
+                </div>
 
-            <div className="flex-1 p-10 max-w-4xl">
+                {/* --- SIDEBAR (Desktop + Mobile Drawer) --- */}
+                <Sidebar 
+                    active={active} 
+                    setActive={handleTabChange} 
+                    isOpen={isSidebarOpen} 
+                    onClose={() => setIsSidebarOpen(false)} 
+                />
 
-                {active === "profile" && (
-                    <ProfileSection 
-                        onOpenUpload={openUploader} 
-                        updateDetails = {updateDetails}
-                    />
-                )}
+                {/* --- MAIN CONTENT AREA --- */}
+                <div className="flex-1 bg-slate-900/50 border border-slate-800 rounded-2xl p-6 md:p-10 shadow-xl min-h-[600px]">
+                    <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+                        {active === "profile" && (
+                            <ProfileSection 
+                                onOpenUpload={openUploader} 
+                                updateDetails = {updateDetails}
+                            />
+                        )}
 
-                {active === "account" && (<AccountSection updateUserName = {updateUserName} />)}
-                {active === "security" && <SecuritySection  updatePassword = {updatePassword} />}
-                {active === "email" && <EmailSection />}
-                {active === "danger" && <DangerZone />}
+                        {active === "account" && (<AccountSection updateUserName = {updateUserName} />)}
+                        {active === "security" && <SecuritySection  updatePassword = {updatePassword} />}
+                        {active === "email" && <EmailSection />}
+                        {active === "danger" && <DangerZone />}
+                    </div>
+                </div>
+
             </div>
 
             <ImageUploadModal
@@ -84,5 +135,4 @@ function EditProfilePage() {
         </div>
     );
 }
-
 export default EditProfilePage;
