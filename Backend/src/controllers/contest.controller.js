@@ -523,40 +523,37 @@ const getAllContests = asyncHandler(async (req, res) => {
     const { page, limit, status } = req.query;
     const { skip, limit: l, page: p } = paginate({ page, limit });
 
-    const pipeline = [
-        {
-            $lookup: {
-                from: "contestparticipants",
-                localField: "_id",
-                foreignField: "contestId",
-                as: "participants"
-            }
-        },
-        {
-            $match: {
-                $or: [
-                    { owner: req.user._id },
-                    { "participants.userId": req.user._id }
-                ],
-                ...(status && { status })
-            }
-        },
-        { $sort: { createdAt: -1 } },
-        {
-            $facet: {
-                data: [{ $skip: skip }, { $limit: l }],
-                total: [{ $count: "count" }]
-            }
-        }
-    ];
+    // 1. Get IDs of contests the user is participating in (Lightweight query)
+    const participatedContestIds = await ContestParticipant.find({ 
+        userId: req.user._id 
+    }).distinct('contestId');
 
-    const result = await Contest.aggregate(pipeline);
+    // 2. Build filter: Created by Me OR Joined by Me
+    const matchStage = {
+        $or: [
+            { owner: req.user._id },                     // Created by user
+            { _id: { $in: participatedContestIds } }     // Joined by user
+        ]
+    };
 
-    const contests = result[0].data;
-    const total = result[0].total[0]?.count || 0;
+    // Add optional status filter if provided (e.g., ?status=live)
+    if (status) {
+        matchStage.status = status;
+    }
 
-    return res.json(
-        new ApiResponse(200, "All my contests", {
+    // 3. Fetch Data & Count in parallel
+    const [contests, total] = await Promise.all([
+        Contest.find(matchStage)
+            .select("title status startsAt endsAt visibility") // Only fetch needed fields
+            .sort({ createdAt: -1 })
+            .skip(skip)
+            .limit(l)
+            .lean(), // Convert to plain JS objects (faster)
+        Contest.countDocuments(matchStage)
+    ]);
+
+    return res.status(200).json(
+        new ApiResponse(200, "All my contests fetched successfully", {
             contests,
             meta: {
                 page: p,
