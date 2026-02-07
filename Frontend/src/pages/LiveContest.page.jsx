@@ -11,13 +11,22 @@ import { useContestChat } from "../hooks/useContestChat";
 import MessagesArea from '../components/messageComponents/MessagesArea';
 import MessageInput from '../components/messageComponents/MessageInput';
 import { useUserContext } from "../contexts/UserContext";
+import { 
+  Menu, 
+  X, 
+  Clock, 
+  CheckCircle2, 
+  AlertCircle, 
+  ExternalLink, 
+  MessageSquare 
+} from "lucide-react";
 
 function LiveContest() {
   const containerRef = useRef(null);
   const enteredRef = useRef(false);
   const joinedRef = useRef(false);
   const hydratedRef = useRef(false);
-  const chatWindowRef = useRef(null); // Ref for chat animation
+  const chatWindowRef = useRef(null); 
 
   const { contestId } = useParams();
   const navigate = useNavigate();
@@ -31,7 +40,7 @@ function LiveContest() {
   const [endsAt, setEndsAt] = useState(null);
   const [startedAt, setStartedAt] = useState(null);
 
-  // UI STATES for Responsiveness
+  // UI STATES
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [isQuestionNavOpen, setIsQuestionNavOpen] = useState(false);
 
@@ -67,7 +76,7 @@ function LiveContest() {
   };
 
   const submitContest = async (e) => {
-    if (e) e.preventDefault(); // Handle both button click and form submit
+    if (e) e.preventDefault(); 
     const payload = {
       attempts: Object.values(attempts)
     };
@@ -102,12 +111,10 @@ function LiveContest() {
     }
   };
 
-  // Fetch contest once
   useEffect(() => {
     fetchContest();
   }, [contestId]);
 
-  // socket event
   useEffect(() => {
     if (!socket || !contestId) return;
     if (joinedRef.current) return;
@@ -120,7 +127,6 @@ function LiveContest() {
     };
   }, [contestId]);
 
-  // mount attempts from local storage on refresh
   useEffect(() => {
     const cached = localStorage.getItem(`contest:${contestId}:attempts`);
     if (cached) {
@@ -128,7 +134,6 @@ function LiveContest() {
     }
   }, [contestId]);
 
-  // local storage backup for attempts
   useEffect(() => {
     if (!hydratedRef.current) {
       hydratedRef.current = true;
@@ -141,7 +146,6 @@ function LiveContest() {
   }, [contestId, attempts]);
 
 
-  // logs user into contest : timer starts
   useEffect(() => {
     if (!contest) return;
     if (contest.status !== "live") return;
@@ -166,7 +170,6 @@ function LiveContest() {
   }, [contest?.status]);
 
 
-  // timer logic
   useEffect(() => {
     if (!contest?.startsAt) return;
 
@@ -177,7 +180,7 @@ function LiveContest() {
       setTimeLeft(remaining);
     };
 
-    update(); // immediate
+    update(); 
     const interval = setInterval(update, 1000);
 
     return () => clearInterval(interval);
@@ -194,7 +197,6 @@ function LiveContest() {
     }
   }, [timeLeft]);
 
-  // Initial Animation
   useGSAP(
     () => {
       gsap.from(containerRef.current, {
@@ -207,7 +209,6 @@ function LiveContest() {
     { scope: containerRef }
   );
 
-  // Chat Window Animation
   useGSAP(() => {
     if (isChatOpen) {
       gsap.fromTo(chatWindowRef.current,
@@ -218,26 +219,28 @@ function LiveContest() {
   }, [isChatOpen]);
 
   return (
-    <div className="h-screen bg-slate-900 text-white flex flex-col overflow-hidden">
+    // FIX: Replaced 'h-screen' with 'fixed inset-0' and added padding-top
+    // This pushes the contest UI down below your global mobile header (h-16) and desktop header
+    <div className="fixed inset-0 pt-16 md:pt-20 bg-slate-900 text-white flex flex-col overflow-hidden">
 
-      {/* --- TOP BAR (Redesigned) --- */}
-      <header className="relative flex items-center justify-between px-4 md:px-6 h-16 border-b border-slate-700 bg-slate-900 z-30 shrink-0">
+      {/* --- TOP BAR --- */}
+      <header className="relative flex items-center justify-between px-4 md:px-6 h-16 border-b border-slate-700 bg-slate-900/95 backdrop-blur z-30 shrink-0 shadow-sm">
         
         {/* LEFT: Menu (Mobile) & Title */}
         <div className="flex items-center gap-3 z-10">
           <button 
             onClick={() => setIsQuestionNavOpen(!isQuestionNavOpen)}
-            className="md:hidden p-2 text-slate-400 hover:text-white"
+            className="md:hidden p-2 -ml-2 text-slate-400 hover:text-white transition-colors"
           >
-            <i className={isQuestionNavOpen ? "ri-close-line text-xl" : "ri-menu-2-line text-xl"}></i>
+            {isQuestionNavOpen ? <X size={24} /> : <Menu size={24} />}
           </button>
 
           <div className="flex flex-col">
-            <h1 className="font-semibold text-sm md:text-lg truncate max-w-[150px] md:max-w-xs">
+            <h1 className="font-semibold text-sm md:text-lg truncate max-w-[150px] md:max-w-xs flex items-center gap-2">
               {contest?.title}
             </h1>
-            <span className="text-[10px] md:text-xs text-slate-400">
-              {isGroupContest ? "Group Contest" : "Solo Contest"}
+            <span className="text-[10px] md:text-xs text-slate-400 flex items-center gap-1">
+              {isGroupContest ? "Group Battle" : "Solo Sprint"}
             </span>
           </div>
         </div>
@@ -245,11 +248,14 @@ function LiveContest() {
         {/* CENTER: Timer (Absolute Center) */}
         <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none">
           <div
-            className={`px-3 py-1 md:px-4 md:py-2 rounded-md font-mono text-sm md:text-lg font-bold shadow-lg ${
-              isDanger ? "bg-red-600 animate-pulse" : "bg-slate-800"
+            className={`flex items-center gap-2 px-3 py-1.5 md:px-4 md:py-2 rounded-lg font-mono text-sm md:text-lg font-bold shadow-lg border border-white/5 ${
+              isDanger 
+              ? "bg-red-500/10 text-red-500 border-red-500/50 animate-pulse" 
+              : "bg-slate-800 text-white"
             }`}
           >
-            {minutes} MIN :{seconds.toString().padStart(2, "0")} SEC
+            <Clock size={16} className={isDanger ? "animate-spin" : ""} />
+            {minutes}:{seconds.toString().padStart(2, "0")}
           </div>
         </div>
 
@@ -259,7 +265,7 @@ function LiveContest() {
             variant="danger" 
             onClick={submitContest}
             disabled={timeLeft === 0}
-            className="text-xs md:text-sm px-3 py-1.5 md:px-4 md:py-2"
+            className="text-xs md:text-sm px-4 py-2 shadow-lg shadow-red-900/20"
           >
             Submit
           </Button>
@@ -273,37 +279,40 @@ function LiveContest() {
         {/* Overlay for mobile */}
         {isQuestionNavOpen && (
           <div 
-            className="fixed inset-0 bg-black/50 z-20 md:hidden"
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-20 md:hidden transition-opacity"
             onClick={() => setIsQuestionNavOpen(false)}
           />
         )}
         
         <aside className={`
-          absolute inset-y-0 left-0 z-20 w-64 bg-slate-900 border-r border-slate-700 
-          transform transition-transform duration-300 ease-in-out
+          absolute inset-y-0 left-0 z-30 w-72 bg-slate-900 border-r border-slate-700 
+          transform transition-transform duration-300 ease-in-out shadow-2xl md:shadow-none
           md:relative md:transform-none md:flex flex-col
           ${isQuestionNavOpen ? "translate-x-0" : "-translate-x-full"}
         `}>
-          <div className="p-4 space-y-3 overflow-y-auto h-full">
-            <p className="text-sm text-slate-400 mb-2 font-medium">Questions List</p>
+          <div className="p-4 border-b border-slate-800 bg-slate-900/50">
+             <h3 className="font-semibold text-white">Problem List</h3>
+             <p className="text-xs text-slate-400 mt-1">{contestQuestions?.length} Problems</p>
+          </div>
 
+          <div className="p-3 space-y-2 overflow-y-auto flex-1">
             {contestQuestions?.map((q, idx) => (
               <button
                 key={q._id}
                 onClick={() => {
                   setActiveQuestion(idx);
-                  setIsQuestionNavOpen(false); // Close drawer on mobile selection
+                  setIsQuestionNavOpen(false); 
                 }}
-                className={`w-full text-left px-4 py-3 rounded-md transition border border-transparent
+                className={`w-full text-left px-4 py-3 rounded-lg transition-all border
                   ${
                     idx === activeQuestion
-                      ? "bg-slate-800 border-slate-700 text-white"
-                      : "text-slate-400 hover:bg-slate-800/50 hover:text-slate-200"
+                      ? "bg-slate-800 border-slate-600 text-white shadow-md"
+                      : "border-transparent text-slate-400 hover:bg-slate-800/50 hover:text-slate-200"
                   }
                 `}
               >
                 <div className="flex justify-between items-center">
-                  <span className="truncate text-sm font-medium">Q{idx + 1}. {q.title}</span>
+                  <span className="truncate text-sm font-medium pr-2">Q{idx + 1}. {q.title}</span>
                   <DifficultyDot status={q.difficulty} />
                 </div>
               </button>
@@ -312,39 +321,40 @@ function LiveContest() {
         </aside>
 
         {/* ACTIVE QUESTION AREA */}
-        <main className="flex-1 p-4 md:p-6 overflow-y-auto space-y-6 bg-slate-900/50">
+        <main className="flex-1 flex flex-col relative bg-slate-950/50">
           
           {contestQuestions && (
-            <>
+            <div className="flex-1 overflow-y-auto p-4 md:p-8 space-y-6">
+              
               {/* Question Header */}
-              <div className="border-b border-slate-700/50 pb-4">
-                <div className="flex justify-between items-start gap-4">
-                  <h2 className="text-xl md:text-2xl font-bold text-white">
+              <div className="border-b border-slate-800 pb-6">
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                  <h2 className="text-2xl md:text-3xl font-bold text-white leading-tight">
                     {contestQuestions[activeQuestion].title}
                   </h2>
-                </div>
-
-                <div className="flex items-center gap-3 mt-3 text-sm">
-                  <span className="px-2.5 py-1 rounded bg-slate-800 text-slate-300 font-medium capitalize">
-                    {contestQuestions[activeQuestion].platform}
-                  </span>
-                  <span className={`px-2.5 py-1 rounded font-medium capitalize 
-                    ${contestQuestions[activeQuestion].difficulty === 'easy' ? 'bg-green-500/10 text-green-500' : 
-                      contestQuestions[activeQuestion].difficulty === 'medium' ? 'bg-yellow-500/10 text-yellow-500' : 'bg-red-500/10 text-red-500'}`
-                  }>
-                    {contestQuestions[activeQuestion].difficulty}
-                  </span>
+                  
+                  <div className="flex items-center gap-3 shrink-0">
+                    <span className="px-3 py-1 rounded-full bg-slate-800 text-slate-300 text-xs font-semibold capitalize border border-slate-700">
+                        {contestQuestions[activeQuestion].platform}
+                    </span>
+                    <span className={`px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide border 
+                        ${contestQuestions[activeQuestion].difficulty === 'easy' ? 'bg-green-500/10 text-green-500 border-green-500/20' : 
+                          contestQuestions[activeQuestion].difficulty === 'medium' ? 'bg-yellow-500/10 text-yellow-500 border-yellow-500/20' : 'bg-red-500/10 text-red-500 border-red-500/20'}`
+                    }>
+                        {contestQuestions[activeQuestion].difficulty}
+                    </span>
+                  </div>
                 </div>
               </div>
 
               {/* Action Box */}
-              <div className="bg-slate-800 rounded-xl p-5 border border-slate-700 flex flex-col sm:flex-row items-center justify-between gap-4">
-                <div className="text-center sm:text-left">
-                  <p className="text-sm font-medium text-slate-200">
-                    Solve this problem on the original platform
+              <div className="bg-slate-900/80 rounded-2xl p-6 border border-slate-800 shadow-xl flex flex-col sm:flex-row items-center justify-between gap-6">
+                <div className="text-center sm:text-left space-y-1">
+                  <p className="text-base font-medium text-white flex items-center justify-center sm:justify-start gap-2">
+                     <ExternalLink size={18} className="text-blue-500" /> Solve on {contestQuestions[activeQuestion].platform}
                   </p>
-                  <p className="text-xs text-slate-400 mt-1">
-                    Click the button to open the problem in a new tab
+                  <p className="text-sm text-slate-400">
+                    Read the problem statement and submit your code on the external platform.
                   </p>
                 </div>
 
@@ -352,36 +362,41 @@ function LiveContest() {
                   href={contestQuestions[activeQuestion].problemUrlOriginal}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="px-5 py-2.5 rounded-lg bg-red-600 hover:bg-red-500 text-white font-semibold transition flex items-center gap-2 shadow-lg shadow-red-900/20"
+                  className="px-6 py-3 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-semibold transition-all hover:-translate-y-0.5 shadow-lg shadow-blue-900/20 whitespace-nowrap"
                 >
-                  Solve Problem <i className="ri-external-link-line"></i>
+                  Open Problem
                 </a>
               </div>
 
               {/* Status Update Buttons */}
-              <div className="pt-2">
-                 <p className="text-sm text-slate-400 mb-3">Update your status:</p>
-                 <div className="flex flex-wrap gap-3">
+              <div className="pt-4">
+                 <p className="text-sm text-slate-400 mb-4 font-medium flex items-center gap-2">
+                    <AlertCircle size={16} /> Update your progress:
+                 </p>
+                 <div className="flex flex-wrap gap-4">
                   <Button 
-                    className="border border-slate-600 bg-transparent hover:bg-slate-800 text-slate-300" 
+                    className="border border-slate-700 bg-slate-800/50 hover:bg-slate-800 text-slate-300" 
                     onClick={() => markAttempt("unsolved")}
                   >
-                    <i className="ri-time-line mr-2"></i> Mark Attempted
+                    Attempted
                   </Button>
                   <Button 
-                    variant="primary" 
+                    className="bg-green-600 hover:bg-green-500 border-green-600 shadow-lg shadow-green-900/20" 
                     onClick={() => markAttempt("solved")}
                   >
-                    <i className="ri-check-line mr-2"></i> Mark Solved
+                    <CheckCircle2 size={18} className="mr-2" /> Mark Solved
                   </Button>
                 </div>
               </div>
-            </>
+              
+              {/* Padding for bottom scrolling */}
+              <div className="h-20 md:h-0"></div>
+            </div>
           )}
 
-          {/* Footer Info inside scroll area */}
-          <div className="mt-10 pt-6 border-t border-slate-800 text-center md:text-left text-xs text-slate-500">
-            Progress is auto-saved locally · System auto-submits when timer ends
+          {/* Footer Info */}
+          <div className="h-10 bg-slate-900 border-t border-slate-800 flex items-center justify-center text-[10px] md:text-xs text-slate-500 uppercase tracking-wider">
+            Auto-saving progress • Good Luck!
           </div>
         </main>
       </div>
@@ -389,55 +404,48 @@ function LiveContest() {
       {/* --- FLOATING CHAT SYSTEM (Group Contest Only) --- */}
       {isGroupContest && (
         <>
-          {/* 1. Floating Chat Window */}
-{isChatOpen && (
-  <div 
-    ref={chatWindowRef}
-    className="fixed bottom-20 right-4 w-[90vw] md:w-96 h-[60vh] md:h-[500px] bg-slate-900 border border-slate-700 rounded-xl shadow-2xl z-50 flex flex-col overflow-hidden"
-  >
-    {/* Header */}
-    <div className="h-12 bg-slate-800 px-4 flex items-center justify-between border-b border-slate-700 shrink-0">
-      <span className="font-semibold text-white flex items-center gap-2">
-        <i className="ri-chat-3-line text-red-500"></i> Live Chat
-      </span>
-      <button 
-        onClick={() => setIsChatOpen(false)}
-        className="text-slate-400 hover:text-white"
-      >
-        <i className="ri-close-line text-xl"></i>
-      </button>
-    </div>
-    
-    {/* Messages Area Wrapper */}
-    {/* FIX IS HERE: Added 'flex flex-col' so the inner component can scroll */}
-    <div className="flex-1 bg-slate-900/95 overflow-hidden flex flex-col">
-      <MessagesArea messages={messages} currentUserId={user._id} />
-    </div>
+          {/* Chat Window */}
+          {isChatOpen && (
+            <div 
+              ref={chatWindowRef}
+              className="fixed bottom-24 right-4 w-[90vw] md:w-96 h-[50vh] md:h-[500px] bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl z-[60] flex flex-col overflow-hidden"
+            >
+              <div className="h-12 bg-slate-800/80 backdrop-blur px-4 flex items-center justify-between border-b border-slate-700 shrink-0">
+                <span className="font-bold text-white flex items-center gap-2">
+                  <MessageSquare size={16} className="text-blue-500" /> Live Chat
+                </span>
+                <button 
+                  onClick={() => setIsChatOpen(false)}
+                  className="p-1 rounded-full hover:bg-slate-700 text-slate-400 transition"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+              
+              <div className="flex-1 bg-slate-950/50 overflow-hidden flex flex-col">
+                <MessagesArea messages={messages} currentUserId={user._id} />
+              </div>
 
-    {/* Input */}
-    {chatEnabled && (
-      <div className="bg-slate-900 p-2 border-t border-slate-800 shrink-0">
-        <MessageInput onSend={(msg) => send(msg)} />
-      </div>
-    )}
-  </div>
-)}
+              {chatEnabled && (
+                <div className="p-2 bg-slate-900 border-t border-slate-800 shrink-0">
+                  <MessageInput onSend={(msg) => send(msg)} />
+                </div>
+              )}
+            </div>
+          )}
 
-          {/* 2. Floating Action Button (Toggle) */}
+          {/* Floating Toggle Button */}
           <button
             onClick={() => setIsChatOpen(!isChatOpen)}
             className={`
-              fixed bottom-16 right-4 w-14 h-14 rounded-full shadow-lg z-50 flex items-center justify-center transition-all duration-300
-              ${isChatOpen ? "bg-slate-700 rotate-90" : "bg-red-600 hover:bg-red-500"}
+              fixed bottom-16 right-3 w-14 h-14 rounded-full shadow-2xl z-50 flex items-center justify-center transition-all duration-300
+              ${isChatOpen ? "bg-slate-700 rotate-90" : "bg-blue-600 hover:bg-blue-500 hover:scale-105"}
             `}
           >
             {isChatOpen ? (
-              <i className="ri-close-line text-2xl text-white"></i>
+              <X size={24} className="text-white" />
             ) : (
-              <div className="relative">
-                <i className="ri-message-3-line text-2xl text-white"></i>
-                {/* Optional: Add unread badge here if needed */}
-              </div>
+              <MessageSquare size={24} className="text-white fill-current" />
             )}
           </button>
         </>
