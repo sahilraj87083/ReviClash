@@ -15,15 +15,9 @@ import {
 } from "lucide-react"; 
 
 function Header() {
-  const headerRef = useRef(null);
-  const logoRef = useRef(null);
-  const { isAuthenticated, isAuthReady, user } = useUserContext();
+  const { isAuthenticated, user } = useUserContext();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const location = useLocation();
 
-  if (!isAuthReady) {
-    return <header className="h-16 md:h-20 bg-slate-950 border-b border-white/5" />;
-  }
 
   // Helper for Desktop Links
   const NavItem = ({ to, label }) => (
