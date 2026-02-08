@@ -1,4 +1,4 @@
-import { NavLink, useNavigate } from "react-router-dom";
+import { NavLink } from "react-router-dom";
 import { useRef, useState } from "react";
 import gsap from "gsap";
 import { useGSAP } from "@gsap/react";
@@ -11,7 +11,6 @@ import { ArrowRight, Lock, Mail } from "lucide-react";
 function Login() {
   const containerRef = useRef(null);
   const formRef = useRef(null);
-  const navigate = useNavigate();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -104,7 +103,7 @@ function Login() {
 
           <div className="relative z-10 space-y-4">
              <div className="flex -space-x-3">
-                {[1,2,3,4].map((i) => (
+                {[19,21,11,1].map((i) => (
                     <div key={i} className="w-10 h-10 rounded-full bg-slate-700 border-2 border-slate-900 flex items-center justify-center text-xs font-bold text-white">
                         {String.fromCharCode(64 + i)}
                     </div>
