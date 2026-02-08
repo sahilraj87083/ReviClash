@@ -84,7 +84,7 @@ function LiveContest() {
     try {
       await submitContestService(contestId, payload);
       toast.success("Contest Submitted");
-      navigate('/user/dashboard');
+      navigate(`/contests/${contestId}/leaderboard`);
       localStorage.removeItem(`contest:${contestId}:attempts`);
     } catch (error) {
       toast.error("Try again");
@@ -219,9 +219,9 @@ function LiveContest() {
   }, [isChatOpen]);
 
   return (
-    // FIX: Replaced 'h-screen' with 'fixed inset-0' and added padding-top
-    // This pushes the contest UI down below your global mobile header (h-16) and desktop header
-    <div className="fixed inset-0 pt-16 md:pt-20 bg-slate-900 text-white flex flex-col overflow-hidden">
+    // FIX 1: Corrected typo 'ovehiddenrflow-' -> 'overflow-hidden'
+    // FIX 2: Added 'z-40' to ensure it sits above the footer/other content
+    <div className="fixed inset-0 pt-16 md:pt-20 bg-slate-900 text-white flex flex-col overflow-hidden z-40">
 
       {/* --- TOP BAR --- */}
       <header className="relative flex items-center justify-between px-4 md:px-6 h-16 border-b border-slate-700 bg-slate-900/95 backdrop-blur z-30 shrink-0 shadow-sm">
