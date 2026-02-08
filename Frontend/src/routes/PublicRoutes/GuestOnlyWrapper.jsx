@@ -1,6 +1,7 @@
 import { useEffect } from "react";
-import { useNavigate, Outlet } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { useUserContext } from "../../contexts/UserContext";
+import { LoadingState } from "../../components";
 
 
 const GuestOnlyWrapper = ({ children }) => {
@@ -15,7 +16,9 @@ const GuestOnlyWrapper = ({ children }) => {
     }
   }, [authToken, isAuthReady]);
 
-  if (!isAuthReady) return <div>Loading...</div>;
+  if (!isAuthReady || authToken) {
+      return <LoadingState message="Redirecting..." />;
+  }
 
   return <>{children}</>;
 };

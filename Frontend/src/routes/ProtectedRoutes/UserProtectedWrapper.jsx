@@ -2,6 +2,7 @@ import { useEffect, useState} from "react";
 import { useNavigate } from "react-router-dom";
 import { getCurrUserService } from "../../services/auth.services.js";
 import {useUserContext} from '../../contexts/UserContext.jsx'
+import { LoadingState } from "../../components";
 
 const UserProtectedWrapper = ({children}) => {
 
@@ -31,12 +32,8 @@ const UserProtectedWrapper = ({children}) => {
     }, [authToken, isAuthReady])
 
 
-    if (!isAuthReady) {
-        return <div>Loading...</div>;
-    }
-
-    if (isLoading) {
-        return <div>Loading...</div>;
+    if (!isAuthReady || isLoading) {
+        return <LoadingState message="Verifying session..." />;
     }
 
     return (

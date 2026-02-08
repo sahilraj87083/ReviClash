@@ -4,7 +4,6 @@ import gsap from "gsap";
 import { useGSAP } from "@gsap/react";
 import { Input, Button } from "../components"; 
 import { registerService } from "../services/auth.services";
-// Import checkUsernameService if you have it, otherwise use the simulation below
 // import { checkUsernameService } from "../services/auth.services"; 
 import toast from "react-hot-toast";
 import { 
@@ -16,7 +15,8 @@ import {
     Timer,
     ArrowRight,
     Loader2,
-    XCircle
+    XCircle,
+    RefreshCw
 } from "lucide-react";
 
 function Register() {
@@ -26,13 +26,13 @@ function Register() {
 
     // Form State
     const [fullName, setFullName] = useState("");
-    const [username, setUsername] = useState("");
+    const [username, setUserName] = useState("");
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [confirmPassword, setConfirmPassword] = useState("");
 
     // Username Availability State
-    const [usernameAvailable, setUsernameAvailable] = useState(null); // null = unseen, true = available, false = taken
+    const [usernameAvailable, setUsernameAvailable] = useState(null); 
     const [checkingUsername, setCheckingUsername] = useState(false);
 
     // OTP State
@@ -52,16 +52,10 @@ function Register() {
 
             setCheckingUsername(true);
             try {
-                // REPLACE THIS WITH YOUR REAL API CALL
-                // const res = await checkUsernameService(username);
-                // setUsernameAvailable(res.available); 
-
-                // Simulation:
+                // Simulation of API call
                 await new Promise(r => setTimeout(r, 800));
-                // Mock logic: 'admin' is taken, everything else is free
                 if(username.toLowerCase() === 'admin') throw new Error("Taken");
                 setUsernameAvailable(true);
-
             } catch (error) {
                 setUsernameAvailable(false);
             } finally {
@@ -71,7 +65,7 @@ function Register() {
 
         const timeoutId = setTimeout(() => {
             if (username) checkUsername();
-        }, 500); // 500ms debounce
+        }, 500);
 
         return () => clearTimeout(timeoutId);
     }, [username]);
@@ -92,10 +86,10 @@ function Register() {
         
         try {
             setOtpLoading(true);
-            await new Promise(r => setTimeout(r, 1000)); 
+            await new Promise(r => setTimeout(r, 1000)); // Simulate API
             setIsOtpSent(true);
-            setTimer(30);
-            toast.success("OTP sent to " + email);
+            setTimer(30); // Start 30s timer
+            toast.success(isOtpSent ? "OTP Resent!" : "OTP sent to " + email);
         } catch (error) {
             toast.error("Failed to send OTP");
         } finally {
@@ -125,7 +119,7 @@ function Register() {
 
         try {
             setLoading(true);
-            // Verify OTP & Register Logic...
+            // Verify OTP logic here...
             await new Promise(r => setTimeout(r, 1000));
             
             const newUser = { fullName, username, email, password };
@@ -188,31 +182,27 @@ function Register() {
                     placeholder="John Doe" 
                   />
                   
-                  {/* USERNAME FIELD WITH CHECK */}
+                  {/* USERNAME FIELD */}
                   <div className="relative">
                       <Input 
                         value={username}
                         onChange={(e) => {
-                            setUsername(e.target.value);
-                            setUsernameAvailable(null); // Reset status on type
+                            setUserName(e.target.value);
+                            setUsernameAvailable(null);
                         }}
+                        leftIcon={<User size={18} />}
                         label="Username" 
                         placeholder="john_doe" 
-                        // Visual feedback via border color
                         className={
                             usernameAvailable === true ? "border-green-500/50 focus:border-green-500" :
                             usernameAvailable === false ? "border-red-500/50 focus:border-red-500" : ""
                         }
                       />
-                      
-                      {/* Status Icon */}
                       <div className="absolute right-3 top-[2.3rem] pointer-events-none">
                           {checkingUsername && <Loader2 size={16} className="text-slate-500 animate-spin" />}
                           {!checkingUsername && usernameAvailable === true && <CheckCircle2 size={16} className="text-green-500" />}
                           {!checkingUsername && usernameAvailable === false && <XCircle size={16} className="text-red-500" />}
                       </div>
-
-                      {/* Status Text */}
                       {!checkingUsername && usernameAvailable === false && (
                           <p className="text-xs text-red-400 mt-1 ml-1">Username is taken</p>
                       )}
@@ -236,13 +226,31 @@ function Register() {
                           />
                       </div>
                       
+                      {/* OTP BUTTON LOGIC */}
                       <button
                         type="button"
                         onClick={handleSendOtp}
-                        disabled={timer > 0 || otpLoading || !email || isOtpSent}
-                        className="bg-slate-800 hover:bg-slate-700 text-white px-4 rounded-xl text-sm font-medium transition-colors disabled:opacity-50 whitespace-nowrap min-w-[100px]"
+                        // Disable if: Timer active OR Loading OR No Email. We ENABLE it if timer is 0 (even if sent previously)
+                        disabled={timer > 0 || otpLoading || !email}
+                        className={`
+                            bg-slate-800 hover:bg-slate-700 text-white px-4 rounded-xl text-sm font-medium transition-colors 
+                            disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap min-w-[110px] flex items-center justify-center
+                            ${timer > 0 ? "text-blue-400" : ""}
+                        `}
                       >
-                        {otpLoading ? "..." : timer > 0 ? `${timer}s` : isOtpSent ? "Sent" : "Send OTP"}
+                        {otpLoading ? (
+                            <Loader2 size={16} className="animate-spin" />
+                        ) : timer > 0 ? (
+                            <span className="font-mono flex items-center gap-1"><Timer size={14}/> {timer}s</span>
+                        ) : isOtpSent ? (
+                            <div className="flex text-xs text-center gap-1 font-semibold">
+                                <RefreshCw size={16}/>
+                                Resend OTP
+                            </div>
+                            
+                        ) : (
+                            "Send OTP"
+                        )}
                       </button>
                   </div>
               </div>

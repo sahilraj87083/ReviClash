@@ -3,6 +3,8 @@ import Footer  from './Footer/Footer'
 import Input from './Others/Input'
 import Button from './Others/Button'
 import Select from './Others/Select'
+import LoadingState from './Others/LoadingState'
+
 import QuestionRow from './CollectionPageComponents/QuestionRow'
 import AddQuestionPanel from './CollectionPageComponents/AddQuestionPanel'
 
@@ -59,6 +61,8 @@ export {
     Input,
     Button,
     Select,
+    LoadingState,
+
     QuestionRow,
     AddQuestionPanel,
 
