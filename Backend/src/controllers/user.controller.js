@@ -108,6 +108,7 @@ const loginUser = asyncHandler(async(req, res) => {
             {
                 user : loggedInUser,
                 accessToken,
+                refreshToken
             }
         )
     )
@@ -196,7 +197,8 @@ const refreshAccessToken = asyncHandler( async (req, res) => {
                 "Access token refreshed",
                 {
                     user : user,
-                    accessToken : accessToken
+                    accessToken : accessToken,
+                    refreshToken : refreshToken
                 }
             )
         )
