@@ -84,7 +84,9 @@ const getInbox = asyncHandler(async (req, res) => {
                 user : {
                     _id: "$user._id",
                     fullName: "$user.fullName",
-                    avatar: "$user.avatar",
+                    avatar: {
+                        url : "$user.avatar.url"
+                    },
                     username : '$user.username'
                 }
             }
@@ -117,7 +119,9 @@ const getInbox = asyncHandler(async (req, res) => {
 
     const newUsers = await User.find(
         { _id: { $in: newChatUserIds } },
-        { fullName: 1, avatar: 1 }
+        { fullName: 1, avatar: {
+            url : 1
+        }, username : 1 }
     ).lean();
 
     const inbox = [
@@ -152,6 +156,7 @@ const getInbox = asyncHandler(async (req, res) => {
 
 const getPrivateMessages = asyncHandler(async (req, res) => {
     const { otherUserId } = req.params
+    const { cursor } = req.query;
 
     const room = getPrivateRoom(req.user._id, otherUserId);
 
@@ -166,23 +171,26 @@ const getPrivateMessages = asyncHandler(async (req, res) => {
         throw new ApiError(403, "Not authorized to chat with this user");
     }
 
-    const message = await getConversationMessagesService({
+    const messageData = await getConversationMessagesService({
         userId : req.user._id,
         room,
-        limit: 0,
-        skip : 0
+        limit: 20,
+        cursor: cursor
     });
 
     return res.status(200).json(
-        new ApiResponse(200, "message fetched successfully", { messages : message.reverse()})
+        new ApiResponse(200, "message fetched successfully", { 
+            messages: messageData.messages.reverse(),
+            nextCursor: messageData.nextCursor 
+        })
     )
 
 })
 
 const clearPrivateConversation = asyncHandler (async (req, res) => {
-    const { userId } = req.params
+    const { otherUserId } = req.params
 
-    const room = getPrivateRoom(req.user._id, userId)
+    const room = getPrivateRoom(req.user._id, otherUserId)
 
     await clearConversationService(room, req.user._id);
 

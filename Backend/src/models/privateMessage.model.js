@@ -5,7 +5,6 @@ const privateMessageSchema = new mongoose.Schema(
         conversationId: {
             type: String,
             required: true,
-            index: true,
         },
 
         senderId: {
@@ -40,6 +39,6 @@ const privateMessageSchema = new mongoose.Schema(
     },
     { timestamps: true }
 );
-privateMessageSchema.index({ conversationId: 1, createdAt: -1 });
+privateMessageSchema.index({ conversationId: 1, _id: -1 });
 
 export const PrivateMessage = mongoose.model("PrivateMessage", privateMessageSchema);

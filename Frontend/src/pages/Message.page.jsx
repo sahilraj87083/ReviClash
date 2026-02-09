@@ -8,7 +8,7 @@ function Messages() {
   const [activeChat, setActiveChat] = useState(null);
   const { inbox } = useInbox();
   
-  const { messages, send, isTyping } = usePrivateChat({ 
+  const { messages, send, isTyping, loadMore, hasMore, isLoadingMore, clearConversation} = usePrivateChat({ 
     otherUserId: activeChat?.user?._id 
   });
 
@@ -80,6 +80,10 @@ function Messages() {
                 send={send}
                 isTyping={isTyping}
                 onBack={handleBack}
+                loadMore={loadMore}
+                hasMore={hasMore}
+                isLoadingMore={isLoadingMore}
+                clearConversation={clearConversation}
               />
             </div>
 

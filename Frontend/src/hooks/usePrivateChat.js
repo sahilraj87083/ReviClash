@@ -1,13 +1,19 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useSocketContext } from '../contexts/socket.context.jsx'
-import { getPrivateMessagesService } from "../services/privateMessage.services.js";
+import { getPrivateMessagesService, clearConversationService } from "../services/privateMessage.services.js";
 import { useUserContext } from "../contexts/UserContext";
+import toast from "react-hot-toast";
 
 export const usePrivateChat = ({ otherUserId }) => {
     const { socket } = useSocketContext()
     const [messages, setMessages] = useState([])
     const { user } = useUserContext();
     const [isTyping, setIsTyping] = useState(false);
+
+    // [State for pagination]
+    const [cursor, setCursor] = useState(null);
+    const [hasMore, setHasMore] = useState(true);
+    const [isLoadingMore, setIsLoadingMore] = useState(false);
 
     const seenRef = useRef(false);
 
@@ -44,6 +50,55 @@ export const usePrivateChat = ({ otherUserId }) => {
         [user?._id]
     );
 
+    const fetchMessages = async (currentCursor = null) => {
+        if (currentCursor) setIsLoadingMore(true);
+            
+        try {
+            const res = await getPrivateMessagesService(otherUserId, currentCursor);
+
+            if(res && res.messages.length > 0){
+                const normalized = res.messages.map(normalizePrivateMessage);
+
+                setMessages(prev => {
+                    if (currentCursor) {
+                        // Prepend older messages
+                        return [...normalized, ...prev];
+                    }
+                    return normalized; // Initial load
+                });
+
+                setCursor(res.nextCursor);
+                setHasMore(!!res.nextCursor);
+            } else{
+                setHasMore(false);
+            }
+        } catch (error) {
+            console.error("Failed to load messages", error);
+        } finally {
+            if (currentCursor) setIsLoadingMore(false);
+        }
+    }
+
+    // [loadMore function exposed to UI]
+    const loadMore = useCallback(() => {
+        if (!isLoadingMore && hasMore && cursor) {
+            fetchMessages(cursor);
+        }
+    }, [cursor, hasMore, isLoadingMore, otherUserId]);
+
+    // [clearConversation function]
+    const clearConversation = async () => {
+        try {
+            await clearConversationService(otherUserId);
+            setMessages([]);
+            setCursor(null);
+            setHasMore(false);
+            toast.success("Conversation cleared");
+        } catch (error) {
+            toast.error("Failed to clear conversation");
+        }
+    };
+
 
     useEffect(() => {
         if (!otherUserId) return;
@@ -52,16 +107,19 @@ export const usePrivateChat = ({ otherUserId }) => {
 
 
         setMessages([]);
+        setCursor(null);
+        setHasMore(true);
 
-        const fetchAllMessages = async () => {
-            const res = await getPrivateMessagesService(otherUserId);
-            if (res && res.length > 0) {
-                const normalized = res.map(normalizePrivateMessage);
-                setMessages(normalized);
-            }
-        };
+        // const fetchAllMessages = async () => {
+        //     const res = await getPrivateMessagesService(otherUserId);
+        //     if (res && res.length > 0) {
+        //         const normalized = res.map(normalizePrivateMessage);
+        //         setMessages(normalized);
+        //     }
+        // };
 
-        fetchAllMessages();
+        // fetchAllMessages();
+        fetchMessages();
 
         const activeRoom = otherUserId
             ? `private:${[user._id, otherUserId].sort().join(":")}`
@@ -111,5 +169,5 @@ export const usePrivateChat = ({ otherUserId }) => {
         socket.emit("private:send", { to: otherUserId, message });
     }
 
-    return { messages, send,  isTyping };
+    return { messages, send,  isTyping, loadMore, hasMore, isLoadingMore, clearConversation };
 }

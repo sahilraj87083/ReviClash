@@ -1,10 +1,36 @@
+import { useState, useRef, useEffect } from "react";
 import MessageInput from "./MessageInput";
 import MessagesArea from "./MessagesArea";
 import { useSocketContext } from "../../contexts/socket.context";
-import { Phone, Video, MoreVertical, ArrowLeft } from "lucide-react";
+import { Phone, Video, MoreVertical, ArrowLeft, Trash2 } from "lucide-react"; 
 
-function ChatWindow({ activeChat, messages, send, isTyping, onBack }) {
+function ChatWindow({ 
+  activeChat, 
+  messages, 
+  send, 
+  isTyping, 
+  onBack, 
+  loadMore, 
+  hasMore, 
+  isLoadingMore, 
+  clearConversation 
+}) {
   const { socket } = useSocketContext();
+  
+  // State for Dropdown Menu
+  const [showMenu, setShowMenu] = useState(false);
+  const menuRef = useRef(null);
+
+  // Close menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (menuRef.current && !menuRef.current.contains(event.target)) {
+        setShowMenu(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   // 1. EMPTY STATE (No chat selected)
   if (!activeChat) {
@@ -86,9 +112,34 @@ function ChatWindow({ activeChat, messages, send, isTyping, onBack }) {
             <button className="p-2 hover:bg-slate-800 rounded-full transition hover:text-white">
                 <Video size={18} />
             </button>
-            <button className="p-2 hover:bg-slate-800 rounded-full transition hover:text-white">
-                <MoreVertical size={18} />
-            </button>
+            
+            {/* DROPDOWN MENU CONTAINER */}
+            <div className="relative" ref={menuRef}>
+                <button 
+                    onClick={() => setShowMenu(!showMenu)}
+                    className={`p-2 rounded-full transition hover:text-white ${showMenu ? "bg-slate-800 text-white" : "hover:bg-slate-800"}`}
+                >
+                    <MoreVertical size={18} />
+                </button>
+
+                {/* Dropdown Content */}
+                {showMenu && (
+                    <div className="absolute right-0 top-full mt-2 w-48 bg-slate-900 border border-slate-700 rounded-xl shadow-xl overflow-hidden z-50 animate-in fade-in zoom-in-95 duration-200 origin-top-right">
+                        <button
+                            onClick={() => {
+                                setShowMenu(false);
+                                if(window.confirm("Are you sure you want to delete this conversation? This cannot be undone.")) {
+                                    clearConversation();
+                                }
+                            }}
+                            className="w-full px-4 py-3 text-left text-sm text-red-400 hover:bg-red-500/10 hover:text-red-300 flex items-center gap-2 transition-colors"
+                        >
+                            <Trash2 size={16} />
+                            Clear Conversation
+                        </button>
+                    </div>
+                )}
+            </div>
         </div>
       </div>
 
@@ -99,7 +150,13 @@ function ChatWindow({ activeChat, messages, send, isTyping, onBack }) {
                style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg width='20' height='20' viewBox='0 0 20 20' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%23ffffff' fill-opacity='1' fill-rule='evenodd'%3E%3Ccircle cx='3' cy='3' r='1'/%3E%3Ccircle cx='13' cy='13' r='1'/%3E%3C/g%3E%3C/svg%3E")` }}>
           </div>
           
-          <MessagesArea messages={messages} chatType="private" />
+          <MessagesArea 
+            messages={messages} 
+            chatType="private"
+            onLoadMore={loadMore}
+            hasMore={hasMore}
+            isLoadingMore={isLoadingMore}
+          />
       </div>
       
       {/* --- INPUT AREA --- */}
