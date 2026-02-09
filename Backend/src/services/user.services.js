@@ -15,7 +15,8 @@ const createNewUserService = async (
         fullName : fullName,
         email : email,
         password : password,
-        username : username.toLowerCase()
+        username : username.toLowerCase(),
+        emailVerified : true
     })
 
     return user;

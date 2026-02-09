@@ -1,7 +1,7 @@
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { useEffect } from "react";
 import toast from "react-hot-toast";
-import { verifyEmailService } from "../services/auth.services";
+// import { verifyEmailService } from "../services/auth.services";
 import { useUserContext } from "../contexts/UserContext";
 
 function VerifyEmail() {
@@ -25,7 +25,7 @@ function VerifyEmail() {
 
     (async () => {
       try {
-        await verifyEmailService(token);
+        // await verifyEmailService(token);
         toast.success("Email verified successfully");
         navigate("/user/login");
       } catch (err) {

@@ -6,15 +6,27 @@ import {hashToken} from '../utils/hashToken.utils.js'
 import {User} from '../models/user.model.js'
 import jwt from 'jsonwebtoken'
 import mongoose from 'mongoose'
-import { createNewUserService, generateAccessAndRefereshTokensService, sendVerificationEmail } from '../services/user.services.js'
-
+import { createNewUserService, generateAccessAndRefereshTokensService } from '../services/user.services.js'
+import { OTP } from '../models/otp.model.js'
+import bcrypt from 'bcrypt'
 
 const registerUser = asyncHandler(async(req, res) => {
 
-    const {username, fullName, email, password} = req.body
+    const {username, fullName, email, password, otp} = req.body
 
-    if([username, fullName, email, password].some((field) => field.trim() === "")){
+    if([username, fullName, email, password, otp].some((field) => field.trim() === "")){
         throw new ApiError(400, "All fields are required")
+    }
+
+    // 2. Verify OTP (Final Check)
+    const otpRecord = await OTP.findOne({ email });
+    if (!otpRecord) {
+         throw new ApiError(400, "OTP expired. Please request a new one.");
+    }
+
+    const isOtpValid = await bcrypt.compare(otp, otpRecord.otp);
+    if (!isOtpValid) {
+        throw new ApiError(400, "Invalid OTP");
     }
 
     // find existed user
@@ -41,8 +53,8 @@ const registerUser = asyncHandler(async(req, res) => {
         throw new ApiError(500, "Something went wrong while registering the user")
     }
 
-    sendVerificationEmail(createdUser._id)
-    .catch((e) => {console.log("Error While Sending Verification mail", e)})
+    // CLEANUP: Now we delete the OTP so it can't be used again
+    await OTP.deleteOne({ _id: otpRecord._id });
 
     return res.status(201).json(
         new ApiResponse(201, "User registered successfully", createdUser)
@@ -585,11 +597,12 @@ const verifyEmail = asyncHandler(async (req, res) => {
 
 const resendVerificationEmail = asyncHandler(async (req, res) => {
     
-    await sendVerificationEmail(req.user._id);
-
+    // await sendVerificationEmail(req.user._id);
+    console.log("fix resendVerificationEmail inside user controller")
     res.json(new ApiResponse(200, "Verification email resent"));
 });
 
+// fix forgot password
 const forgotPassword = asyncHandler(async (req, res) => {
     const { email } = req.body;
 

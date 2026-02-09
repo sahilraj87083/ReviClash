@@ -31,6 +31,7 @@ router.post(
     "/register",
     [
         body("email").isEmail().withMessage("Invalid email"),
+        body('otp').isLength(3).withMessage("OTP must be of length 6"),
         body("username").isLength({ min: 3 }).withMessage("Username must be at least 3 characters"),
         body("fullName").isLength({ min: 3 }).withMessage("Full name must be at least 3 characters"),
         body("password").isLength({ min: 6 }).withMessage("Password must be at least 6 characters")

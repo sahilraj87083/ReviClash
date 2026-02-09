@@ -3,7 +3,7 @@ import { useRef, useState, useEffect } from "react";
 import gsap from "gsap";
 import { useGSAP } from "@gsap/react";
 import { Input, Button } from "../components"; 
-import { registerService } from "../services/auth.services";
+import { registerService, sendOTPService } from "../services/auth.services";
 // import { checkUsernameService } from "../services/auth.services"; 
 import toast from "react-hot-toast";
 import { 
@@ -86,6 +86,7 @@ function Register() {
         
         try {
             setOtpLoading(true);
+            const res = await sendOTPService(email)
             await new Promise(r => setTimeout(r, 1000)); // Simulate API
             setIsOtpSent(true);
             setTimer(30); // Start 30s timer
@@ -101,7 +102,7 @@ function Register() {
         e.preventDefault();
 
         // VALIDATION
-        if(!fullName || !username || !email || !password || !confirmPassword) {
+        if(!fullName || !username || !email || !password || !confirmPassword || !otp) {
             return toast.error("Please fill in all fields");
         }
         if (password !== confirmPassword) {
@@ -113,7 +114,7 @@ function Register() {
         if (!isOtpSent) {
             return toast.error("Please verify your email first");
         }
-        if (!otp || otp.length < 4) {
+        if (!otp || otp.length < 6) {
             return toast.error("Please enter a valid OTP");
         }
 
@@ -122,13 +123,19 @@ function Register() {
             // Verify OTP logic here...
             await new Promise(r => setTimeout(r, 1000));
             
-            const newUser = { fullName, username, email, password };
+            const newUser = { fullName, username, email, password, otp };
             const response = await registerService(newUser);
 
-            if(response?.status === 201 || response?.user){
+            if(response?.errorCode === 201 || response?.user){
                 toast.success("Account created successfully!");
                 navigate('/user/login');
             }
+            setFullName("")
+            setEmail('')
+            setUserName("")
+            setPassword('')
+            setConfirmPassword('')
+            setOtp('')
         } catch (error) {
             console.error(error);
             toast.error(error?.response?.data?.message || "Registration failed");

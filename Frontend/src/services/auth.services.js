@@ -6,7 +6,7 @@ export const loginService = (data) =>
 
 
 export const registerService = (data) =>
-    api.post("/users/register", data).then(res => res.data.data);
+    api.post("/users/register", data).then(res => res.data);
 
 
 export const refreshTokenService = () =>
@@ -33,8 +33,9 @@ export const resetPasswordService = async ( {token , password}) => {
     return res.data.data
 }
 
-export const verifyEmailService = (token) => {
-    api.get(`/users/verify-email?token=${token}`);
+export const sendOTPService = async (email) => {
+    const res = await api.post(`/otp/send`, {email});
+    return res.data
 }
 
 export const forgotPasswordService = (data) =>
