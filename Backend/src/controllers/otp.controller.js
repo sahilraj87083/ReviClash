@@ -37,7 +37,7 @@ const sendOTP = asyncHandler( async (req, res) => {
                 <h2>Welcome to ReviClash!</h2>
                 <p>Your verification code is:</p>
                 <h1 style="color: #4F46E5; letter-spacing: 5px;">${otpPayload}</h1>
-                <p>This code expires in 5 minutes.</p>
+                <p>This code expires in 15 minutes.</p>
             </div>
         `,
         endpoint : 'no-reply'

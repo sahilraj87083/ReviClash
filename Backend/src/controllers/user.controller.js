@@ -9,6 +9,8 @@ import mongoose from 'mongoose'
 import { createNewUserService, generateAccessAndRefereshTokensService } from '../services/user.services.js'
 import { OTP } from '../models/otp.model.js'
 import bcrypt from 'bcrypt'
+import crypto from 'crypto'
+import { sendEmail } from '../utils/sendEmail.utils.js'
 
 const registerUser = asyncHandler(async(req, res) => {
 
@@ -603,50 +605,111 @@ const resendVerificationEmail = asyncHandler(async (req, res) => {
 });
 
 // fix forgot password
-const forgotPassword = asyncHandler(async (req, res) => {
+const sendForgotPasswordOTP = asyncHandler(async (req, res) => {
     const { email } = req.body;
 
     const user = await User.findOne({ email });
-    if (!user) return res.json({ success: true }); // anti-enumeration
+    
+    if (!user) {
+        throw new ApiError(404, "User not found with this email");
+    }
 
-    const token = crypto.randomBytes(32).toString("hex");
+    // Generate & Save OTP (Separate collection keeps User model clean)
+    const otpPayload = crypto.randomInt(100000, 999999).toString();
 
-    user.passwordResetToken = hashToken(token);
-    user.passwordResetExpiry = Date.now() + 10 * 60 * 1000;
+    await OTP.findOneAndDelete({ email });
+    await OTP.create({ email, otp: otpPayload });
+
+    await sendEmail({
+        to: email,
+        subject: "Reset Your Password - ReviClash",
+        htmlContent: `
+            <div style="font-family: sans-serif; padding: 20px;">
+                <h2>Password Reset Request</h2>
+                <p>Your verification code is:</p>
+                <h1 style="color: #4F46E5; letter-spacing: 5px;">${otpPayload}</h1>
+                <p>Expires in 15 minutes.</p>
+            </div>
+        `,
+        endpoint: 'no-reply'
+    });
+
+    return res.status(200).json(new ApiResponse(200, "OTP sent to email"));
+});
+
+const verifyForgotPasswordOTP = asyncHandler(async (req, res) => {
+    const { email, otp } = req.body;
+
+    // 1. Verify the OTP from the OTP collection
+    const record = await OTP.findOne({ email });
+    if (!record) throw new ApiError(400, "OTP expired or invalid");
+
+    const isValid = await bcrypt.compare(otp, record.otp);
+    if (!isValid) throw new ApiError(400, "Incorrect OTP");
+
+    // 2. Generate a random secure token
+    const rawToken = crypto.randomBytes(32).toString("hex");
+
+    // 3. Hash it using SHA-256 for storage
+    const hashedToken = crypto
+        .createHash("sha256")
+        .update(rawToken)
+        .digest("hex");
+
+    // 4. Update USER model with the HASHED token
+    const user = await User.findOne({ email });
+    if (!user) throw new ApiError(400, "Token expired");
+    
+    // Correct fields based on your provided User model
+    user.passwordResetToken = hashedToken;
+    user.passwordResetExpiry = Date.now() + 10 * 60 * 1000; // 10 minutes
 
     await user.save({ validateBeforeSave: false });
 
-    const url = `${process.env.FRONTEND_URL}/reset-password?token=${token}`;
+    // 5. Cleanup OTP
+    await OTP.deleteOne({ email });
 
-    await sendMail({ 
-        to: email,
-        subject: "Reset password",
-        html: `<a href="${url}">Reset Password</a>`
-    });
-
-    res.json(new ApiResponse(200, "Reset link sent"));
+    // 6. Return the RAW token to the frontend
+    return res.status(200).json(
+        new ApiResponse(200, "OTP Verified", { resetToken: rawToken })
+    );
 });
 
-const resetPassword = asyncHandler(async (req, res) => {
-    const { token, password } = req.body;
+const resetPassword = asyncHandler( async(req, res) => {
+    const { email, newPassword, resetToken } = req.body;
 
-    const hashed = hashToken(token);
+    if (!resetToken || !newPassword) {
+        throw new ApiError(400, "Missing token or password");
+    }
+    // 1. Hash the incoming raw token to match against DB
+    const hashedToken = crypto
+        .createHash("sha256")
+        .update(resetToken)
+        .digest("hex");
 
+    // 2. Find user with matching Hash + Non-expired time
     const user = await User.findOne({
-        passwordResetToken: hashed,
-        passwordResetExpires: { $gt: Date.now() }
-    }).select("+password");
+        email,
+        passwordResetToken: hashedToken,
+        passwordResetExpiry: { $gt: Date.now() }
+    });
 
-    if (!user) throw new ApiError(400, "Token expired");
+    if (!user) {
+        throw new ApiError(400, "Invalid or expired reset session. Please try again.");
+    }
 
-    user.password = password;
+    // 3. Update Password
+    // Your User model's pre('save') hook will automatically hash this!
+    user.password = newPassword; 
+    
+    // 4. Clear reset fields
     user.passwordResetToken = undefined;
     user.passwordResetExpiry = undefined;
 
     await user.save();
 
-    res.json(new ApiResponse(200, "Password reset successful"));
-});
+    return res.status(200).json(new ApiResponse(200, "Password reset successfully"));
+})
 
 
 
@@ -665,7 +728,8 @@ export {
     getUserProfile,
     verifyEmail,
     resendVerificationEmail,
-    forgotPassword,
+    sendForgotPasswordOTP,
+    verifyForgotPasswordOTP,
     resetPassword
 }
 

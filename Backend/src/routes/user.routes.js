@@ -12,7 +12,8 @@ import {
     getUserProfile,
     verifyEmail,
     resendVerificationEmail,
-    forgotPassword,
+    sendForgotPasswordOTP,
+    verifyForgotPasswordOTP,
     resetPassword
 } from "../controllers/user.controller.js";
 
@@ -127,8 +128,32 @@ router.patch(
 
 router.get("/verify-email", verifyEmail);
 router.post("/resend-verification", verifyJWT, resendVerificationEmail);
-router.post("/forgot-password", forgotPassword);
-router.post("/reset-password", resetPassword);
+
+router.post("/forgot-password/send",
+    [
+        body('email').isEmail().withMessage("Invalid Email")
+    ],
+    validate,
+    sendForgotPasswordOTP);
+
+
+router.post("/forgot-password/verify",
+    [
+        body('email').isEmail().withMessage("Invalid Email"),
+        body('otp').trim().isLength({min : 6, max : 6}).withMessage('OTP must be of length 6')
+    ],
+    validate,
+    verifyForgotPasswordOTP);
+
+
+router.post("/forgot-password/reset",
+    [
+        body('email').isEmail().withMessage("Invalid Email"),
+        body("newPassword").trim().isLength({ min: 6 }),
+        body("resetToken").trim().isLength({ min: 1 }),
+    ],
+    validate,
+    resetPassword);
 
 
 export default router;

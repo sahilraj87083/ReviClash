@@ -21,7 +21,7 @@ router.route('/send').post(
 router.route('/verify').post(
     [
         body("email").isEmail().withMessage("Invalid email"),
-        body('otp').trim().isLength(6).withMessage('OTP must be of length 6')
+        body('otp').trim().isLength({min : 6, max : 6}).withMessage('OTP must be of length 6')
     ],
     validate,
     verifyOTP

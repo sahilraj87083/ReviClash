@@ -5,12 +5,9 @@ import { useGSAP } from "@gsap/react";
 import toast from "react-hot-toast";
 import { Mail, Lock, KeyRound, ArrowRight, Timer, CheckCircle2, ChevronLeft } from "lucide-react";
 
-// Components
 import { Input, Button } from "../components/index";
+import { sendForgotPasswordOtpService, verifyForgotPasswordOtpService, resetPasswordService } from "../services/auth.services.js";
 
-// Services (Assuming these exist or you will create them)
-// import { forgotPasswordService } from "../services/auth.services";
-// import { verifyOtpService, resetPasswordService } from "../services/auth.services"; 
 
 function ForgotPassword() {
     const containerRef = useRef(null);
@@ -26,6 +23,7 @@ function ForgotPassword() {
     const [otp, setOtp] = useState("");
     const [newPassword, setNewPassword] = useState("");
     const [confirmPassword, setConfirmPassword] = useState("");
+    const [resetToken, setResetToken] = useState("");
 
     // --- ANIMATIONS ---
     useGSAP(() => {
@@ -55,7 +53,7 @@ function ForgotPassword() {
 
         try {
             setLoading(true);
-            // await SendOTPService({ email }); // Assumes this sends OTP
+            await sendForgotPasswordOtpService(email);
             toast.success("OTP sent to your email!");
             setStep(2);
             setTimer(30); // Start 30s cooldown
@@ -69,11 +67,16 @@ function ForgotPassword() {
     // Step 2: Verify OTP
     const handleVerifyOtp = async (e) => {
         e.preventDefault();
-        if (otp.length < 4) return toast.error("Please enter valid OTP");
+        if (otp.length < 6) return toast.error("Enter valid 6-digit OTP");
 
         try {
             setLoading(true);
-            // await verifyOtpService({ email, otp }); // UNCOMMENT WHEN API READY
+            
+            const response = await verifyForgotPasswordOtpService({ email, otp });
+            
+            // CRITICAL: Save the token from backend
+            const token = response.data.resetToken; 
+            setResetToken(token);
             
             // Simulation for UI demo:
             await new Promise(r => setTimeout(r, 1000)); 
@@ -96,14 +99,23 @@ function ForgotPassword() {
         try {
             setLoading(true);
             // await resetPasswordService({ email, otp, newPassword }); // UNCOMMENT WHEN API READY
-            
+            await resetPasswordService({ 
+                email, 
+                newPassword, 
+                resetToken 
+            });
             // Simulation:
             await new Promise(r => setTimeout(r, 1500));
 
             toast.success("Password reset successfully!");
             navigate("/user/login");
         } catch (error) {
-            toast.error("Failed to reset password");
+
+            toast.error(error?.response?.data?.message || "Session expired. Try again.");
+            if(error?.response?.status === 400) {
+                // If token expired, force user back to start
+                setStep(1); 
+            }
         } finally {
             setLoading(false);
         }

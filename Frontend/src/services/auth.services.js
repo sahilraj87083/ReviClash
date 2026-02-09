@@ -28,18 +28,25 @@ export const changeCurrentPasswordService = async (data) => {
     await api.post('/users/change-password', data)
 }
 
-export const resetPasswordService = async ( {token , password}) => {
-    const res = await api.post('/users/reset-password' , {token , password})
-    return res.data.data
-}
-
 export const sendOTPService = async (email) => {
     const res = await api.post(`/otp/send`, {email});
     return res.data
 }
 
-export const forgotPasswordService = (data) =>
-    api.post("/users/forgot-password", data);
+export const sendForgotPasswordOtpService = async (email) => {
+    const res = await api.post("/users/forgot-password/send", { email });
+    return res.data
+}
+
+export const verifyForgotPasswordOtpService = async (data) => {
+    const res = await api.post("/users/forgot-password/verify", data);
+    return res.data
+}
+
+export const resetPasswordService = async (data) => {
+    const res = await api.post("/users/forgot-password/reset", data);
+    return res.data
+}
 
 export const resendVerificationEmailService = async () => {
     const res = await api.post("/users/resend-verification");

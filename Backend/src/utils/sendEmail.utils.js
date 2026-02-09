@@ -2,7 +2,6 @@ import { Resend } from 'resend'
 import { ApiError } from './ApiError.utils.js'
 
 const resend_Api_Key = process.env.RESEND_API_KEY
-console.log(resend_Api_Key)
 
 // 1. Initialize the Resend Client once
 const resend = new Resend(resend_Api_Key)
