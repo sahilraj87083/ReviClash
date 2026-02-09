@@ -33,8 +33,8 @@ function Login() {
             setUser(response.user);
             toast.success(`Welcome back, ${response.user.username}!`);
 
-            window.location.href = "/"; // for refresh : window.location.href to force a page reload.
-            
+            // window.location.href = "/"; // for refresh : window.location.href to force a page reload.
+            navigate("/");
             setEmail("");
             setPassword("");
         }
