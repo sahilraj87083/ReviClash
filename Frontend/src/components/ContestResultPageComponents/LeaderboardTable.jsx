@@ -66,13 +66,13 @@ function LeaderboardTable({ leaderboard = [] }) {
         {/* We map manually to control layout order */}
         
         {/* Rank 2 (Silver) - Left on Desktop */}
-        {top3[1] && <PodiumCard player={top3[1]} styles={getRankStyles(2)} order="order-2 md:order-1" height="h-auto md:h-48" />}
+        {top3[1] && <PodiumCard player={top3[1]} styles={getRankStyles(2)} order="order-2 md:order-1" height="h-64 md:h-72" />}
         
         {/* Rank 1 (Gold) - Center on Desktop (Tallest) */}
-        {top3[0] && <PodiumCard player={top3[0]} styles={getRankStyles(1)} order="order-1 md:order-2" height="h-auto md:h-56" isWinner />}
+        {top3[0] && <PodiumCard player={top3[0]} styles={getRankStyles(1)} order="order-1 md:order-2" height="h-72 md:h-80" isWinner />}
         
         {/* Rank 3 (Bronze) - Right on Desktop */}
-        {top3[2] && <PodiumCard player={top3[2]} styles={getRankStyles(3)} order="order-3" height="h-auto md:h-44" />}
+        {top3[2] && <PodiumCard player={top3[2]} styles={getRankStyles(3)} order="order-3" height="h-66 md:h-66" />}
       </div>
 
 

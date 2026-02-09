@@ -12,7 +12,8 @@ import {
     Questions,
     ContestListPage,
     EditProfile,
-    ContestResultPage
+    ContestResultPage,
+    Leaderboard
 } from '../../pages'
 
 import ProtectedLayout from "./ProtectedLayout"
@@ -29,6 +30,7 @@ export const ProtectedRoutes = (
         <Route path="/contests/:contestId/leaderboard" element = { <ContestResultPage/> }/>
         <Route path="/user/contests/public/:contestId" element = { <GroupContestLobby/> }/>
         <Route path="/user/contests/private/:contestId" element = { <PrivateContestLobby/> }/>
+        <Route path="/public/leaderboard" element = {<Leaderboard/>} />
 
         <Route path = "/user/questions" element = {<Questions/>} />
         <Route path="/user/profile/edit" element={<EditProfile />} />

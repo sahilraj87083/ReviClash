@@ -19,6 +19,8 @@ import VerifyEmail from './VerifyEmail.page.jsx'
 import ForgotPassword from './ForgotPassword.page.jsx'
 import ContestResultPage from './ContestResult.page.jsx'
 import CommunityPage from './Community.page.jsx'
+import Leaderboard from './Leaderboard.page.jsx'
+
 
 export {
     Home,
@@ -42,5 +44,6 @@ export {
     VerifyEmail,
     ContestResultPage,
     CommunityPage,
+    Leaderboard,
     
 }
