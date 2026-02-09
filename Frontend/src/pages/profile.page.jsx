@@ -2,17 +2,14 @@ import { useRef, useState, useEffect } from "react";
 import gsap from "gsap";
 import { useGSAP } from "@gsap/react";
 import { Button } from "../components";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams } from "react-router-dom";
 import { getUserProfileService } from "../services/profile.services";
 import { useUserContext } from "../contexts/UserContext";
 import { ActivityTab, CollectionsTab, FollowersTab, Tab } from "../components/profilePageComponent";
 import { ProfileActions } from '../components';
-import { resendVerificationEmailService } from "../services/auth.services";
-import toast from "react-hot-toast";
 import { useFollow } from "../hooks/useFollow";
 import { 
-  Calendar, 
-  AlertTriangle, 
+  Calendar,
   CheckCircle2,
   Image as ImageIcon,
   Type,
@@ -31,7 +28,6 @@ function MyProfile() {
   const [activeTab, setActiveTab] = useState(TABS.ACTIVITY);
 
   const { username } = useParams();
-  const navigate = useNavigate();
 
   const { user: loggedInUser } = useUserContext();
   const [profile, setProfile] = useState(null);
@@ -55,14 +51,6 @@ function MyProfile() {
     })();
   }, [username]);
   
-  const resendEmail = async () => {
-    try {
-      await resendVerificationEmailService();
-      toast.success("Verification email sent");
-    } catch (err) {
-      toast.error(err.response?.data?.message || "Failed to send email");
-    }
-  };
 
   useGSAP(() => {
     if (!loadingProfile) {
@@ -186,18 +174,7 @@ function MyProfile() {
             </div>
         </section>
 
-        {/* --- 2. ALERT: Email Verification --- */}
-        {isOwnProfile && !loggedInUser?.emailVerified && (
-            <div className="bg-orange-500/10 border border-orange-500/20 rounded-xl p-4 flex flex-col sm:flex-row items-center justify-between gap-4">
-                <div className="flex items-center gap-3 text-orange-400">
-                    <AlertTriangle size={20} className="shrink-0" />
-                    <p className="text-sm font-medium">Your email is not verified.</p>
-                </div>
-                <Button variant="ghost" onClick={resendEmail} className="text-orange-400 hover:text-orange-300 hover:bg-orange-500/10 text-sm h-8 px-3">
-                    Resend Email →
-                </Button>
-            </div>
-        )}
+        
 
         {/* --- 3. POST & UPDATES SECTION --- */}
         <section className="bg-slate-900 border-y md:border md:border-slate-800 md:rounded-xl overflow-hidden p-4 md:p-6 space-y-4">

@@ -48,11 +48,6 @@ export const resetPasswordService = async (data) => {
     return res.data
 }
 
-export const resendVerificationEmailService = async () => {
-    const res = await api.post("/users/resend-verification");
-    return res.data;
-};
-
 export const updateAccountDetailsService = async (data) => {
     const res = await api.patch('/users/update-account', data);
     return res.data.data

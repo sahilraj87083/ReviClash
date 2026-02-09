@@ -126,8 +126,6 @@ router.patch(
     updateUserCoverImage
 );
 
-router.get("/verify-email", verifyEmail);
-router.post("/resend-verification", verifyJWT, resendVerificationEmail);
 
 router.post("/forgot-password/send",
     [
