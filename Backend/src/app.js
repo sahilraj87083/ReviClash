@@ -4,16 +4,23 @@ import {LIMIT} from './constants.js'
 import cookieParser from 'cookie-parser'
 
 const app = express()
-app.use(cors(
-    {
-        origin : [
-            process.env.CORS_ORIGIN,
-            "http://localhost:5173",
-            "http://localhost:3000"
-        ],
-        credentials : true
-    }
-))
+// app.use(cors(
+//     {
+//         origin : true,
+//         credentials : true
+//     }
+// ))
+
+app.use(cors({
+    origin: [
+        process.env.CORS_ORIGIN, // Keeping this for flexibility
+        "https://www.reviclash.com",
+        "https://reviclash.com", // In case user types without www
+        "https://revi-clash.vercel.app", // Vercel backup
+        "http://localhost:5173"
+    ],
+    credentials: true
+}));
 
 app.use(json({
     limit : LIMIT
