@@ -1,4 +1,4 @@
-import { NavLink, useNavigate } from "react-router-dom";
+import { NavLink } from "react-router-dom";
 import { useRef, useState } from "react";
 import gsap from "gsap";
 import { useGSAP } from "@gsap/react";
@@ -15,7 +15,6 @@ function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
-  const navigate = useNavigate()
 
   const { setUser } = useUserContext();
 
@@ -34,8 +33,7 @@ function Login() {
             setUser(response.user);
             toast.success(`Welcome back, ${response.user.username}!`);
 
-            // window.location.href = "/"; // for refresh : window.location.href to force a page reload.
-            navigate("/");
+            window.location.href = "/"; // for refresh : window.location.href to force a page reload.
             setEmail("");
             setPassword("");
         }
