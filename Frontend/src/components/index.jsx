@@ -13,6 +13,8 @@ import PublicCollections from './CommunityComponents/PublicCollections'
 import TopCreators from './CommunityComponents/TopCreator'
 import QuestionsList from './CommunityComponents/QuestionsList'
 
+import FeedPost from './ExplorePageComponents/FeedPost'
+
 
 import StatCard from './DashBoardComponents/StatCard'
 import ActionCard from './DashBoardComponents/ActionCard'
@@ -70,6 +72,8 @@ export {
     PublicCollections,
     TopCreators,
     QuestionsList,
+
+    FeedPost,
 
     StatCard,
     ActionCard,

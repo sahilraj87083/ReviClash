@@ -15,7 +15,8 @@ import {
     sendForgotPasswordOTP,
     verifyForgotPasswordOTP,
     resetPassword,
-    checkUsernameAvailability
+    checkUsernameAvailability,
+    searchUsers
 } from "../controllers/user.controller.js";
 
 import { Router } from "express";
@@ -85,6 +86,8 @@ router.post(
 );
 
 router.get("/current-user", verifyJWT, getCurrentUser);
+
+router.route("/search").get(verifyJWT, searchUsers);
 
 router.patch(
     "/update-username",

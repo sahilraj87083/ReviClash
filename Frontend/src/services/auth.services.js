@@ -29,6 +29,16 @@ export const logoutService = async () =>
 export const getCurrUserService = () => 
     api.get('/users/current-user').then(res => res.data.data)
 
+
+export const searchUsersService = async (query) => {
+    try {
+        const response = await api.get(`/users/search?query=${query}`);
+        return response.data.data;
+    } catch (error) {
+        throw error;
+    }
+};
+
 export const updateUserNameService = async ( data ) => {
     const res = await api.patch('/users/update-username', data)
     return res.data.data

@@ -263,6 +263,35 @@ const getCurrentUser = asyncHandler(async(req, res) => {
     ))
 })
 
+const searchUsers = asyncHandler(async (req, res) => {
+    const { query } = req.query;
+
+    if (!query || query.trim() === "") {
+        return res.status(200).json(new ApiResponse(200, "No query provided", []));
+    }
+
+    // Performing case-insensitive search on username OR fullName
+    // Exclude the current user from results
+    const users = await User.find({
+        $and: [
+            { _id: { $ne: req.user._id } }, // Exclude self
+            {
+                $or: [
+                    { username: { $regex: query, $options: "i" } },
+                    { fullName: { $regex: query, $options: "i" } }
+                ]
+            }
+        ]
+    })
+    .select("fullName username avatar.url _id") 
+    .limit(5);
+
+    return res.status(200).json(
+        new ApiResponse(200, "Users fetched successfully", users)
+    );
+});
+
+
 const updateUsername = asyncHandler(async (req, res) => {
     const { newUsername } = req.body;
 
@@ -750,7 +779,8 @@ export {
     sendForgotPasswordOTP,
     verifyForgotPasswordOTP,
     resetPassword,
-    checkUsernameAvailability
+    checkUsernameAvailability,
+    searchUsers
 }
 
 
