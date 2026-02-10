@@ -297,6 +297,22 @@ const updateUsername = asyncHandler(async (req, res) => {
     );
 });
 
+const checkUsernameAvailability = asyncHandler( async( req, res) => {
+    const { username } = req.params
+
+    if (!username?.trim()) {
+        throw new ApiError(400, "Username is required");
+    }
+    const user = await User.findOne({ username: username.trim().toLowerCase()});
+
+    return res.status(200).json(
+        new ApiResponse(200, "Username check complete", {
+            isAvailable: !user,
+            username: username 
+        })
+    );
+})
+
 
 const updateAccountDetails = asyncHandler(async(req, res) => {
     const {fullName, bio} = req.body
@@ -733,7 +749,8 @@ export {
     resendVerificationEmail,
     sendForgotPasswordOTP,
     verifyForgotPasswordOTP,
-    resetPassword
+    resetPassword,
+    checkUsernameAvailability
 }
 
 

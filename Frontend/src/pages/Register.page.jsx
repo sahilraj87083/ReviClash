@@ -3,8 +3,7 @@ import { useRef, useState, useEffect } from "react";
 import gsap from "gsap";
 import { useGSAP } from "@gsap/react";
 import { Input, Button } from "../components"; 
-import { registerService, sendOTPService } from "../services/auth.services";
-// import { checkUsernameService } from "../services/auth.services"; 
+import { registerService, sendOTPService, checkUsernameService } from "../services/auth.services";
 import toast from "react-hot-toast";
 import { 
     User, 
@@ -45,18 +44,27 @@ function Register() {
     // --- USERNAME CHECK LOGIC (Debounced) ---
     useEffect(() => {
         const checkUsername = async () => {
-            if (username.length < 3) {
-                setUsernameAvailable(null);
+            // if (username.length < 3) {
+            //     setUsernameAvailable(null);
+            //     return;
+            // }
+
+            // Regex for valid username (alphanumeric, underscores,. , 3-20 chars)
+            const usernameRegex = /^[a-zA-Z0-9_.]{3,20}$/;
+
+            if (!usernameRegex.test(username)) {
+                setUsernameAvailable(null); // Reset or show invalid format error
                 return;
             }
 
             setCheckingUsername(true);
             try {
-                // Simulation of API call
-                await new Promise(r => setTimeout(r, 800));
-                if(username.toLowerCase() === 'admin') throw new Error("Taken");
-                setUsernameAvailable(true);
+                
+                if(username.trim().toLowerCase() === 'admin') throw new Error("Taken");
+                const data = await checkUsernameService(username);
+                setUsernameAvailable(data.isAvailable);
             } catch (error) {
+                console.error("Username check failed", error);
                 setUsernameAvailable(false);
             } finally {
                 setCheckingUsername(false);
@@ -65,6 +73,7 @@ function Register() {
 
         const timeoutId = setTimeout(() => {
             if (username) checkUsername();
+            else setUsernameAvailable(null);
         }, 500);
 
         return () => clearTimeout(timeoutId);

@@ -34,6 +34,15 @@ export const updateUserNameService = async ( data ) => {
     return res.data.data
 }
 
+export const checkUsernameService = async (username) => {
+    try {
+        const response = await api.get(`/users/check-username/${username}`);
+        return response.data.data; // Returns { isAvailable: true/false }
+    } catch (error) {
+        throw error;
+    }
+};
+
 export const changeCurrentPasswordService = async (data) => {
     await api.post('/users/change-password', data)
 }

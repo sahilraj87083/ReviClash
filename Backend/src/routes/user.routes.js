@@ -14,7 +14,8 @@ import {
     resendVerificationEmail,
     sendForgotPasswordOTP,
     verifyForgotPasswordOTP,
-    resetPassword
+    resetPassword,
+    checkUsernameAvailability
 } from "../controllers/user.controller.js";
 
 import { Router } from "express";
@@ -99,6 +100,20 @@ router.patch(
     ],
     validate,
     updateUsername
+);
+
+router.route("/check-username/:username").get(
+    [
+        param("username")
+        .trim()
+        .toLowerCase()
+        .isLength({ min: 3, max: 20 })
+        .withMessage("Username must be 3-30 characters long")
+        .matches(/^[a-z0-9._]+$/)
+        .withMessage("Username can contain only letters, numbers, . and _")
+    ],
+    validate,
+    checkUsernameAvailability
 );
 
 router.patch(

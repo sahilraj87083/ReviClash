@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useUserContext } from "../../contexts/UserContext";
 import toast from "react-hot-toast";
 import { Button, Input } from '../';
-import { Save } from "lucide-react";
+import { Save, AlertCircle } from "lucide-react";
 
 function AccountSection({ updateUserName }) {
     const { user } = useUserContext();
@@ -40,9 +40,18 @@ function AccountSection({ updateUserName }) {
                         onChange={e => setUsername(e.target.value)}
                         className="bg-slate-950 border-slate-800"
                     />
-                    <p className="text-xs text-slate-500 mt-2 pl-1">
-                        Your profile URL: <span className="text-blue-400 font-mono">codewars.io/u/{username}</span>
-                    </p>
+                    <div className="flex justify-between items-start mt-2 px-1">
+                        <p className="text-xs text-slate-500">
+                            Profile URL: <span className="text-blue-400 font-mono">reviclash.com/u/{username}</span>
+                        </p>
+                        
+                        {/* Validation Hint */}
+                        {username.length > 0 && username.length < 3 && (
+                            <span className="text-xs text-red-400 flex items-center gap-1">
+                                <AlertCircle size={12}/> Too short
+                            </span>
+                        )}
+                    </div>
                 </div>
 
                 {/* Email (Read Only) */}
