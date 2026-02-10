@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { getCurrUserService } from "../../services/auth.services.js";
 import {useUserContext} from '../../contexts/UserContext.jsx'
 import { LoadingState } from "../../components";
+import {setAuthToken as setAxiosHeader} from '../../services/api.services.js'
 
 const UserProtectedWrapper = ({children}) => {
 
@@ -20,6 +21,8 @@ const UserProtectedWrapper = ({children}) => {
 
         (async () => {
             try {
+                setAxiosHeader(authToken);
+
                 const user = await getCurrUserService();
                 setUser(user)
             } catch (error) {
@@ -29,7 +32,7 @@ const UserProtectedWrapper = ({children}) => {
                 setIsLoading(false);
             }
         })()
-    }, [authToken, isAuthReady])
+    }, [authToken, isAuthReady, navigate, setAuthToken, setUser])
 
 
     if (!isAuthReady || isLoading) {

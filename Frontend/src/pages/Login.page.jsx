@@ -1,4 +1,4 @@
-import { NavLink } from "react-router-dom";
+import { NavLink, useNavigate } from "react-router-dom";
 import { useRef, useState } from "react";
 import gsap from "gsap";
 import { useGSAP } from "@gsap/react";
@@ -11,12 +11,13 @@ import { ArrowRight, Lock, Mail } from "lucide-react";
 function Login() {
   const containerRef = useRef(null);
   const formRef = useRef(null);
+  const navigate = useNavigate();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const { setUser } = useUserContext();
+  const { setAuth } = useUserContext();
 
   const submitHandler = async (e) => {
     e.preventDefault();
@@ -29,11 +30,14 @@ function Login() {
         setLoading(true);
         const response = await loginService({ email, password });
         
-        if (response?.user) {
-            setUser(response.user);
+        if (response?.user && response?.accessToken) {
+
+            setAuth(response.accessToken, response.user, response.refreshToken);
+
             toast.success(`Welcome back, ${response.user.username}!`);
 
-            window.location.href = "/"; // for refresh : window.location.href to force a page reload.
+            // window.location.href = "/"; // for refresh : window.location.href to force a page reload.
+            navigate("/");
             setEmail("");
             setPassword("");
         }
