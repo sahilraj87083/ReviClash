@@ -53,7 +53,7 @@ function Register() {
             const usernameRegex = /^[a-zA-Z0-9_.]{3,20}$/;
 
             if (!usernameRegex.test(username)) {
-                setUsernameAvailable(null); // Reset or show invalid format error
+                setUsernameAvailable(false);  // Reset or show invalid format error
                 return;
             }
 
