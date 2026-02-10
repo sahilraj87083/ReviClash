@@ -16,9 +16,9 @@ const GuestOnlyWrapper = ({ children }) => {
     }
   }, [authToken, isAuthReady]);
 
-  if (!isAuthReady || authToken) {
-      return <LoadingState message="Redirecting..." />;
-  }
+  // if (!isAuthReady || authToken) {
+  //     return <LoadingState message="Redirecting..." />;
+  // }
 
   return <>{children}</>;
 };
