@@ -10,12 +10,17 @@ const likeSchema = new mongoose.Schema({
     postId : {
         type : mongoose.Schema.Types.ObjectId,
         ref : 'Post',
-        required: true,
         index: true
     },
+    commentId : {
+        type : mongoose.Schema.Types.ObjectId,
+        ref : 'Comment',
+        index: true
+    }
 
 }, {timestamps : true})
 
 likeSchema.index({userId : 1, postId : 1}, { unique : true })
+likeSchema.index({userId : 1, commentId : 1}, { unique : true })
 
 export const Like = mongoose.model('Like', likeSchema)
