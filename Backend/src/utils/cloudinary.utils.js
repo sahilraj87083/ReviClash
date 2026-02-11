@@ -11,6 +11,12 @@ cloudinary.config({
     api_secret: process.env.CLOUDINARY_API_SECRET
 });
 
+const removeLocalFile = async (filePath) => {
+    try {
+        await fs.promises.unlink(filePath)
+    } catch (_) {}
+}
+
 const uploadOnCloudinary = async (localFilePath) => {
     
     try {
@@ -22,7 +28,10 @@ const uploadOnCloudinary = async (localFilePath) => {
         });
 
         // file has been uploaded successfully
-        console.log("file is uploaded on cloudinary ", response.url);
+        if (process.env.NODE_ENV !== 'production') {
+            console.log("File uploaded to Cloudinary:", response.secure_url)
+        }
+
 
         // Delete the temporary local file
 
@@ -33,40 +42,35 @@ const uploadOnCloudinary = async (localFilePath) => {
         // ✔ Multer (or your file uploader) saves the file temporarily on your server
         // ✔ After uploading to Cloudinary, you don’t need it anymore
         // ✔ Keeping local files bloats your server
-        fs.unlinkSync(localFilePath)
-        return response
+        await removeLocalFile(localFilePath)
+
+        return {
+            secure_url: response.secure_url,
+            public_id: response.public_id,
+            resource_type: response.resource_type,
+            duration: response.duration || null
+        }
+
     } catch (error) {
-        console.log("UPLOAD ERROR:", error); 
-        fs.unlinkSync(localFilePath) // remove the locally saved temporary file as the upload operation got failed
-        return null;
+        await removeLocalFile(localFilePath)
+        console.error("Cloudinary upload error:", error.message)
+        return null
     }
 }
 
-const deleteFromCloudinary = async (asset) => {
+const deleteFromCloudinary = async (publicId, resourceType = "image") => {
     try {
         
-        if (!asset) return null;
+        if (!publicId) return null;
 
-        let publicId;
-
-        // If it's a URL, extract public_id
-        // Extract the public ID from the URL
-        // Example:
-        // https://res.cloudinary.com/demo/image/upload/v1234567/abcxyz.png
-        // public_id = "abcxyz"
-        if (asset.includes("/")) {
-            publicId = asset.split("/").pop().split(".")[0];
-        } 
-        // Else assume it's already a public_id
-        else {
-            publicId = asset;
-        }
 
         const response = await cloudinary.uploader.destroy(publicId, {
-            resource_type: "auto"
+            resource_type: resourceType
         });
-        
-        console.log('Asset deleted on Cloudinary')
+
+        if(process.env.NODE_ENV !== 'production') {
+            console.log('Asset deleted on Cloudinary')
+        }
         return response;
     } catch (error) {
         console.log("Cloudinary delete error:", error);
