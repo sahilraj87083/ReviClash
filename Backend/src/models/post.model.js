@@ -41,7 +41,16 @@ const postSchema = new mongoose.Schema({
             url : { type : String },
             public_id : { type : String }
         }
+    ],
+    videos: [
+        {
+            url: String,        // CDN URL
+            public_id: String,
+            duration: Number,   // seconds (optional)
+            thumbnail: String  // poster image
+        }
     ]
+
 }, { timestamps : true})
 
 postSchema.index({ createdAt: -1 })
