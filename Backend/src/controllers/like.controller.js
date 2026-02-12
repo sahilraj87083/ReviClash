@@ -1,7 +1,6 @@
 import { asyncHandler } from "../utils/AsyncHandler.utils";
 import { ApiResponse } from "../utils/ApiResponse.utils";
 import { ApiError } from "../utils/ApiError.utils";
-import { uploadOnCloudinary, deleteFromCloudinary } from "../utils/cloudinary.utils.js";
 import { Like } from "../models/like.model.js";
 import { isValidObjectId } from "mongoose";
 import { Post } from "../models/post.model.js";
