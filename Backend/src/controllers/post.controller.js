@@ -3,7 +3,8 @@ import { ApiResponse } from "../utils/ApiResponse.utils";
 import { ApiError } from "../utils/ApiError.utils";
 import { uploadOnCloudinary, deleteFromCloudinary } from "../utils/cloudinary.utils.js";
 import { Post } from "../models/post.model.js";
-import { createPost } from "../services/post.services.js";
+import { createPostService, deletePostService } from "../services/post.services.js";
+import { isValidObjectId } from "mongoose";
 
 
 const addPost = asyncHandler(async (req, res) => {
@@ -91,7 +92,7 @@ const addPost = asyncHandler(async (req, res) => {
         // CREATE POST
         // ------------------------
 
-        const post = await createPost({
+        const post = await createPostService({
             userId: req.user._id,
             visibility,
             textContent,
@@ -123,19 +124,83 @@ const addPost = asyncHandler(async (req, res) => {
 
 
 const deletePost = asyncHandler( async(req, res) => {
+    const { postId } = req.params
 
+    if(!postId || isValidObjectId(postId)){
+        throw new ApiError(403, "Invalid post Id");
+    }
+    
+    await deletePostService(postId, req.user._id);
+
+    return res.json(
+        new ApiResponse(200, "Post deleted successfully", null)
+    );
 })
 
 const getAllPost = asyncHandler( async(req, res) => {
+    const {cursor , limit = 5} = req.query
 
+    const safeLimit = limit > 0 ? limit : 10;
+
+    const query = {}
+
+    if(cursor) {
+        query.createdAt = { $lt : cursor }
+    }
+
+    const posts = await Post.find(query)
+                .populate('authorId' , 'username fullname avatar.url')
+                .sort({ createdAt : -1})
+                .limit(safeLimit + 1)
+                .lean()
+    
+    let nextCursor = null;
+
+    if(posts.length > safeLimit){
+        const nextItem = posts.pop()
+        nextCursor = nextItem.createdAt
+    }
+
+    return res.status(200).json( new ApiResponse(200, 'posts fetched successfully', {
+        posts,
+        nextCursor
+    }))
 })
 
 const getPostById = asyncHandler( async(req, res) => {
+    const { postId } = req.params
 
+    if(!postId || isValidObjectId(postId)){
+        throw new ApiError(403, "Invalid post Id");
+    }
+
+    const post = await Post.findById(postId).populate(
+        "authorId", 'username fullname avatar.url'
+    )
+
+    if (!post) throw new ApiError(404, "Post not found");
+
+    return res.json(new ApiResponse(200, post, "Post fetched successfully"));
 })
 
 const editPost = asyncHandler( async(req, res) => {
+    const { postId } = req.params;
+    const { textContent, visibility } = req.body;
 
+    const post = await Post.findById(postId);
+    if (!post) throw new ApiError(404, "Post not found");
+
+    if (post.authorId.toString() !== req.user._id.toString()) {
+        throw new ApiError(403, "Not authorized");
+    }
+
+    if (textContent !== undefined) post.textContent = textContent;
+    if (visibility) post.visibility = visibility;
+
+    await post.save();
+
+    return res.json(new ApiResponse(200, "Post updated", post));
+    
 })
 
 
