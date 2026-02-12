@@ -20,6 +20,7 @@ const getGeneralfeed = asyncHandler( async(req, res) => {
             .sort({ createdAt : -1 })
             .limit(safeLimit + 1)
             .populate('authorId', 'username fullname avatar.url')
+            .lean()
 
     let hasMore = false;
     let nextCursor = null
@@ -61,7 +62,8 @@ const getFriendsFeed = asyncHandler( async(req, res) => {
     const posts = await Post.find(query)
                 .sort({ createdAt : -1})
                 .limit(safeLimit + 1)
-                .populate("authorId", "username fullname avatar.url");
+                .populate("authorId", "username fullname avatar.url")
+                .lean();
 
     let nextCursor = null
     const hasMore = false
