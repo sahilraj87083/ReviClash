@@ -138,9 +138,9 @@ const deletePost = asyncHandler( async(req, res) => {
 })
 
 const getAllPost = asyncHandler( async(req, res) => {
-    const {cursor , limit = 5} = req.query
+    const {cursor , limit = 15} = req.query
 
-    const safeLimit = limit > 0 ? limit : 10;
+    const safeLimit = limit > 0 ? limit : 15;
 
     const query = {}
 
@@ -155,15 +155,18 @@ const getAllPost = asyncHandler( async(req, res) => {
                 .lean()
     
     let nextCursor = null;
+    let hasMore = false
 
     if(posts.length > safeLimit){
         const nextItem = posts.pop()
+        hasMore = true
         nextCursor = nextItem.createdAt
     }
 
     return res.status(200).json( new ApiResponse(200, 'posts fetched successfully', {
         posts,
-        nextCursor
+        nextCursor,
+        hasMore
     }))
 })
 
