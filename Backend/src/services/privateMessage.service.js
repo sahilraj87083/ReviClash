@@ -43,7 +43,7 @@ export const getConversationMessagesService = async ({userId, room, limit = 20, 
     
     let nextCursor = null;
     // 4. Determine if there is a next page
-    if (messages.length > limit) {
+    if (messages.length > safeLimit) {
         // There are more messages! 
         // Remove the extra one we fetched
         const nextItem = messages.pop();
