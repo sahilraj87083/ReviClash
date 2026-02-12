@@ -145,7 +145,7 @@ const getAllPost = asyncHandler( async(req, res) => {
     const query = {}
 
     if(cursor) {
-        query.createdAt = { $lt : cursor }
+        query.createdAt = { $lt : new Date(cursor) }
     }
 
     const posts = await Post.find(query)
