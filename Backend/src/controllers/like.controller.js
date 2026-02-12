@@ -102,7 +102,7 @@ const getAllLikedPost = asyncHandler( async(req, res) => {
     }
 
     return res.status(200).json(
-        new ApiResponse(200, {
+        new ApiResponse(200, "posts fetched successfully" ,{
             posts: likedPosts,
             nextCursor,
             hasMore
