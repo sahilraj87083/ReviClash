@@ -28,9 +28,9 @@ const togglePostLike = asyncHandler( async(req, res) => {
 
 
 const getAllLikedPost = asyncHandler( async(req, res) => {
-    const {cursor , limit = 5} = req.query
+    const {cursor , limit = 15} = req.query
 
-    const safeLimit = limit > 0 ? limit : 10;
+    const safeLimit = limit > 0 ? limit : 15;
 
     const query = {
         userId : new mongoose.Types.ObjectId(req.user._id)
