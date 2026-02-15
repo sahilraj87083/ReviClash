@@ -48,6 +48,15 @@ const getFriendsFeed = asyncHandler( async(req, res) => {
     }).select('followingId')
 
     const ids = following.map((f) => (f.followingId))
+    // if user is not following anyone 
+    if (!ids.length) {
+        return res.json(new ApiResponse(200, "Feed fetched", {
+            posts: [],
+            nextCursor: null,
+            hasMore: false
+        }));
+    }
+
 
     const postQuery = {
         authorId : {
