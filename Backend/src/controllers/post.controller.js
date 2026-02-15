@@ -138,9 +138,9 @@ const deletePost = asyncHandler( async(req, res) => {
 })
 
 const getAllPost = asyncHandler( async(req, res) => {
-    const {cursor , limit = 15} = req.query
+    const {cursor , limit = 50} = req.query
 
-    const safeLimit = limit > 0 ? limit : 15;
+    const safeLimit = limit > 0 ? limit : 50;
 
     const query = {}
 
