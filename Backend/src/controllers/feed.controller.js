@@ -5,9 +5,9 @@ import { Follow } from "../models/follow.model.js";
 import { Repost } from "../models/repost.model.js";
 
 const getGeneralfeed = asyncHandler( async(req, res) => {
-    const { cursor, limit = 50 } = req.query
+    const { cursor, limit = 15 } = req.query
 
-    const safeLimit = limit > 0 ? limit : 50
+    const safeLimit = limit > 0 ? limit : 15
 
     const query = {
         visibility : 'general'
@@ -39,9 +39,9 @@ const getGeneralfeed = asyncHandler( async(req, res) => {
 })
 
 const getFriendsFeed = asyncHandler( async(req, res) => {
-    const { cursor, limit = 50 } = req.query
+    const { cursor, limit = 15 } = req.query
 
-    const safeLimit = limit > 0 ? limit : 50
+    const safeLimit = limit > 0 ? limit : 15
 
     const following = await Follow.find({
         followerId : req.user._id,

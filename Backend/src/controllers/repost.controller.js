@@ -27,8 +27,8 @@ const toggleRepost = asyncHandler( async(req, res) => {
 
 const getAllRepostedPosts = asyncHandler( async(req, res) => {
 
-    const { cursor, limit = 50} = req.query
-    const safeLimit = limit > 0 ? limit : 50
+    const { cursor, limit = 15} = req.query
+    const safeLimit = limit > 0 ? limit : 15
 
     const query = {
         userId : req.user._id

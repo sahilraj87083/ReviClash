@@ -55,12 +55,12 @@ const deleteComment = asyncHandler( async(req, res) => {
 
 const getAllComment = asyncHandler( async(req, res) => {
     const { postId } = req.params;
-    const { cursor, limit = 50 } = req.query;
+    const { cursor, limit = 15 } = req.query;
 
     if(!postId || isValidObjectId(postId)){
         throw new ApiError(403, "Invalid post Id");
     }
-    const safeLimit = limit > 0 ? limit : 50
+    const safeLimit = limit > 0 ? limit : 15
 
     const query = { postId };
     if (cursor) query.createdAt = { $lt: new Date(cursor) };
