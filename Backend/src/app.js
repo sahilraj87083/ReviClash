@@ -55,6 +55,12 @@ import followRoutes from './routes/follow.routes.js'
 import contestMessageRoutes from './routes/contestMessage.routes.js' 
 import userPrivateMessageRouter from './routes/privateMessage.routes.js'
 import otpRouter from './routes/otp.routes.js'
+import postRouter from './routes/post.routes.js'
+import feedRouter from './routes/feed.routes.js'
+import repostRouter from './routes/repost.routes.js'
+import commentRouter from './routes/comment.routes.js'
+import savedPostRouter from './routes/savedPost.routes.js'
+import likeRouter from './routes/like.routes.js'
 
 
 
@@ -63,6 +69,15 @@ app.use("/api/v1/healthcheck", healthcheckRouter);
 
 app.use('/api/v1/users', userRouter)
 app.use('/api/v1/otp', otpRouter)
+
+
+app.use('./api/v1/post' , postRouter)
+app.use('./api/v1/feed' , feedRouter)
+app.use('./api/v1/repost' , repostRouter)
+app.use('./api/v1/comment' , commentRouter)
+app.use('./api/v1/saved', savedPostRouter)
+app.use('./api/v1/like', likeRouter)
+
 
 
 app.use('/api/v1/users/chat', userPrivateMessageRouter)
