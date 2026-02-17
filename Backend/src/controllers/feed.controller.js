@@ -1,5 +1,5 @@
-import { asyncHandler } from "../utils/AsyncHandler.utils";
-import { ApiResponse } from "../utils/ApiResponse.utils";
+import { asyncHandler } from "../utils/AsyncHandler.utils.js";
+import { ApiResponse } from "../utils/ApiResponse.utils.js";
 import { Post } from "../models/post.model.js";
 import { Follow } from "../models/follow.model.js";
 import { Repost } from "../models/repost.model.js";

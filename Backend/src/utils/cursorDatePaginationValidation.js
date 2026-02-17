@@ -1,3 +1,5 @@
+import { query } from "express-validator";
+
 const cursorDatePaginationValidation = [
     query("cursor").optional().isISO8601().withMessage("Invalid cursor"),
     query("limit")

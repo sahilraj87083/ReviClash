@@ -1,6 +1,6 @@
 import { asyncHandler } from "../utils/AsyncHandler.utils.js";
 import { ApiResponse } from "../utils/ApiResponse.utils.js";
-import { ApiError } from "../utils/ApiError.utils";
+import { ApiError } from "../utils/ApiError.utils.js";
 import { SavedPost } from "../models/savedPost.model.js";
 import { isValidObjectId } from "mongoose";
 

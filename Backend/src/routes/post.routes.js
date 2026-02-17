@@ -2,7 +2,7 @@ import { Router } from "express";
 import { body, param, query } from "express-validator";
 import { verifyJWT } from "../middlewares/auth.middleware.js";
 import { validate } from "../middlewares/validate.middleware.js";
-import upload from "../middlewares/multer.middleware.js";
+import {upload} from "../middlewares/multer.middleware.js";
 import { cursorDatePaginationValidation } from "../utils/cursorDatePaginationValidation.js";
 
 import {
