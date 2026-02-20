@@ -1,4 +1,3 @@
-// Explore.jsx
 import { useRef, useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import gsap from "gsap";
@@ -70,12 +69,24 @@ function Explore() {
   const searchOverlayRef = useRef(null);
 
   useEffect(() => {
+    if (isSearchOpen) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "auto";
+    }
+    return () => {
+      document.body.style.overflow = "auto";
+    };
+  }, [isSearchOpen]);
+
+  useEffect(() => {
     const handleClickOutside = (event) => {
         if (!isSearchOpen) return;
+        
         const clickedSearchBar = searchContainerRef.current && searchContainerRef.current.contains(event.target);
-        const clickedResults = searchOverlayRef.current && searchOverlayRef.current.contains(event.target);
+        const clickedResultsInner = document.getElementById("search-overlay-inner")?.contains(event.target);
 
-        if (!clickedSearchBar && !clickedResults) {
+        if (!clickedSearchBar && !clickedResultsInner) {
             closeSearch();
         }
     };
@@ -226,14 +237,17 @@ function Explore() {
       {/* --- SEARCH RESULTS OVERLAY --- */}
       <div 
          ref={searchOverlayRef} 
-         className="fixed top-28 md:top-36 left-0 right-0 bottom-0 bg-slate-950/95 backdrop-blur-xl z-30 invisible opacity-0 flex flex-col border-t border-slate-800/50"
+         className="fixed inset-0 pt-36 md:pt-48 bg-slate-950/95 backdrop-blur-md z-30 invisible opacity-0 flex flex-col"
       >
-          <div className="max-w-2xl mx-auto w-full h-full p-4 overflow-y-auto pb-20">
+          <div 
+             id="search-overlay-inner"
+             className="mt-1 max-w-2xl mx-auto w-full h-full p-4 overflow-y-auto pb-20"
+          >
              
              {isSearching && (
                  <div className="flex flex-col items-center justify-center py-12 text-slate-500">
                      <Loader2 size={24} className="animate-spin text-blue-500 mb-3"/>
-                     <p className="text-xs font-medium animate-pulse">Searching database...</p>
+                     <p className="text-xs font-medium animate-pulse">Searching user...</p>
                  </div>
              )}
 
