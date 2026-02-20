@@ -100,12 +100,6 @@ function PagePost() {
                     </Link>
                     <div>
                         <h1 className="text-xl font-bold text-white capitalize">{username}'s Posts</h1>
-                        <p className="text-sm text-slate-400 flex items-center gap-1.5 mt-1">
-                            {filter === 'general' && <Globe size={14} />}
-                            {filter === 'repost' && <Repeat size={14} />}
-                            {filter === 'private' && <Lock size={14} />}
-                            Viewing {filter} activity
-                        </p>
                     </div>
                 </div>
 

@@ -2,7 +2,7 @@ import { useRef, useState, useEffect } from "react";
 import gsap from "gsap";
 import { useGSAP } from "@gsap/react";
 import { Button } from "../components";
-import { useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { getUserProfileService } from "../services/profile.services";
 import { useUserContext } from "../contexts/UserContext";
 import { ActivityTab, CollectionsTab, FollowersTab, Tab , CreatePostModal} from "../components/profilePageComponent";
@@ -45,6 +45,7 @@ function MyProfile() {
   const profileUserId = profile?._id; 
   const isOwnProfile = loggedInUserId === profileUserId;
   const isUserLoggedIn = !!loggedInUser;
+  const navigate = useNavigate()
 
   const latestPosts = {
     general: { id: "p1", content: "Just deployed my new MERN stack project! 🚀", createdAt: "2 hours ago" },
@@ -77,6 +78,10 @@ function MyProfile() {
         });
     }
   }, [loadingProfile]);
+
+  const AllPostClickHandler = () => {
+        navigate(`/user/${profile?.username}/posts?filter=All`)
+  }
 
   if (loadingProfile) {
     return (
@@ -239,6 +244,7 @@ function MyProfile() {
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                     <h3 className="text-xl font-bold text-white tracking-tight">Activity Feed</h3>
                     <Button 
+                        onClick = {AllPostClickHandler}
                         variant="secondary" 
                         className="flex items-center gap-2 w-full sm:w-auto justify-center rounded-full text-sm py-2"
                     >
