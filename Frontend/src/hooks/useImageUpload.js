@@ -24,6 +24,11 @@ export const useImageUpload = (type, onSuccess) => {
         setPreview(URL.createObjectURL(file));
     }
 
+    const clearFile = () => {
+        setFile(null)
+        setPreview(null)
+    }
+
     const upload = async () => {
         if(!file){
             toast.error("Please select an image");
@@ -44,6 +49,7 @@ export const useImageUpload = (type, onSuccess) => {
             toast.success(`${type} updated successfully`);
             onSuccess?.(user);
             setFile(null)
+            setPreview(null)
             return user;
         } catch (error) {
             toast.error(`Failed to update ${type}`);
@@ -59,6 +65,7 @@ export const useImageUpload = (type, onSuccess) => {
         preview,
         loading,
         selectFile,
+        clearFile,
         upload,
     };
 }
