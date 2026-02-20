@@ -1,3 +1,4 @@
+// Explore.jsx
 import { useRef, useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import gsap from "gsap";
@@ -11,7 +12,6 @@ import {
   ArrowRight
 } from "lucide-react";
 
-// --- MOCK FEED DATA ---
 const GENERAL_POSTS = [
   {
     id: 1,
@@ -61,7 +61,6 @@ function Explore() {
   const [activeTab, setActiveTab] = useState("general");
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   
-  // Search State
   const [searchQuery, setSearchQuery] = useState("");
   const [filteredUsers, setFilteredUsers] = useState([]);
   const [isSearching, setIsSearching] = useState(false);
@@ -70,25 +69,17 @@ function Explore() {
   const searchInputRef = useRef(null);
   const searchOverlayRef = useRef(null);
 
-
   useEffect(() => {
     const handleClickOutside = (event) => {
         if (!isSearchOpen) return;
-
-        // 1. Check if click is inside the Search Input (Header)
         const clickedSearchBar = searchContainerRef.current && searchContainerRef.current.contains(event.target);
-        
-        // 2. Check if click is inside the ACTUAL Results List (Inner Box)
-        // Note: We will move the ref to the inner div below
         const clickedResults = searchOverlayRef.current && searchOverlayRef.current.contains(event.target);
 
-        // 3. If click is OUTSIDE both, Close.
         if (!clickedSearchBar && !clickedResults) {
             closeSearch();
         }
     };
 
-    // Add listener for both Mouse (Desktop) and Touch (Mobile)
     document.addEventListener("mousedown", handleClickOutside);
     document.addEventListener("touchstart", handleClickOutside);
 
@@ -100,7 +91,6 @@ function Explore() {
 
   useEffect(() => {
     const delayDebounceFn = setTimeout(async () => {
-      
       const query = searchQuery.trim();
 
       if (!query || query.length < 2) {
@@ -123,12 +113,10 @@ function Explore() {
     return () => clearTimeout(delayDebounceFn);
   }, [searchQuery]);
 
-  // --- ANIMATIONS ---
   useGSAP(() => {
     const tl = gsap.timeline();
     
     if (isSearchOpen) {
-      // Expand Search Bar
       tl.to(searchContainerRef.current, {
         width: "100%", 
         maxWidth: "320px", 
@@ -137,7 +125,6 @@ function Explore() {
         duration: 0.4, 
         ease: "back.out(1.2)",
       });
-      // Show Overlay
       tl.to(searchOverlayRef.current, { 
         autoAlpha: 1, 
         y: 0,
@@ -147,14 +134,12 @@ function Explore() {
       
       searchInputRef.current?.focus();
     } else {
-      // Hide Overlay
       tl.to(searchOverlayRef.current, { 
         autoAlpha: 0, 
         y: 10,
         duration: 0.2, 
         ease: "power2.in" 
       });
-      // Collapse Search Bar
       tl.to(searchContainerRef.current, { 
         width: "44px", 
         backgroundColor: "rgba(15, 23, 42, 0.6)", 
@@ -165,12 +150,8 @@ function Explore() {
     }
   }, [isSearchOpen]);
 
-
   const closeSearch = (e) => {
-
       if(e) e.stopPropagation();
-      
-      console.log("Closing search...");
       setIsSearchOpen(false);
       setSearchQuery("");
       setFilteredUsers([]);
@@ -179,12 +160,12 @@ function Explore() {
   const posts = activeTab === "general" ? GENERAL_POSTS : FRIENDS_POSTS;
 
   return (
-    <div className="h-[100dvh] bg-slate-950 text-white overflow-hidden relative font-sans">
+    <div className="min-h-screen bg-slate-950 text-white relative font-sans pt-14 md:pt-20 pb-20">
       
       {/* HEADER AREA */}
-      <header className="absolute top-16 md:top-4 left-0 right-0 h-14 z-40 px-4 md:px-8 flex items-center justify-between pointer-events-none">
+      <header className="sticky top-14 md:top-20 z-40 px-4 md:px-8 py-2 mb-8 flex items-center justify-between pointer-events-none">
         
-        {/* LEFT: SEARCH BAR (Pointer Events Auto) */}
+        {/* LEFT: SEARCH BAR */}
         <div className="pointer-events-auto flex items-center justify-start h-full flex-1 z-50">
             <div 
                 ref={searchContainerRef} 
@@ -201,7 +182,6 @@ function Explore() {
                             placeholder="Search users..."
                             className="bg-transparent border-none outline-none text-sm text-white w-full placeholder:text-slate-500 min-w-0"
                         />
-                        
                         <button 
                             onClick={() => closeSearch()} 
                             className="shrink-0 p-2 hover:bg-slate-800 rounded-full transition-colors relative z-50 cursor-pointer"
@@ -246,7 +226,7 @@ function Explore() {
       {/* --- SEARCH RESULTS OVERLAY --- */}
       <div 
          ref={searchOverlayRef} 
-         className="absolute top-28 md:top-20 left-0 right-0 bottom-0 bg-slate-950/95 backdrop-blur-xl z-30 invisible opacity-0 flex flex-col border-t border-slate-800/50"
+         className="fixed top-28 md:top-36 left-0 right-0 bottom-0 bg-slate-950/95 backdrop-blur-xl z-30 invisible opacity-0 flex flex-col border-t border-slate-800/50"
       >
           <div className="max-w-2xl mx-auto w-full h-full p-4 overflow-y-auto pb-20">
              
@@ -275,7 +255,6 @@ function Explore() {
              {!isSearching && searchQuery && filteredUsers.length > 0 && (
                  <div className="space-y-2 animate-in fade-in slide-in-from-bottom-2 duration-300">
                      <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3 px-2">Users Found</p>
-                     
                      {filteredUsers.map((user) => (
                          <Link 
                             key={user._id} 
@@ -315,22 +294,20 @@ function Explore() {
       </div>
 
       {/* --- MAIN FEED --- */}
-      <div className="h-full pt-32 md:pt-24 overflow-y-scroll snap-y snap-mandatory scroll-smooth no-scrollbar">
+      <main className="relative z-10 max-w-2xl mx-auto px-4 md:px-6 flex flex-col gap-8 pb-10">
         {posts.length > 0 ? (
              posts.map((post) => (
                 <FeedPost key={post.id} post={post} />
               ))
         ) : (
-            <div className="h-[50vh] flex items-center justify-center text-slate-500">
+            <div className="flex items-center justify-center py-20 text-slate-500">
                 <p>No posts in this feed yet.</p>
             </div>
         )}
-        <div className="h-24 snap-end"></div>
-      </div>
+      </main>
 
     </div>
   );
 }
-
 
 export default Explore;

@@ -17,12 +17,6 @@ function Layout() {
         <div className="hidden lg:block">
             <Footer/>
         </div>
-
-        {/* 2. SPACER: Visible on Mobile/Tablet, Hidden on Desktop
-           This pushes content up so it's not hidden behind your fixed Bottom Navigation.
-           Notice I changed 'md:hidden' to 'lg:hidden' to match the Footer breakpoint.
-        */}
-        <div className="h-16 lg:hidden"></div>
     </>
   )
 }

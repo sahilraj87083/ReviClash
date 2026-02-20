@@ -1,3 +1,4 @@
+// FeedPost.jsx
 import { useRef, useState } from "react";
 import gsap from "gsap";
 import { 
@@ -24,15 +25,15 @@ function FeedPost({ post }) {
   };
 
   return (
-    <div className="h-[100dvh] w-full snap-start flex items-center justify-center p-4">
+    <div className="w-full flex items-center justify-center">
       
       {/* --- MAIN POST CARD --- */}
-      <div className="relative z-10 w-full max-w-[500px]">
+      <div className="relative w-full max-w-[500px]">
         
-        {/* Post Container - Fixed at 50vh */}
-        <div className="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-2xl h-[50vh] flex flex-col">
+        {/* Post Container - Removed fixed height for dynamic content */}
+        <div className="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-xl flex flex-col">
             
-            {/* 1. Header: User Info (Fixed Height) */}
+            {/* 1. Header: User Info */}
             <div className="flex items-center justify-between p-4 border-b border-slate-800/50 shrink-0">
                 <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-full p-[2px] bg-gradient-to-tr from-red-500 to-orange-500">
@@ -48,27 +49,27 @@ function FeedPost({ post }) {
                 </button>
             </div>
 
-            {/* 2. Content Body (Fills remaining space) */}
-            <div className="bg-black/20 flex-1 relative overflow-hidden flex flex-col justify-center">
+            {/* 2. Content Body */}
+            <div className="bg-black/20 flex-1 relative overflow-hidden flex flex-col justify-center min-h-[300px]">
                 {/* Title Overlay */}
                  <div className="absolute top-0 left-0 right-0 p-4 bg-gradient-to-b from-slate-900/80 to-transparent z-10 pointer-events-none">
                     <p className="text-sm text-slate-200 font-medium">{post.title}</p>
                 </div>
 
                 {post.type === 'snippet' ? (
-                    <div className="p-6 pt-12 w-full h-full flex items-center overflow-auto">
+                    <div className="p-6 pt-16 pb-12 w-full h-full flex items-center overflow-auto">
                         <pre className="font-mono text-xs md:text-sm text-blue-300 leading-relaxed">
                             <code>{post.code}</code>
                         </pre>
                     </div>
                 ) : (
-                    <div className="p-8 text-center flex items-center justify-center h-full">
+                    <div className="p-8 pt-16 pb-12 text-center flex items-center justify-center h-full">
                         <p className="text-lg md:text-xl text-slate-400 italic font-serif leading-relaxed">"{post.content}"</p>
                     </div>
                 )}
             </div>
 
-            {/* 3. Footer: Actions (Fixed Height) */}
+            {/* 3. Footer: Actions */}
             <div className="p-3 bg-slate-900 border-t border-slate-800 shrink-0">
                 <div className="flex items-center justify-between">
                     <div className="flex items-center gap-4">
@@ -107,4 +108,4 @@ function FeedPost({ post }) {
   );
 }
 
-export default FeedPost
+export default FeedPost;
