@@ -5,6 +5,7 @@ import { ActivityRow } from "./UIComponent/ActivityRow";
 import { ActivityTab } from "./TabContent/ActivityTab";
 import { CollectionsTab } from "./TabContent/CollectionsTab";
 import { FollowersTab } from "./TabContent/FollowersTab";
+import { CreatePostModal } from "./CreatePostModal";
 
 
 export {
@@ -15,5 +16,7 @@ export {
 
     ActivityTab,
     CollectionsTab,
-    FollowersTab
+    FollowersTab,
+
+    CreatePostModal
 }

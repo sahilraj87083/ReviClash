@@ -20,6 +20,7 @@ import ForgotPassword from './ForgotPassword.page.jsx'
 import ContestResultPage from './ContestResult.page.jsx'
 import CommunityPage from './Community.page.jsx'
 import Leaderboard from './Leaderboard.page.jsx'
+import PagePost from './PagePost.page.jsx'
 
 
 export {
@@ -45,5 +46,5 @@ export {
     ContestResultPage,
     CommunityPage,
     Leaderboard,
-    
+    PagePost
 }

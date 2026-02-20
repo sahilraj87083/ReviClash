@@ -13,7 +13,8 @@ import {
     ContestListPage,
     EditProfile,
     ContestResultPage,
-    Leaderboard
+    Leaderboard,
+    PagePost
 } from '../../pages'
 
 import ProtectedLayout from "./ProtectedLayout"
@@ -22,6 +23,7 @@ export const ProtectedRoutes = (
     <Route element = {<ProtectedLayout/>}>
         <Route path="/user/dashboard" element = { <Dashboard/> }/>
         <Route path="/user/profile/:username" element = { <MyProfile/> }/>
+        <Route path="/user/:username/posts" element = { <PagePost/> }/>
         <Route path="/user/contests" element = { <Contests/> }/>
         <Route path="/contests/all" element={<ContestListPage type="all" />} />
         <Route path="/contests/created" element={<ContestListPage type="created" />} />

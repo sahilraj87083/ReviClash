@@ -5,16 +5,22 @@ import { Button } from "../components";
 import { useParams } from "react-router-dom";
 import { getUserProfileService } from "../services/profile.services";
 import { useUserContext } from "../contexts/UserContext";
-import { ActivityTab, CollectionsTab, FollowersTab, Tab } from "../components/profilePageComponent";
+import { ActivityTab, CollectionsTab, FollowersTab, Tab , CreatePostModal} from "../components/profilePageComponent";
 import { ProfileActions } from '../components';
 import { useFollow } from "../hooks/useFollow";
+import { Link } from "react-router-dom";
+
 import { 
   Calendar,
   CheckCircle2,
   Image as ImageIcon,
   Type,
   ArrowRight,
-  Send
+  Send,
+  Plus,
+  Globe,
+  Repeat,
+  Lock
 } from "lucide-react";
 
 const TABS = {
@@ -26,6 +32,8 @@ const TABS = {
 function MyProfile() {
   const containerRef = useRef(null);
   const [activeTab, setActiveTab] = useState(TABS.ACTIVITY);
+  const [postFilter, setPostFilter] = useState("general");
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
 
   const { username } = useParams();
 
@@ -37,6 +45,12 @@ function MyProfile() {
   const profileUserId = profile?._id; 
   const isOwnProfile = loggedInUserId === profileUserId;
   const isUserLoggedIn = !!loggedInUser;
+
+  const latestPosts = {
+    general: { id: "p1", content: "Just deployed my new MERN stack project! 🚀", createdAt: "2 hours ago" },
+    repost: { id: "p2", content: "This is a great article on React performance.", createdAt: "1 day ago" },
+    private: null 
+};
 
   const { isFollowedBy, isFollowing, follow, unfollow, loading } = useFollow(profileUserId);
 
@@ -176,62 +190,129 @@ function MyProfile() {
 
         
 
-        {/* --- 3. POST & UPDATES SECTION --- */}
-        <section className="bg-slate-900 border-y md:border md:border-slate-800 md:rounded-xl overflow-hidden p-4 md:p-6 space-y-4">
+        {/* --- 2. POST & UPDATES SECTION --- */}
+        <section className="bg-slate-900 border-y md:border md:border-slate-800 md:rounded-xl overflow-hidden p-4 md:p-6 space-y-6 shadow-sm">
             
-            {/* A. Create Post (Only for Owner) */}
+            {/* Section 1: Upload (Only for Owner) */}
             {isOwnProfile && (
-                <div className="flex gap-4 mb-4">
-                    <div className="w-10 h-10 rounded-full bg-slate-800 shrink-0 overflow-hidden border border-slate-700 hidden sm:flex items-center justify-center">
+                <div className="flex gap-3 sm:gap-4 pb-6 border-b border-slate-800/60">
+                    <div className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-slate-800 shrink-0 overflow-hidden border border-slate-700">
                         {profile?.avatar?.url ? (
                             <img src={profile.avatar.url} alt="" className="w-full h-full object-cover" />
                         ) : (
-                            <div className="text-slate-500 font-bold">{profile?.fullName?.[0]}</div>
+                            <div className="w-full h-full flex items-center justify-center text-slate-500 font-bold">
+                                {profile?.fullName?.[0]}
+                            </div>
                         )}
                     </div>
                     
-                    <div className="flex-1 space-y-3">
-                        <div className="bg-slate-950 border border-slate-800 rounded-2xl p-3 focus-within:border-blue-500/50 transition-colors">
-                            <input 
-                                placeholder="What's on your mind?"
-                                className="w-full bg-transparent outline-none text-sm text-white placeholder:text-slate-500"
-                            />
-                        </div>
+                    {/* Trigger Box */}
+                    <div className="flex-1 flex flex-col gap-3">
+                        <button 
+                            onClick={() => setIsCreateModalOpen(true)}
+                            className="w-full text-left bg-slate-950 border border-slate-800 hover:border-slate-700 rounded-2xl px-5 py-3.5 text-slate-400 text-sm md:text-base transition-colors shadow-inner"
+                        >
+                            What's on your mind, {profile?.fullName?.split(' ')[0]}?
+                        </button>
                         
-                        <div className="flex justify-between items-center">
-                            <div className="flex gap-2">
-                                <button className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs transition-colors">
-                                    <ImageIcon size={14} className="text-blue-400" /> Media
-                                </button>
-                                <button className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs transition-colors">
-                                    <Type size={14} className="text-yellow-400" /> Text
-                                </button>
-                            </div>
-                            <button className="bg-blue-600 hover:bg-blue-500 text-white p-2 rounded-full shadow-lg shadow-blue-900/20 transition-all active:scale-95">
-                                <Send size={16} className="ml-0.5" />
+                        {/* Quick Actions */}
+                        <div className="flex items-center gap-2 sm:gap-4 px-1">
+                            <button 
+                                onClick={() => setIsCreateModalOpen(true)}
+                                className="flex items-center gap-2 px-3 py-1.5 rounded-md hover:bg-slate-800 text-blue-400 text-sm font-medium transition-colors"
+                            >
+                                <ImageIcon size={18} /> <span className="hidden sm:inline">Media</span>
+                            </button>
+                            <button 
+                                onClick={() => setIsCreateModalOpen(true)}
+                                className="flex items-center gap-2 px-3 py-1.5 rounded-md hover:bg-slate-800 text-green-400 text-sm font-medium transition-colors"
+                            >
+                                <Type size={18} /> <span className="hidden sm:inline">Article</span>
                             </button>
                         </div>
                     </div>
                 </div>
             )}
 
-            {/* B. View All Posts Action (For Everyone) */}
-            <div className={`flex flex-col sm:flex-row items-center justify-between gap-4 ${isOwnProfile ? 'border-t border-slate-800 pt-4' : ''}`}>
-                <div className="text-center sm:text-left">
-                    <h3 className="text-lg font-bold text-white">Community Posts</h3>
-                    <p className="text-xs text-slate-400">See what {isOwnProfile ? "you have" : profile?.fullName + " has"} shared recently.</p>
+            {/* Section 2: Posts Display Options */}
+            <div className="flex flex-col space-y-5">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <h3 className="text-xl font-bold text-white tracking-tight">Activity Feed</h3>
+                    <Button 
+                        variant="secondary" 
+                        className="flex items-center gap-2 w-full sm:w-auto justify-center rounded-full text-sm py-2"
+                    >
+                        View All <ArrowRight size={16} />
+                    </Button>
                 </div>
-                <Button 
-                    variant="secondary" 
-                    // onClick={() => navigate(`/user/posts/${profile?.username}`)}
-                    className="flex items-center gap-2 w-full sm:w-auto justify-center"
-                >
-                    All Posts <ArrowRight size={16} />
-                </Button>
+
+                {/* Post Filters / Tabs */}
+                <div className="flex items-center gap-2 overflow-x-auto no-scrollbar pb-1 border-b border-slate-800/50">
+                    <button 
+                        onClick={() => setPostFilter('general')}
+                        className={`flex items-center gap-2 px-4 py-2.5 text-sm font-semibold transition-all whitespace-nowrap border-b-2 ${postFilter === 'general' ? 'border-blue-500 text-blue-400' : 'border-transparent text-slate-400 hover:text-slate-300 hover:border-slate-700'}`}
+                    >
+                        <Globe size={16} /> General
+                    </button>
+                    <button 
+                        onClick={() => setPostFilter('repost')}
+                        className={`flex items-center gap-2 px-4 py-2.5 text-sm font-semibold transition-all whitespace-nowrap border-b-2 ${postFilter === 'repost' ? 'border-blue-500 text-blue-400' : 'border-transparent text-slate-400 hover:text-slate-300 hover:border-slate-700'}`}
+                    >
+                        <Repeat size={16} /> Reposts
+                    </button>
+                    {(isOwnProfile || (isFollowedBy && isFollowing)) && (
+                        <button 
+                            onClick={() => setPostFilter('private')}
+                            className={`flex items-center gap-2 px-4 py-2.5 text-sm font-semibold transition-all whitespace-nowrap border-b-2 ${postFilter === 'private' ? 'border-blue-500 text-blue-400' : 'border-transparent text-slate-400 hover:text-slate-300 hover:border-slate-700'}`}
+                        >
+                            <Lock size={16} /> Private
+                        </button>
+                    )}
+                </div>
+
+                {/* Filtered Content Display Area (Placeholder) */}
+                <div className="mt-6">
+                    {latestPosts[postFilter] ? (
+                        <Link 
+                            to={`/user/${profile?.username}/posts?filter=${postFilter}`}
+                            className="block bg-slate-900 border border-slate-800 rounded-xl p-5 hover:border-slate-700 transition-all group cursor-pointer"
+                        >
+                            <div className="flex items-center justify-between mb-4">
+                                <span className="text-xs text-slate-500 font-bold uppercase tracking-wider flex items-center gap-1.5">
+                                    <span className="w-2 h-2 rounded-full bg-blue-500"></span>
+                                    Latest {postFilter}
+                                </span>
+                                <span className="text-xs text-slate-500">{latestPosts[postFilter].createdAt}</span>
+                            </div>
+                            
+                            <p className="text-slate-300 text-sm md:text-base mb-6 line-clamp-3">
+                                {latestPosts[postFilter].content}
+                            </p>
+
+                            <div className="w-full py-2.5 rounded-lg bg-slate-950/50 group-hover:bg-slate-800/50 flex items-center justify-center text-blue-400 text-sm font-medium transition-colors">
+                                View all {postFilter} posts <ArrowRight size={16} className="ml-2 group-hover:translate-x-1 transition-transform" />
+                            </div>
+                        </Link>
+                    ) : (
+                        <div className="py-16 text-center bg-slate-900/20 rounded-xl border border-dashed border-slate-800 flex flex-col items-center justify-center gap-3">
+                            <div className="w-12 h-12 rounded-full bg-slate-800 flex items-center justify-center text-slate-500">
+                                {postFilter === 'general' && <Globe size={24} />}
+                                {postFilter === 'repost' && <Repeat size={24} />}
+                                {postFilter === 'private' && <Lock size={24} />}
+                            </div>
+                            <p className="text-slate-400 text-sm font-medium">
+                                {postFilter === 'general' && "No general posts to show right now."}
+                                {postFilter === 'repost' && "No reposts to show right now."}
+                                {postFilter === 'private' && "Your private posts will appear here."}
+                            </p>
+                        </div>
+                    )}
+                </div>
             </div>
+            
         </section>
 
-        {/* --- 4. TABS & CONTENT --- */}
+        {/* --- 3. TABS & CONTENT --- */}
         <section className="bg-slate-900 border-y md:border md:border-slate-800 md:rounded-xl min-h-[500px]">
           
           {/* Navigation - Sticky */}
@@ -282,6 +363,12 @@ function MyProfile() {
         </section>
 
       </div>
+      {/* Render the Modal at the bottom of the component */}
+      <CreatePostModal 
+          open={isCreateModalOpen} 
+          onClose={() => setIsCreateModalOpen(false)} 
+          user={profile} 
+      />
     </div>
   );
 }
