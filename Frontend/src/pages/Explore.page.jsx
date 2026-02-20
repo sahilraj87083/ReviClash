@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import gsap from "gsap";
 import { useGSAP } from "@gsap/react";
 import { searchUsersService } from "../services/auth.services"; 
-import { FeedPost } from "../components";
+import { FeedPost } from "../components"; 
 import { 
   Search, 
   X,
@@ -11,48 +11,80 @@ import {
   ArrowRight
 } from "lucide-react";
 
+// --- MOCK FEED DATA ---
 const GENERAL_POSTS = [
   {
-    id: 1,
-    user: { name: "sahilsingh", avatar: "https://ui-avatars.com/api/?name=Sahil+Singh&background=0D8ABC&color=fff" },
-    type: "snippet",
-    title: "Optimized DP Solution 🚀",
-    code: `function fib(n) {\n  let a = 0, b = 1;\n  return n ? b : a;\n}`,
-    likes: 1240,
-    comments: 45,
-    isLiked: true,
+    _id: "post_gen_1",
+    authorId: { 
+      _id: "user_1", 
+      username: "sahilsingh02", 
+      fullName: "Sahil Singh Rajput",
+      avatar: { url: "https://ui-avatars.com/api/?name=Sahil+Singh&background=0D8ABC&color=fff" } 
+    },
+    textContent: "Optimized DP Solution 🚀\n\n```javascript\nfunction fib(n) {\n  let a = 0, b = 1;\n  return n ? b : a;\n}\n```",
+    images: [],
+    likeCount: 1240,
+    commentCount: 45,
+    repostCount: 12,
+    visibility: "general",
+    createdAt: new Date(Date.now() - 3600000).toISOString(), // 1 hour ago
   },
   {
-    id: 2,
-    user: { name: "uzmakhan", avatar: "https://ui-avatars.com/api/?name=Uzma+Khan&background=10b981&color=fff" },
-    type: "image",
-    content: "Just hit 2000 rating on LeetCode! Consistency is key.",
-    likes: 856,
-    comments: 22,
-    isLiked: false,
+    _id: "post_gen_2",
+    authorId: { 
+      _id: "user_2", 
+      username: "uzmakhan", 
+      fullName: "Uzma Khan",
+      avatar: { url: "https://ui-avatars.com/api/?name=Uzma+Khan&background=10b981&color=fff" } 
+    },
+    textContent: "Just hit 2000 rating on LeetCode! Consistency is key. Hard work pays off! 🔥",
+    images: [
+      { url: "https://picsum.photos/seed/leetcode/800/600", public_id: "img_lc_1" }
+    ],
+    likeCount: 856,
+    commentCount: 22,
+    repostCount: 5,
+    visibility: "general",
+    createdAt: new Date(Date.now() - 7200000).toISOString(), // 2 hours ago
   }
 ];
 
 const FRIENDS_POSTS = [
     {
-        id: 3,
-        user: { name: "friend_dev", avatar: "https://ui-avatars.com/api/?name=Friend+Dev&background=f43f5e&color=fff" },
-        type: "snippet",
-        title: "One-liner isEven",
-        code: `const isEven = n => !(n & 1);`,
-        likes: 50,
-        comments: 5,
-        isLiked: false,
+      _id: "post_friend_1",
+      authorId: { 
+        _id: "user_3", 
+        username: "friend_dev", 
+        fullName: "Friend Dev",
+        avatar: { url: "https://ui-avatars.com/api/?name=Friend+Dev&background=f43f5e&color=fff" } 
+      },
+      textContent: "One-liner isEven magic ✨\n\n```javascript\nconst isEven = n => !(n & 1);\n```",
+      images: [],
+      likeCount: 50,
+      commentCount: 5,
+      repostCount: 2,
+      visibility: "friends",
+      createdAt: new Date(Date.now() - 86400000).toISOString(), // 1 day ago
     },
     {
-        id: 4,
-        user: { name: "friend_dev2", avatar: "https://ui-avatars.com/api/?name=Friend+Dev&background=f43f5e&color=fff" },
-        type: "snippet",
-        title: "One-liner isOdd",
-        code: `const isOdd = n => (n & 1);`,
-        likes: 50,
-        comments: 5,
-        isLiked: true,
+      _id: "post_friend_2",
+      authorId: { 
+        _id: "user_4", 
+        username: "friend_dev2", 
+        fullName: "Another Friend",
+        avatar: { url: "https://ui-avatars.com/api/?name=Another+Friend&background=8b5cf6&color=fff" } 
+      },
+      textContent: "Setup complete for the new weekend project! Rate my setup 🖥️👇",
+      images: [
+        { url: "https://picsum.photos/seed/setup1/800/600", public_id: "img_setup_1" },
+        { url: "https://picsum.photos/seed/setup2/800/600", public_id: "img_setup_2" },
+        { url: "https://picsum.photos/seed/setup3/800/600", public_id: "img_setup_3" }
+      ],
+      likeCount: 120,
+      commentCount: 15,
+      repostCount: 4,
+      visibility: "friends",
+      createdAt: new Date(Date.now() - 172800000).toISOString(), // 2 days ago
     }
 ];
 
@@ -311,7 +343,7 @@ function Explore() {
       <main className="relative z-10 max-w-2xl mx-auto px-4 md:px-6 flex flex-col gap-8 pb-10">
         {posts.length > 0 ? (
              posts.map((post) => (
-                <FeedPost key={post.id} post={post} />
+                <FeedPost key={post._id} post={post} /> 
               ))
         ) : (
             <div className="flex items-center justify-center py-20 text-slate-500">
