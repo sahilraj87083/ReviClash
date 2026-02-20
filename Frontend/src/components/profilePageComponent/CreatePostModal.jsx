@@ -1,15 +1,15 @@
+// src/components/CreatePostModal.jsx
 import { useState, useCallback, useEffect } from "react";
 import { useDropzone } from "react-dropzone";
-import { X, Image as ImageIcon, Globe, Loader2, Plus } from "lucide-react";
+import { X, Image as ImageIcon, Globe, Loader2, Plus, Users } from "lucide-react";
+import { createPostService } from "../../services/post.services.js";
 import toast from "react-hot-toast";
 
-// Maximum limits
 const MAX_FILES = 3;
-const MAX_FILE_SIZE = 2 * 1024 * 1024; // 2 MB in bytes
+const MAX_FILE_SIZE = 2 * 1024 * 1024; // 2 MB
 
 function PostMediaArea({ files, previews, onAddFiles, onRemoveFile }) {
     const onDrop = useCallback((acceptedFiles, fileRejections) => {
-        // Handle Validation Errors (Size, Type)
         if (fileRejections.length > 0) {
             const errorMessages = fileRejections.map(rejection => {
                 const errors = rejection.errors.map(e => {
@@ -22,14 +22,12 @@ function PostMediaArea({ files, previews, onAddFiles, onRemoveFile }) {
             toast.error(`Some files were rejected:\n${errorMessages.join('\n')}`);
         }
 
-        // Handle Max Files Error
         const remainingSlots = MAX_FILES - files.length;
         if (remainingSlots <= 0 && acceptedFiles.length > 0) {
-            alert(`You can only upload a maximum of ${MAX_FILES} images.`);
+            toast.error(`You can only upload a maximum of ${MAX_FILES} images.`);
             return;
         }
 
-        // Add valid files
         const filesToAdd = acceptedFiles.slice(0, remainingSlots);
         if (filesToAdd.length > 0) {
             onAddFiles(filesToAdd);
@@ -38,11 +36,10 @@ function PostMediaArea({ files, previews, onAddFiles, onRemoveFile }) {
 
     const { getRootProps, getInputProps, isDragActive } = useDropzone({
         onDrop,
-        accept: { "image/*": [] }, // Only accept images
-        maxSize: MAX_FILE_SIZE,    // 2 MB limit
+        accept: { "image/*": [] },
+        maxSize: MAX_FILE_SIZE,
     });
 
-    // 1. Empty State - No Images Selected
     if (previews.length === 0) {
         return (
             <div
@@ -65,7 +62,6 @@ function PostMediaArea({ files, previews, onAddFiles, onRemoveFile }) {
         );
     }
 
-    // 2. Filled State - Showing Selected Images
     return (
         <div className="space-y-3">
             <div className={`grid gap-2 ${previews.length === 1 ? 'grid-cols-1' : 'grid-cols-2'}`}>
@@ -86,7 +82,6 @@ function PostMediaArea({ files, previews, onAddFiles, onRemoveFile }) {
                 ))}
             </div>
             
-            {/* Add More Button if slots are available */}
             {previews.length < MAX_FILES && (
                 <div
                     {...getRootProps()}
@@ -102,20 +97,21 @@ function PostMediaArea({ files, previews, onAddFiles, onRemoveFile }) {
     );
 }
 
-export function CreatePostModal({ open, onClose, user }) {
+export function CreatePostModal({ open, onClose, user, onSuccess }) {
     const [content, setContent] = useState("");
-    const [files, setFiles] = useState([]);         // Array to hold actual files
-    const [previews, setPreviews] = useState([]);   // Array to hold Object URLs
+    const [files, setFiles] = useState([]);         
+    const [previews, setPreviews] = useState([]);   
+    const [visibility, setVisibility] = useState("general");
     const [isPosting, setIsPosting] = useState(false);
     const [showDropzone, setShowDropzone] = useState(false);
 
-    // Cleanup object URLs when component unmounts or modal closes to prevent memory leaks
     useEffect(() => {
         if (!open) {
             previews.forEach(url => URL.revokeObjectURL(url));
             setFiles([]);
             setPreviews([]);
             setContent("");
+            setVisibility("general");
             setShowDropzone(false);
         }
     }, [open]);
@@ -130,7 +126,7 @@ export function CreatePostModal({ open, onClose, user }) {
     };
 
     const handleRemoveFile = (indexToRemove) => {
-        URL.revokeObjectURL(previews[indexToRemove]); // Free memory
+        URL.revokeObjectURL(previews[indexToRemove]); 
         
         const newFiles = files.filter((_, i) => i !== indexToRemove);
         const newPreviews = previews.filter((_, i) => i !== indexToRemove);
@@ -143,24 +139,31 @@ export function CreatePostModal({ open, onClose, user }) {
         }
     };
 
+    const toggleVisibility = () => {
+        setVisibility(prev => prev === "general" ? "friends" : "general");
+    };
+
     const handlePost = async () => {
         if (!content.trim() && files.length === 0) return;
         setIsPosting(true);
         
         try {
-            // NOTE: Update this part to append to FormData since you are uploading multiple files
-            // const formData = new FormData();
-            // formData.append("content", content);
-            // files.forEach(file => formData.append("images", file));
-            // await createPostService(formData);
-
-            console.log("Posting Text:", content);
-            console.log("Posting Files:", files);
+            const formData = new FormData();
+            if (content.trim()) formData.append("textContent", content.trim());
+            formData.append("visibility", visibility);
             
-            await new Promise(res => setTimeout(res, 1000)); // Mock network delay
-            onClose(); // Cleanup handled by useEffect
+            files.forEach(file => {
+                formData.append("images", file);
+            });
+
+            await createPostService(formData);
+            toast.success("Post created successfully!");
+            
+            if(onSuccess) onSuccess();
+            onClose(); 
         } catch (error) {
             console.error("Failed to post:", error);
+            toast.error(error?.response?.data?.message || "Failed to create post");
         } finally {
             setIsPosting(false);
         }
@@ -170,7 +173,6 @@ export function CreatePostModal({ open, onClose, user }) {
         <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm flex items-end sm:items-center justify-center z-50 p-0 sm:p-4">
             <div className="bg-slate-900 border border-slate-800 w-full max-w-2xl sm:rounded-2xl rounded-t-2xl shadow-2xl flex flex-col max-h-[95vh] sm:max-h-[90vh] animate-in slide-in-from-bottom-8 sm:slide-in-from-bottom-4 sm:fade-in duration-300">
                 
-                {/* Header */}
                 <div className="flex items-center justify-between p-4 border-b border-slate-800/80 shrink-0">
                     <h2 className="text-lg font-bold text-white flex items-center gap-2">
                         Create Post
@@ -180,10 +182,8 @@ export function CreatePostModal({ open, onClose, user }) {
                     </button>
                 </div>
 
-                {/* Body */}
                 <div className="p-4 overflow-y-auto no-scrollbar flex-1 space-y-4">
                     <div className="flex gap-3">
-                        {/* Avatar */}
                         <div className="w-10 h-10 rounded-full bg-slate-800 shrink-0 overflow-hidden border border-slate-700">
                             {user?.avatar?.url ? (
                                 <img src={user.avatar.url} alt="" className="w-full h-full object-cover" />
@@ -194,7 +194,6 @@ export function CreatePostModal({ open, onClose, user }) {
                             )}
                         </div>
                         
-                        {/* Text Area */}
                         <div className="flex-1">
                             <h3 className="text-sm font-semibold text-white mb-1">{user?.fullName || 'User'}</h3>
                             <textarea
@@ -207,7 +206,6 @@ export function CreatePostModal({ open, onClose, user }) {
                         </div>
                     </div>
 
-                    {/* Media Dropzone (Conditional) */}
                     {showDropzone && (
                         <div className="pl-0 sm:pl-13 animate-in fade-in slide-in-from-top-2 duration-300">
                              <PostMediaArea 
@@ -220,7 +218,6 @@ export function CreatePostModal({ open, onClose, user }) {
                     )}
                 </div>
 
-                {/* Footer Tools & Action */}
                 <div className="p-4 border-t border-slate-800/80 flex items-center justify-between bg-slate-900/50 rounded-b-2xl shrink-0">
                     <div className="flex items-center gap-2">
                         <button 
@@ -231,8 +228,12 @@ export function CreatePostModal({ open, onClose, user }) {
                         >
                             <ImageIcon size={22} />
                         </button>
-                        <button className="flex items-center gap-1.5 px-3 py-1.5 rounded-full hover:bg-slate-800 text-slate-400 text-sm font-medium transition-colors ml-2">
-                            <Globe size={16} /> Anyone
+                        <button 
+                            onClick={toggleVisibility}
+                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full hover:bg-slate-800 text-slate-400 text-sm font-medium transition-colors ml-2"
+                        >
+                            {visibility === "general" ? <Globe size={16} /> : <Users size={16} />}
+                            <span className="capitalize">{visibility}</span>
                         </button>
                     </div>
 

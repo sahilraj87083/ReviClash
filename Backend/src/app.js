@@ -71,12 +71,12 @@ app.use('/api/v1/users', userRouter)
 app.use('/api/v1/otp', otpRouter)
 
 
-app.use('./api/v1/post' , postRouter)
-app.use('./api/v1/feed' , feedRouter)
-app.use('./api/v1/repost' , repostRouter)
-app.use('./api/v1/comment' , commentRouter)
-app.use('./api/v1/saved', savedPostRouter)
-app.use('./api/v1/like', likeRouter)
+app.use('/api/v1/post' , postRouter)
+app.use('/api/v1/feed' , feedRouter)
+app.use('/api/v1/repost' , repostRouter)
+app.use('/api/v1/comment' , commentRouter)
+app.use('/api/v1/saved', savedPostRouter)
+app.use('/api/v1/like', likeRouter)
 
 
 
