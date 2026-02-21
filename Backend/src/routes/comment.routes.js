@@ -14,15 +14,6 @@ import {
 
 const router = Router();
 
-const cursorPaginationValidation = [
-    query("cursor").optional().isISO8601().withMessage("Invalid cursor"),
-    query("limit")
-        .optional()
-        .toInt()
-        .isInt({ min: 1, max: 50 })
-        .withMessage("Limit must be between 1 and 50"),
-];
-
 // Add Comment
 router.route("/:postId")
 .post(
@@ -31,8 +22,12 @@ router.route("/:postId")
         param("postId").isMongoId().withMessage("Invalid post ID"),
         body("content")
             .trim()
-            .isLength({ min: 1, max: 2000 })
-            .withMessage("Comment must be between 1 and 2000 characters"),
+            .isLength({ min: 1, max: 1500 })
+            .withMessage("Comment must be between 1 and 1500 characters"),
+        body("parentId")
+            .optional({ nullable: true, checkFalsy: true })
+            .isMongoId()
+            .withMessage("Invalid parent comment ID")
     ],
     validate,
     addComment
@@ -44,6 +39,10 @@ router.route("/:postId")
     verifyJWT,
     [
         param("postId").isMongoId().withMessage("Invalid post ID"),
+        query("parentId")
+            .optional()
+            .isMongoId()
+            .withMessage("Invalid parent comment ID"),
         ...cursorDatePaginationValidation
     ],
     validate,
