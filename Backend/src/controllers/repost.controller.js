@@ -2,11 +2,13 @@ import { asyncHandler } from "../utils/AsyncHandler.utils.js";
 import { ApiResponse } from "../utils/ApiResponse.utils.js";
 import { ApiError } from "../utils/ApiError.utils.js";
 import { Repost } from "../models/repost.model.js";
+import { Post } from "../models/post.model.js";
+import { isValidObjectId } from 'mongoose'
 
 const toggleRepost = asyncHandler( async(req, res) => {
     const { postId } = req.params;
 
-    if(!postId || isValidObjectId(postId)){
+    if(!postId || !isValidObjectId(postId)){
         throw new ApiError(403, "Invalid post Id");
     }
 
@@ -64,7 +66,7 @@ const getAllRepostedPosts = asyncHandler( async(req, res) => {
             $project : {
                 _id : 0,
                 savedAt : "$createdAt",
-                post: {
+                // post: {
                     _id: "$post._id",
                     textContent: "$post.textContent",
                     images: "$post.images",
@@ -73,11 +75,12 @@ const getAllRepostedPosts = asyncHandler( async(req, res) => {
                     commentCount: "$post.commentCount",
                     repostCount: "$post.repostCount",
                     createdAt: "$post.createdAt"
-                },
-                author: {
+                ,
+                authorId: {
                     _id: "$author._id",
                     username: "$author.username",
-                    avatar: "$author.avatar.url"
+                    fullName: "$author.fullName",
+                    'avatar.url': "$author.avatar.url"
                 }
             }
         }

@@ -10,6 +10,8 @@ import {
   Globe,
   Users
 } from "lucide-react";
+import { toggleRepostService } from "../../services/repost.services.js";
+
 
 function FeedPost({ post }) {
   // Assume post.isLiked is passed down or calculated elsewhere, defaulting to false for now
@@ -26,6 +28,10 @@ function FeedPost({ post }) {
     }
     setLiked(!liked);
   };
+
+  const handleRepostClick = async () => {
+        await toggleRepostService(post._id)
+  }
 
   const author = post?.authorId || {};
   const hasImages = post?.images?.length > 0;
@@ -147,12 +153,16 @@ function FeedPost({ post }) {
                         </button>
 
                         {/* Repost Button */}
-                        <button className="group flex items-center gap-2 hover:text-green-400 transition-colors p-2 rounded-full hover:bg-green-400/10">
-                            <Repeat size={20} />
-                            <span className="text-sm font-medium">
-                                {post?.repostCount > 0 ? post.repostCount : 'Repost'}
-                            </span>
-                        </button>
+                        {post.visibility !== 'friends' && (
+                            <button 
+                            onClick={handleRepostClick}
+                            className="group flex items-center gap-2 hover:text-green-400 transition-colors p-2 rounded-full hover:bg-green-400/10">
+                                <Repeat size={20} />
+                                <span className="text-sm font-medium">
+                                    {post?.repostCount > 0 ? post.repostCount : 'Repost'}
+                                </span>
+                            </button>
+                        )}
                     </div>
                     
                     {/* Bookmark Button */}
