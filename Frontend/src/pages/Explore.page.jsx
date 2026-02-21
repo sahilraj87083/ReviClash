@@ -340,7 +340,8 @@ function Explore() {
       </div>
 
       {/* --- MAIN FEED --- */}
-      <main className="relative z-10 max-w-2xl mx-auto px-4 md:px-6 flex flex-col gap-8 pb-10">
+      {/* UPDATED: max-w-2xl changed to max-w-5xl to support desktop comment slide-out */}
+      <main className="relative z-10 max-w-5xl mx-auto px-4 md:px-6 flex flex-col gap-8 pb-10">
         {posts.length > 0 ? (
              posts.map((post) => (
                 <FeedPost key={post._id} post={post} /> 
