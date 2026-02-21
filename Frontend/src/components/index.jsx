@@ -56,7 +56,7 @@ import MyResultCard from './ContestResultPageComponents/MyResultCard'
 import LeaderboardTable from './ContestResultPageComponents/LeaderboardTable'
 import QuestionBreakdown from './ContestResultPageComponents/QuestionBreakdown'
 
-import CommentSection from './Others/CommentSection'
+import CommentSection from './CommentComponents/CommentSection'
 
 
 export {
