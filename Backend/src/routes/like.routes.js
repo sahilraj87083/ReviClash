@@ -5,7 +5,8 @@ import { validate } from "../middlewares/validate.middleware.js";
 
 import {
     togglePostLike,
-    getAllLikedPost
+    getAllLikedPost,
+    toggleCommentLike
 } from "../controllers/like.controller.js";
 import { cursorDatePaginationValidation } from "../utils/cursorDatePaginationValidation.js";
 
@@ -18,6 +19,14 @@ router.route("/:postId")
     [param("postId").isMongoId().withMessage("Invalid post ID")],
     validate,
     togglePostLike
+);
+
+router.route("/comment/:commentId")
+.post(
+    verifyJWT,
+    [param("commentId").isMongoId().withMessage("Invalid post ID")],
+    validate,
+    toggleCommentLike
 );
 
 router.route("/")

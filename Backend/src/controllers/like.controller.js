@@ -4,6 +4,7 @@ import { ApiError } from "../utils/ApiError.utils.js";
 import { Like } from "../models/like.model.js";
 import { isValidObjectId } from "mongoose";
 import { Post } from "../models/post.model.js";
+import { Comment } from "../models/comment.model.js";
 
 const togglePostLike = asyncHandler(async (req, res) => {
     const { postId } = req.params;
@@ -45,6 +46,45 @@ const togglePostLike = asyncHandler(async (req, res) => {
     }
 });
 
+const toggleCommentLike = asyncHandler(async (req, res) => {
+    const { commentId } = req.params;
+
+    if (!commentId || !isValidObjectId(commentId)) {
+        throw new ApiError(403, "Invalid post Id");
+    }
+
+    const userId = req.user._id;
+
+    const existingLike = await Like.findOne({ 
+        userId, 
+        targetId: commentId, 
+        targetType: 'Comment' 
+    });
+
+    if (existingLike) {
+        await Like.deleteOne({ _id: existingLike._id });
+        
+        await Comment.updateOne(
+            { _id: commentId, likeCount: { $gt: 0 } }, 
+            { $inc: { likeCount: -1 } }
+        );
+        
+        return res.json(new ApiResponse(200, "Post unliked", null));
+    } else {
+        await Like.create({ 
+            userId, 
+            targetId: commentId, 
+            targetType: 'Comment' 
+        });
+        
+        await Comment.updateOne(
+            { _id: commentId }, 
+            { $inc: { likeCount: 1 } }
+        );
+        
+        return res.json(new ApiResponse(200, "Post liked", null));
+    }
+});
 
 const getAllLikedPost = asyncHandler( async(req, res) => {
     const {cursor , limit = 15} = req.query
@@ -140,5 +180,6 @@ const getAllLikedPost = asyncHandler( async(req, res) => {
 
 export{
     togglePostLike,
+    toggleCommentLike,
     getAllLikedPost
 }

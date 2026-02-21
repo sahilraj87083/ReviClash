@@ -5,6 +5,11 @@ export const togglePostLikeService = async (postId) => {
     return res.data.data;
 };
 
+export const toggleCommentLikeService = async (commentId) => {
+    const res = await api.post(`/like/comment/${commentId}`);
+    return res.data.data;
+};
+
 export const getAllLikedPostsService = async ({ cursor, limit = 15 } = {}) => {
     const params = new URLSearchParams();
     if (cursor) params.append("cursor", cursor);
