@@ -6,6 +6,8 @@ import { Post } from "../models/post.model.js";
 import { createPostService, deletePostService } from "../services/post.services.js";
 import { isValidObjectId } from "mongoose";
 import { User } from '../models/user.model.js'
+import { Like } from "../models/like.model.js";
+import { Repost } from "../models/repost.model.js";
 
 const addPost = asyncHandler(async (req, res) => {
     const { textContent, visibility = "general" } = req.body;
@@ -137,6 +139,8 @@ const deletePost = asyncHandler( async(req, res) => {
     );
 })
 
+
+
 const getAllPost = asyncHandler(async (req, res) => {
     const { cursor, limit = 15, username, visibility } = req.query;
 
@@ -178,8 +182,31 @@ const getAllPost = asyncHandler(async (req, res) => {
         nextCursor = nextItem.createdAt;
     }
 
+    const postIds = posts.map(post => post._id);
+
+    const [userLikes, userReposts] = await Promise.all([
+        Like.find({ 
+            targetId: { $in: postIds }, 
+            targetType: 'Post', 
+            userId: req.user._id 
+        }).select('targetId').lean(),
+        Repost.find({ 
+            postId: { $in: postIds }, 
+            userId: req.user._id 
+        }).select('postId').lean()
+    ]);
+
+    const likedPostIds = new Set(userLikes.map(like => like.targetId.toString()));
+    const repostedPostIds = new Set(userReposts.map(repost => repost.postId.toString()));
+
+    const formattedPosts = posts.map(post => ({
+        ...post,
+        isLiked: likedPostIds.has(post._id.toString()),
+        isReposted: repostedPostIds.has(post._id.toString())
+    }));
+
     return res.status(200).json(new ApiResponse(200, 'posts fetched successfully', {
-        posts,
+        posts: formattedPosts,
         nextCursor,
         hasMore
     }));

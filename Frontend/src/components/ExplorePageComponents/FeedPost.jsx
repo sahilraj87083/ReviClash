@@ -1,5 +1,5 @@
 // FeedPost.jsx
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import gsap from "gsap";
 import { 
   Heart, 
@@ -11,32 +11,84 @@ import {
   Users
 } from "lucide-react";
 import { toggleRepostService } from "../../services/repost.services.js";
-
+import { togglePostLikeService } from "../../services/like.services.js";
 
 function FeedPost({ post }) {
-  // Assume post.isLiked is passed down or calculated elsewhere, defaulting to false for now
   const [liked, setLiked] = useState(false); 
   const [likesCount, setLikesCount] = useState(post?.likeCount || 0);
-  const heartRef = useRef(null);
+  
+  const [reposted, setReposted] = useState(false);
+  const [repostCount, setRepostCount] = useState(post?.repostCount || 0);
 
-  const toggleLike = () => {
+  const [saved, setSaved] = useState(false);
+
+  const heartRef = useRef(null);
+  const repeatRef = useRef(null);
+  const bookmarkRef = useRef(null);
+
+  useEffect(() => {
+    setLikesCount(post.likeCount || 0);
+    setLiked(post.isLiked || false);
+    
+    setRepostCount(post.repostCount || 0);
+    setReposted(post.isReposted || false);
+
+    setSaved(post.isSaved || false);
+  }, [post]);
+
+  const toggleLike = async () => {
     if (!liked) {
       setLikesCount(p => p + 1);
       gsap.fromTo(heartRef.current, { scale: 0.8 }, { scale: 1.2, duration: 0.3, ease: "back.out(2.5)" });
     } else {
-      setLikesCount(p => p - 1);
+      setLikesCount(p => Math.max(0, p - 1));
     }
     setLiked(!liked);
+
+    try {
+        await togglePostLikeService(post._id);
+    } catch (error) {
+        setLiked(liked);
+        setLikesCount(liked ? likesCount : Math.max(0, likesCount - 1));
+        console.error("Failed to toggle like", error);
+    }
   };
 
   const handleRepostClick = async () => {
-        await toggleRepostService(post._id)
-  }
+        if (!reposted) {
+            setRepostCount(p => p + 1);
+            gsap.fromTo(repeatRef.current, { rotation: -45, scale: 0.8 }, { rotation: 0, scale: 1.1, duration: 0.4, ease: "back.out(2)" });
+        } else {
+            setRepostCount(p => Math.max(0, p - 1));
+        }
+        setReposted(!reposted);
+
+        try {
+            await toggleRepostService(post._id);
+        } catch (error) {
+            setReposted(reposted);
+            setRepostCount(reposted ? repostCount : Math.max(0, repostCount - 1));
+            console.error("Failed to toggle repost", error);
+        }
+  };
+
+  const handleSaveClick = async () => {
+      if (!saved) {
+          gsap.fromTo(bookmarkRef.current, { scale: 0.8, y: -2 }, { scale: 1.1, y: 0, duration: 0.4, ease: "bounce.out" });
+      }
+      setSaved(!saved);
+
+      // try {
+      //     await toggleSavePostService(post._id);
+      // } catch (error) {
+      //     setSaved(saved);
+      //     console.error("Failed to toggle save", error);
+      // }
+  };
 
   const author = post?.authorId || {};
   const hasImages = post?.images?.length > 0;
   
-  // Format Date safely
   const formattedDate = post?.createdAt 
     ? new Date(post.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
     : 'Just now';
@@ -46,7 +98,7 @@ function FeedPost({ post }) {
       <div className="relative w-full max-w-[600px]">
         <div className="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-xl flex flex-col">
             
-            {/* 1. Header: User Info */}
+            {/* Header: User Info */}
             <div className="flex items-center justify-between p-4 pb-3 shrink-0">
                 <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-full bg-slate-800 shrink-0 overflow-hidden border border-slate-700">
@@ -79,10 +131,8 @@ function FeedPost({ post }) {
                 </button>
             </div>
 
-            {/* 2. Content Body */}
+            {/* Content Body */}
             <div className="flex-1 flex flex-col">
-                
-                {/* Text Content */}
                 {post?.textContent && (
                     <div className="px-4 pb-3">
                         <p className="text-slate-200 text-sm md:text-base whitespace-pre-wrap break-words leading-relaxed">
@@ -91,7 +141,6 @@ function FeedPost({ post }) {
                     </div>
                 )}
 
-                {/* Media Content (Images) */}
                 {hasImages && (
                     <div className={`grid gap-0.5 border-y border-slate-800/50 bg-black/40
                         ${post.images.length === 1 ? 'grid-cols-1' : ''}
@@ -99,7 +148,6 @@ function FeedPost({ post }) {
                         ${post.images.length >= 3 ? 'grid-cols-2' : ''}
                     `}>
                         {post.images.slice(0, 4).map((img, index) => {
-                            // Layout logic for 3+ images
                             const isThreeImagesAndFirst = post.images.length === 3 && index === 0;
                             const isMoreThanFour = post.images.length > 4 && index === 3;
                             
@@ -130,7 +178,7 @@ function FeedPost({ post }) {
                 )}
             </div>
 
-            {/* 3. Footer: Actions */}
+            {/* Footer: Actions */}
             <div className="p-1 px-2 sm:px-4 bg-slate-900 shrink-0 border-t border-slate-800/50">
                 <div className="flex items-center justify-between py-2">
                     <div className="flex items-center gap-2 sm:gap-6 text-slate-400">
@@ -155,11 +203,14 @@ function FeedPost({ post }) {
                         {/* Repost Button */}
                         {post.visibility !== 'friends' && (
                             <button 
-                            onClick={handleRepostClick}
-                            className="group flex items-center gap-2 hover:text-green-400 transition-colors p-2 rounded-full hover:bg-green-400/10">
-                                <Repeat size={20} />
-                                <span className="text-sm font-medium">
-                                    {post?.repostCount > 0 ? post.repostCount : 'Repost'}
+                                onClick={handleRepostClick}
+                                className="group flex items-center gap-2 hover:text-green-400 transition-colors p-2 rounded-full hover:bg-green-400/10"
+                            >
+                                <div ref={repeatRef}>
+                                    <Repeat size={20} className={`transition-colors ${reposted ? "text-green-500" : ""}`} />
+                                </div>
+                                <span className={`text-sm font-medium ${reposted ? "text-green-500" : ""}`}>
+                                    {repostCount > 0 ? repostCount : 'Repost'}
                                 </span>
                             </button>
                         )}
@@ -167,8 +218,16 @@ function FeedPost({ post }) {
                     
                     {/* Bookmark Button */}
                     <div>
-                        <button className="group hover:text-yellow-400 transition-colors p-2 rounded-full hover:bg-yellow-400/10">
-                             <Bookmark size={20} className="text-slate-400 group-hover:text-yellow-400" />
+                        <button 
+                            onClick={handleSaveClick}
+                            className="group hover:text-yellow-400 transition-colors p-2 rounded-full hover:bg-yellow-400/10"
+                        >
+                            <div ref={bookmarkRef}>
+                                <Bookmark 
+                                    size={20} 
+                                    className={`transition-colors ${saved ? "fill-yellow-400 text-yellow-400" : "text-slate-400 group-hover:text-yellow-400"}`} 
+                                />
+                            </div>
                         </button>
                     </div>
                 </div>
