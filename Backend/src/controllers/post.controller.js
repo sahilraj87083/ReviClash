@@ -5,7 +5,7 @@ import { uploadOnCloudinary, deleteFromCloudinary } from "../utils/cloudinary.ut
 import { Post } from "../models/post.model.js";
 import { createPostService, deletePostService } from "../services/post.services.js";
 import { isValidObjectId } from "mongoose";
-
+import { User } from '../models/user.model.js'
 
 const addPost = asyncHandler(async (req, res) => {
     const { textContent, visibility = "general" } = req.body;
@@ -137,38 +137,53 @@ const deletePost = asyncHandler( async(req, res) => {
     );
 })
 
-const getAllPost = asyncHandler( async(req, res) => {
-    const {cursor , limit = 15} = req.query
+const getAllPost = asyncHandler(async (req, res) => {
+    const { cursor, limit = 15, username, visibility } = req.query;
 
-    const safeLimit = limit > 0 ? limit : 15;
+    const safeLimit = limit > 0 ? Number(limit) : 15;
+    const query = {};
 
-    const query = {}
+    if (username) {
+        const targetUser = await User.findOne({ username }).select("_id");
+        if (!targetUser) {
+            return res.status(200).json(new ApiResponse(200, 'posts fetched successfully', {
+                posts: [],
+                nextCursor: null,
+                hasMore: false
+            }));
+        }
+        query.authorId = targetUser._id;
+    }
 
-    if(cursor) {
-        query.createdAt = { $lt : new Date(cursor) }
+    if (visibility && ["general", "friends"].includes(visibility)) {
+        query.visibility = visibility;
+    }
+
+    if (cursor) {
+        query.createdAt = { $lt: new Date(cursor) };
     }
 
     const posts = await Post.find(query)
-                .populate('authorId' , 'username fullname avatar.url')
-                .sort({ createdAt : -1})
-                .limit(safeLimit + 1)
-                .lean()
+        .populate('authorId', 'username fullName avatar.url')
+        .sort({ createdAt: -1 })
+        .limit(safeLimit + 1)
+        .lean();
     
     let nextCursor = null;
-    let hasMore = false
+    let hasMore = false;
 
-    if(posts.length > safeLimit){
-        const nextItem = posts.pop()
-        hasMore = true
-        nextCursor = nextItem.createdAt
+    if (posts.length > safeLimit) {
+        const nextItem = posts.pop();
+        hasMore = true;
+        nextCursor = nextItem.createdAt;
     }
 
-    return res.status(200).json( new ApiResponse(200, 'posts fetched successfully', {
+    return res.status(200).json(new ApiResponse(200, 'posts fetched successfully', {
         posts,
         nextCursor,
         hasMore
-    }))
-})
+    }));
+});
 
 const getPostById = asyncHandler( async(req, res) => {
     const { postId } = req.params

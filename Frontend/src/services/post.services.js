@@ -10,10 +10,12 @@ export const createPostService = async (formData) => {
     return res.data.data;
 };
 
-export const getAllPostsService = async ({ cursor, limit = 15 } = {}) => {
+export const getAllPostsService = async ({ cursor, limit = 15, username, visibility } = {}) => {
     const params = new URLSearchParams();
     if (cursor) params.append("cursor", cursor);
     if (limit) params.append("limit", limit);
+    if (username) params.append("username", username);
+    if (visibility && visibility !== "All") params.append("visibility", visibility);
 
     const res = await api.get(`/post?${params.toString()}`);
     return res.data.data;

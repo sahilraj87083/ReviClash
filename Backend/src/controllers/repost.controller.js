@@ -28,8 +28,7 @@ const toggleRepost = asyncHandler( async(req, res) => {
 const getAllRepostedPosts = asyncHandler( async(req, res) => {
 
     const { cursor, limit = 15} = req.query
-    const safeLimit = limit > 0 ? limit : 15
-
+    const safeLimit = limit > 0 ?  Number(limit) : 15
     const query = {
         userId : req.user._id
     }
@@ -55,7 +54,7 @@ const getAllRepostedPosts = asyncHandler( async(req, res) => {
         {
             $lookup : {
                 from : 'users',
-                localField : '$post.authorId',
+                localField : 'post.authorId', 
                 foreignField : '_id',
                 as : 'author'
             }
@@ -85,7 +84,7 @@ const getAllRepostedPosts = asyncHandler( async(req, res) => {
     ])
     
     let nextCursor = null
-    const hasMore = false
+    let hasMore = false 
     if(repostedPosts.length > safeLimit){
         const nextItem = repostedPosts.pop();
         nextCursor = nextItem.createdAt

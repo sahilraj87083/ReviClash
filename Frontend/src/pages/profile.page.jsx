@@ -50,7 +50,7 @@ function MyProfile() {
   const latestPosts = {
     general: { id: "p1", content: "Just deployed my new MERN stack project! 🚀", createdAt: "2 hours ago" },
     repost: { id: "p2", content: "This is a great article on React performance.", createdAt: "1 day ago" },
-    private: null 
+    friends: { id: "p3", content: "This is a great article on Node Js performance.", createdAt: "2 day ago" } 
 };
 
   const { isFollowedBy, isFollowing, follow, unfollow, loading } = useFollow(profileUserId);
@@ -243,13 +243,18 @@ function MyProfile() {
             <div className="flex flex-col space-y-5">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                     <h3 className="text-xl font-bold text-white tracking-tight">Activity Feed</h3>
-                    <Button 
-                        onClick = {AllPostClickHandler}
-                        variant="secondary" 
-                        className="flex items-center gap-2 w-full sm:w-auto justify-center rounded-full text-sm py-2"
-                    >
-                        View All <ArrowRight size={16} />
-                    </Button>
+                    {
+                        (isOwnProfile || (isFollowedBy && isFollowing)) && (
+                            <Button 
+                                onClick = {AllPostClickHandler}
+                                variant="secondary" 
+                                className="flex items-center gap-2 w-full sm:w-auto justify-center rounded-full text-sm py-2"
+                            >
+                                View All <ArrowRight size={16} />
+                            </Button>
+                        )
+                    }
+                    
                 </div>
 
                 {/* Post Filters / Tabs */}
@@ -268,7 +273,7 @@ function MyProfile() {
                     </button>
                     {(isOwnProfile || (isFollowedBy && isFollowing)) && (
                         <button 
-                            onClick={() => setPostFilter('private')}
+                            onClick={() => setPostFilter('friends')}
                             className={`flex items-center gap-2 px-4 py-2.5 text-sm font-semibold transition-all whitespace-nowrap border-b-2 ${postFilter === 'private' ? 'border-blue-500 text-blue-400' : 'border-transparent text-slate-400 hover:text-slate-300 hover:border-slate-700'}`}
                         >
                             <Lock size={16} /> Private
