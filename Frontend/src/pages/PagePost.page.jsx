@@ -80,7 +80,7 @@ function PagePost() {
 
     return (
         <div className="min-h-screen bg-slate-950 text-white font-sans pt-16 md:pt-24 pb-20">
-            <div className="max-w-2xl mx-auto px-4 md:px-6">
+            <div className="max-w-5xl mx-auto px-4 md:px-6">
                 
                 <div className="flex items-center gap-4 mb-8 sticky top-16 md:top-24 z-10 bg-slate-950/80 backdrop-blur-md py-4 border-b border-slate-800">
                     <Link to={`/user/profile/${username}`} className="p-2 bg-slate-900 hover:bg-slate-800 rounded-full transition-colors">

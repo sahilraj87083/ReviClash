@@ -56,6 +56,8 @@ import MyResultCard from './ContestResultPageComponents/MyResultCard'
 import LeaderboardTable from './ContestResultPageComponents/LeaderboardTable'
 import QuestionBreakdown from './ContestResultPageComponents/QuestionBreakdown'
 
+import CommentSection from './Others/CommentSection'
+
 
 export {
     Header,
@@ -67,6 +69,8 @@ export {
 
     QuestionRow,
     AddQuestionPanel,
+
+    CommentSection,
 
     LiveContests,
     PublicCollections,

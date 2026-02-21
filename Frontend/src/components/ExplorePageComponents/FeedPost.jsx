@@ -8,10 +8,13 @@ import {
   Repeat, 
   MoreHorizontal,
   Globe,
-  Users
+  Users,
+  X
 } from "lucide-react";
 import { toggleRepostService } from "../../services/repost.services.js";
 import { togglePostLikeService } from "../../services/like.services.js";
+import { CommentSection } from '../'
+
 
 function FeedPost({ post }) {
   const [liked, setLiked] = useState(false); 
@@ -19,6 +22,8 @@ function FeedPost({ post }) {
   
   const [reposted, setReposted] = useState(false);
   const [repostCount, setRepostCount] = useState(post?.repostCount || 0);
+
+  const [showComments, setShowComments] = useState(false);
 
   const [saved, setSaved] = useState(false);
 
@@ -94,8 +99,8 @@ function FeedPost({ post }) {
     : 'Just now';
 
   return (
-    <div className="w-full flex items-center justify-center">
-      <div className="relative w-full max-w-[600px]">
+    <div className={`w-full flex justify-center transition-all duration-300 ease-in-out ${showComments ? 'max-w-5xl' : 'max-w-[600px]'} mx-auto`}>
+      <div className={`relative w-full max-w-[600px] shrink-0 transition-all duration-300`}>
         <div className="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-xl flex flex-col">
             
             {/* Header: User Info */}
@@ -193,7 +198,12 @@ function FeedPost({ post }) {
                         </button>
 
                         {/* Comment Button */}
-                        <button className="group flex items-center gap-2 hover:text-blue-400 transition-colors p-2 rounded-full hover:bg-blue-400/10">
+                        <button 
+                        onClick={(e) => {
+                                e.stopPropagation();
+                                setShowComments(!showComments);
+                            }}
+                        className={`group flex items-center gap-2 hover:text-blue-400 transition-colors p-2 rounded-full hover:bg-blue-400/10 ${showComments ? 'text-blue-400 bg-blue-400/10' : ''}`}>
                             <MessageCircle size={20} />
                             <span className="text-sm font-medium">
                                 {post?.commentCount > 0 ? post.commentCount : 'Comment'}
@@ -235,6 +245,24 @@ function FeedPost({ post }) {
 
         </div>
       </div>
+
+      {/* --- COMMENT SECTION --- */}
+      
+      {/* 1. DESKTOP VIEW: Side Panel */}
+      {showComments && (
+          <div className="hidden md:flex w-[400px] ml-4 bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-xl animate-in slide-in-from-left-4 fade-in duration-300">
+              <CommentSection postId={post._id} onClose={() => setShowComments(false)} />
+          </div>
+      )}
+
+      {/* 2. MOBILE VIEW: Bottom Modal */}
+      {showComments && (
+          <div className="md:hidden fixed inset-0 z-[99] flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
+              <div className="w-full h-[80vh] bg-slate-900 rounded-t-2xl shadow-2xl overflow-hidden animate-in slide-in-from-bottom-full duration-300">
+                  <CommentSection postId={post._id} onClose={() => setShowComments(false)} />
+              </div>
+          </div>
+      )}
     </div>
   );
 }
