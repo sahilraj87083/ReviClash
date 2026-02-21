@@ -68,16 +68,32 @@ const deleteComment = asyncHandler(async (req, res) => {
         throw new ApiError(403, "Not authorized");
     }
 
+    const commentsToDeleteIds = [comment._id];
+
     if (comment.parentId) {
-        await Comment.findByIdAndUpdate(comment.parentId, { $inc: { replyCount: -1 } });
+        await Comment.updateOne(
+            { _id: comment.parentId, replyCount: { $gt: 0 } },
+            { $inc: { replyCount: -1 } }
+        );
     } else {
-        await Post.findByIdAndUpdate(comment.postId, { $inc: { commentCount: -1 } });
+        const replies = await Comment.find({ parentId: commentId }).select('_id');
+        const replyIds = replies.map(r => r._id);
+        
+        if (replyIds.length > 0) {
+            commentsToDeleteIds.push(...replyIds);
+            await Comment.deleteMany({ parentId: commentId });
+        }
+        
+        await Post.updateOne(
+            { _id: comment.postId, commentCount: { $gt: 0 } },
+            { $inc: { commentCount: -1 } }
+        );
     }
 
-    // Optional: Delete all nested replies associated with this comment
-    await Comment.deleteMany({ parentId: commentId });
-    // Optional: Delete associated likes
-    await Like.deleteMany({ targetId: commentId, targetType: 'Comment' });
+    await Like.deleteMany({ 
+        targetId: { $in: commentsToDeleteIds }, 
+        targetType: 'Comment' 
+    });
 
     await comment.deleteOne();
 
