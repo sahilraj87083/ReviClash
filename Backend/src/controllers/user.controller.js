@@ -603,6 +603,11 @@ const getUserProfile = asyncHandler( async (req, res) => {
                 followers: 0,
                 following: 0,
                 viewerFollow: 0,
+                'avatar.public_id' : 0,
+                'avatar._id' : 0,
+                'coverImage.public_id' : 0,
+                'coverImage._id' : 0,
+                'collections.nameLower' : 0
             }
         }
     ])
