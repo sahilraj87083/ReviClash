@@ -5,26 +5,45 @@ import { Like } from "../models/like.model.js";
 import { isValidObjectId } from "mongoose";
 import { Post } from "../models/post.model.js";
 
-const togglePostLike = asyncHandler( async(req, res) => {
-    const { postId } = req.params
+const togglePostLike = asyncHandler(async (req, res) => {
+    const { postId } = req.params;
 
-    if(!postId || isValidObjectId(postId)){
+    if (!postId || !isValidObjectId(postId)) {
         throw new ApiError(403, "Invalid post Id");
     }
 
-    try {
-        await Like.create({ userId: req.user._id, postId });
-        await Post.updateOne({ _id: postId }, { $inc: { likeCount: 1 } });
+    const userId = req.user._id;
+
+    const existingLike = await Like.findOne({ 
+        userId, 
+        targetId: postId, 
+        targetType: 'Post' 
+    });
+
+    if (existingLike) {
+        await Like.deleteOne({ _id: existingLike._id });
+        
+        await Post.updateOne(
+            { _id: postId, likeCount: { $gt: 0 } }, 
+            { $inc: { likeCount: -1 } }
+        );
+        
+        return res.json(new ApiResponse(200, "Post unliked", null));
+    } else {
+        await Like.create({ 
+            userId, 
+            targetId: postId, 
+            targetType: 'Post' 
+        });
+        
+        await Post.updateOne(
+            { _id: postId }, 
+            { $inc: { likeCount: 1 } }
+        );
+        
         return res.json(new ApiResponse(200, "Post liked", null));
-    } catch (err) {
-
-        if (err.code !== 11000) throw err;
-
-        await Like.deleteOne({ userId: req.user._id, postId });
-        await Post.updateOne({ _id: postId }, { $inc: { likeCount: -1 } });
-        return res.json(new ApiResponse(200,"Post unliked", null));
     }
-})
+});
 
 
 const getAllLikedPost = asyncHandler( async(req, res) => {

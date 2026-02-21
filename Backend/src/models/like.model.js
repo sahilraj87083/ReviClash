@@ -7,20 +7,18 @@ const likeSchema = new mongoose.Schema({
         required: true,
         index: true
     },
-    postId : {
-        type : mongoose.Schema.Types.ObjectId,
-        ref : 'Post',
-        index: true
+    targetId: { 
+        type: mongoose.Schema.Types.ObjectId, 
+        required: true 
     },
-    commentId : {
-        type : mongoose.Schema.Types.ObjectId,
-        ref : 'Comment',
-        index: true
+    targetType: { 
+        type: String, 
+        enum: ['Post', 'Comment', 'Reel'],
+        required: true 
     }
 
 }, {timestamps : true})
 
-likeSchema.index({userId : 1, postId : 1}, { unique : true })
-likeSchema.index({userId : 1, commentId : 1}, { unique : true })
+likeSchema.index({ userId: 1, targetId: 1, targetType: 1 }, { unique: true });
 
 export const Like = mongoose.model('Like', likeSchema)
